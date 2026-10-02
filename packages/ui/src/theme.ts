@@ -1,7 +1,6 @@
-export { AppPlaceholder } from './AppPlaceholder';
 export {
   amberAuroraColors,
   amberAuroraPalette,
   type AmberAuroraColors,
   type AmberAuroraPalette,
-} from './theme';
+} from '../theme.cjs';
