@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Expo
+.expo/
+
+# Test / build output
+coverage/
+dist/
+build/
+
+# Firebase local cache
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# IDE
+.idea/
+*.swp
