@@ -10,7 +10,7 @@
     "lint": "pnpm -r --if-present lint && eslint firebase",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,cjs,json,css,md}\" \"packages/**/*.{ts,tsx,cjs,json,md}\" \"functions/**/*.{ts,cjs,json,md}\" \"firebase/**/*.{json,mjs,md}\" firebase.json .firebaserc README.md package.json \"*.config.cjs\" .prettierrc.json",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,cjs,json,css,md}\" \"packages/**/*.{ts,tsx,cjs,json,md}\" \"functions/**/*.{ts,cjs,json,md}\" \"firebase/**/*.{json,mjs,md}\" firebase.json .firebaserc README.md package.json \"*.config.cjs\" .prettierrc.json .github/workflows/ci.yml",
     "start:parent": "pnpm --filter @chorex/parent start --port 8081",
     "start:child": "pnpm --filter @chorex/child start --port 8082",
     "functions:build": "pnpm --filter @chorex/functions build",

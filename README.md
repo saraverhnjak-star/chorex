@@ -158,7 +158,7 @@ The app root initializes emulator routing before rendering. Fast Refresh reuses 
 
 The scoped pnpm policy permits `unrs-resolver` and disables `@firebase/util` and `protobufjs` install scripts, which are unnecessary for this explicit emulator configuration. Workspace globs are unchanged.
 
-Phase 0 is not complete. CI and the remaining foundation gates are subsequent work. OPEN-008 through OPEN-014 remain unresolved.
+Phase 0 is not complete. The first successful CI run and final foundation acceptance review remain necessary. OPEN-008 through OPEN-014 remain unresolved.
 
 Manual native checklist for this infrastructure boundary:
 
@@ -177,3 +177,11 @@ Validation on this machine for this slice:
 - Full-suite startup and `emulators:verify` failed at the prerequisite check: only Java 20 and Java 8 are installed, while this CLI requires Java 21+. Firestore readiness and the deny-all check remain unverified until Java 21+ is selected through `JAVA_HOME`.
 - Android native and physical-device host routing remain unverified (`adb` is unavailable). Native builds emitted upstream build-script/optional RNFirebase config warnings; both builds succeeded without generated-source patches.
 - Task-owned servers were stopped; a pre-existing Child Metro server was preserved. No cloud deployment or provisioning was performed.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pushes to `main`, pull requests targeting `main`, and manual dispatch. One Ubuntu 24.04 job uses Node from `.nvmrc`, pnpm from `package.json`'s `packageManager`, and Temurin Java 21. It caches only the pnpm dependency store using `pnpm-lock.yaml`, installs with `--frozen-lockfile`, and runs formatting, lint, strict typechecks, existing tests, and `pnpm emulators:verify` (including the Functions build). Failures fail the job; superseded runs are cancelled and the job has a 20-minute timeout.
+
+CI uses read-only repository permission and requires no Firebase credentials or custom secrets. The existing emulator verification command owns startup/shutdown and retains its project/endpoint guards. CI does not deploy, provision cloud resources, or build native binaries.
+
+Workflow prepared and locally validated; first GitHub Actions run pending push. Phase 0 still requires that successful remote run and the final acceptance review.
