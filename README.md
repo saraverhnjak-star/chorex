@@ -14,26 +14,33 @@ The architecture intentionally optimizes for:
 
 ## Recommended stack
 
-| Area | Choice |
-| --- | --- |
-| Mobile | React Native + Expo |
-| Language | TypeScript, strict mode |
-| Navigation | Expo Router |
-| UI | NativeWind + shared design tokens |
-| Local UI state | Zustand |
-| Forms | React Hook Form + Zod |
-| Firebase mobile SDK | React Native Firebase |
-| Database | Cloud Firestore |
-| Authentication | Firebase Authentication |
-| Server logic | Cloud Functions for Firebase, 2nd gen |
-| Push notifications | `expo-notifications` + Expo Push Service |
-| Native builds | EAS Build / EAS Submit |
-| Secure local values | Expo SecureStore |
-| Crash reporting | Firebase Crashlytics |
-| Unit/component tests | Jest + React Native Testing Library |
-| E2E later | Maestro |
-| Package manager | pnpm workspaces |
-| Website later | Next.js + Tailwind CSS |
+| Area                 | Choice                                   |
+| -------------------- | ---------------------------------------- |
+| Mobile               | React Native + Expo                      |
+| Language             | TypeScript, strict mode                  |
+| Navigation           | Expo Router                              |
+| UI                   | NativeWind + shared design tokens        |
+| Local UI state       | Zustand                                  |
+| Forms                | React Hook Form + Zod                    |
+| Firebase mobile SDK  | React Native Firebase                    |
+| Database             | Cloud Firestore                          |
+| Authentication       | Firebase Authentication                  |
+| Server logic         | Cloud Functions for Firebase, 2nd gen    |
+| Push notifications   | `expo-notifications` + Expo Push Service |
+| Native builds        | EAS Build / EAS Submit                   |
+| Secure local values  | Expo SecureStore                         |
+| Crash reporting      | Firebase Crashlytics                     |
+| Unit/component tests | Jest + React Native Testing Library      |
+| E2E later            | Maestro                                  |
+| Package manager      | pnpm workspaces                          |
+| Website later        | Next.js + Tailwind CSS                   |
+
+### End-to-end testing
+
+The E2E framework is intentionally not selected yet.
+
+Do not install Maestro, Detox, or another E2E framework during Phase 0.
+See `DECISIONS.md` → `OPEN-008`.
 
 ## Documents
 

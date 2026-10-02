@@ -475,7 +475,7 @@ A new domain model demonstrates a simpler representation without losing lifecycl
 
 # ADR-013 — Contract State Transitions Are Explicit
 
-**Status:** Accepted
+**Status:** Superseded by ADR-033
 
 ## Decision
 
@@ -527,7 +527,7 @@ The state machine is intentionally redesigned and documented.
 
 # ADR-014 — Reward Fulfillment Is Separate From Contract Completion
 
-**Status:** Accepted
+**Status:** Superseded by ADR-034
 
 ## Decision
 
@@ -975,7 +975,6 @@ The goal is to preserve the reasoning behind decisions that future developers or
 
 ---
 
-
 # ADR-028 — Parent Authentication Starts With Email and Password
 
 **Status:** Accepted
@@ -1403,8 +1402,6 @@ A future requirement introduces scheduled repetitions, per-occurrence parent app
 
 ---
 
-
-
 # ADR-033 — Canonical Contract Lifecycle Follows the State Machine Specification
 
 **Status:** Accepted
@@ -1585,10 +1582,7 @@ Do not create empty speculative packages beyond this structure merely for archit
 
 ---
 
-
 # Remaining Open Decisions Before or During Early Implementation
-
-The following items are intentionally not yet locked and should be decided when their implementation becomes imminent.
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.
 
@@ -1709,10 +1703,11 @@ React Native + Expo + TypeScript
 Shared pnpm monorepo
         │
         ├── domain
-        ├── validation
-        ├── firebase
+        ├── ui
+        ├── firebase-client
         ├── notifications
-        └── UI/config
+        ├── config
+        └── test-utils
         │
         ▼
 Firebase
