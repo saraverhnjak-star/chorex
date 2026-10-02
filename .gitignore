@@ -31,3 +31,8 @@ firebase-debug.*.log
 # IDE
 .idea/
 *.swp
+
+# Generated native development projects
+/apps/*/ios/
+/apps/*/android/
+*.tsbuildinfo

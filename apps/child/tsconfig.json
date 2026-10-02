@@ -1,0 +1,7 @@
+{
+  "extends": "@chorex/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["jest", "react", "react-native"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts"]
+}

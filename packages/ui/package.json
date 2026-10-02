@@ -1,0 +1,31 @@
+{
+  "name": "@chorex/ui",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --config ../../jest.config.cjs --rootDir . --passWithNoTests --runInBand"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@chorex/config": "workspace:*",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "nativewind": "4.2.7",
+    "@types/react": "19.2.18",
+    "@react-native/metro-config": "0.86.3",
+    "react-native-css-interop": "0.2.7"
+  },
+  "peerDependencies": {
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "nativewind": "4.2.7",
+    "react-native-css-interop": "0.2.7"
+  }
+}

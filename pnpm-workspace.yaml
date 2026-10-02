@@ -2,3 +2,6 @@ packages:
   - "apps/*"
   - "packages/*"
   - "functions"
+
+allowBuilds:
+  unrs-resolver: true
