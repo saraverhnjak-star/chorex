@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --config ../../jest.config.cjs --rootDir . --passWithNoTests --runInBand"
   },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
   "devDependencies": {
     "typescript": "6.0.3",
     "@chorex/config": "workspace:*"

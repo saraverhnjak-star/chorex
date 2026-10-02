@@ -1,6 +1,6 @@
 # Shared UI
 
-`AppPlaceholder` is the shared non-product preview used by both apps. Both apps use the package's public entry point and compile its NativeWind classes. App smoke tests cover this runtime boundary.
+`AppPlaceholder` is the shared non-product preview used by both apps. `Screen`, `TextField`, `Button`, and `FormMessage` are the small accessible primitive set used by the first Parent authentication forms. Both apps use the package's public entry point and compile its NativeWind classes. App smoke tests cover this runtime boundary.
 
 ## Amber Aurora theme
 

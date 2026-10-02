@@ -30,12 +30,15 @@
     "@react-native-firebase/auth": "26.4.0",
     "@react-native-firebase/firestore": "26.4.0",
     "@react-native-firebase/functions": "26.4.0",
+    "@chorex/domain": "workspace:*",
     "@chorex/firebase-client": "workspace:*",
     "@chorex/config": "workspace:*",
-    "expo-build-properties": "57.0.22"
+    "@hookform/resolvers": "5.9.1",
+    "expo-build-properties": "57.0.22",
+    "react-hook-form": "7.89.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "@chorex/domain": "workspace:*",
     "@types/react": "19.2.18",
     "@types/jest": "29.5.14",
     "@testing-library/react-native": "13.3.3",
