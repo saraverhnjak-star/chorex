@@ -139,9 +139,9 @@ Invalid tokens stop receiving send attempts.
 Retries do not duplicate reminder notifications.
 ```
 
-## Phase 6 - Auctions
+## Phase 6 - Auctions (optional post-MVP)
 
-Build only after Phases 0-5 are stable.
+Build only after Phases 0-5 are stable **and only when auctions are explicitly selected as the next product milestone**. Phase numbering does not make auctions a prerequisite for production hardening or first release.
 
 Build:
 
@@ -163,6 +163,8 @@ Selecting the same winning bid twice creates one contract only.
 ```
 
 ## Phase 7 - Product hardening
+
+This phase may be executed before optional Phase 6. It is required before a public production release even if auctions remain deferred.
 
 Build:
 

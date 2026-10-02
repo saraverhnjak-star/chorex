@@ -75,7 +75,7 @@ A local child PIN may be added as an **app lock**, but it is not the primary ser
 
 When a parent creates a child profile, server code should create the child Firebase Auth user/UID and family membership. Do not let the Parent app manufacture arbitrary child UIDs or role claims.
 
-The parent can later revoke a paired device by deleting/invalidating that device registration and, if necessary, revoking the child's Firebase refresh tokens.
+Push-device registration removal and authentication-session revocation are separate concerns. Deleting or disabling `/users/{uid}/devices/{deviceId}` stops that registration from receiving ChoreX pushes but does not, by itself, revoke the Firebase Auth session on that installation. Exact individual-device access revocation semantics remain OPEN-014 in `DECISIONS.md`; until resolved, do not claim that deleting a device registration signs that device out. Child-wide Firebase refresh-token revocation may be used only when child-wide session invalidation is intended.
 
 ## 5. Authorization source of truth
 

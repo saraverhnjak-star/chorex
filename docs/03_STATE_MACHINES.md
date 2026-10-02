@@ -57,8 +57,7 @@ APPROVED      CHANGES_REQUESTED
                    | child resumes / re-submits when requirements are satisfied
                    +------------------------> READY_FOR_REVIEW
 
-ACTIVE / CHANGES_REQUESTED -> EXPIRED (policy-dependent)
-ACTIVE / READY_FOR_REVIEW / CHANGES_REQUESTED -> CANCELLED (restricted policy)
+Expiry and cancellation transitions are intentionally not fully specified yet (see `DECISIONS.md`, OPEN-011). Do not implement automatic expiry or general cancellation semantics until that policy is explicitly decided.
 ```
 
 ### Important semantic distinction
@@ -94,7 +93,7 @@ The derived state should be computed, not stored, unless there is a proven query
 When a parent requests changes:
 
 - write an immutable `ContractReview` with decision `REQUEST_CHANGES`;
-- increment or preserve a clear `reviewCycle` number;
+- preserve every prior review; exact `reviewCycle` numbering semantics remain OPEN-012 in `DECISIONS.md` and must not be invented during implementation;
 - set the contract to `CHANGES_REQUESTED`;
 - notify the child;
 - allow the child to return to `READY_FOR_REVIEW` after addressing the issue.

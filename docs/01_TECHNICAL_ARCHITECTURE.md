@@ -102,11 +102,14 @@ chorex/
 │  └─ storage.rules
 │
 ├─ docs/
-│  ├─ domain.md
-│  ├─ architecture.md
-│  ├─ state-machines.md
-│  ├─ database-schema.md
-│  └─ security-model.md
+│  ├─ 00_PROJECT_OVERVIEW.md
+│  ├─ 01_TECHNICAL_ARCHITECTURE.md
+│  ├─ 02_DOMAIN_MODEL.md
+│  ├─ 03_STATE_MACHINES.md
+│  ├─ 04_FIRESTORE_SCHEMA.md
+│  ├─ 05_AUTH_AND_SECURITY.md
+│  ├─ 06_PUSH_NOTIFICATIONS.md
+│  └─ 07_IMPLEMENTATION_ROADMAP.md
 │
 ├─ AGENTS.md
 ├─ pnpm-workspace.yaml
@@ -313,7 +316,9 @@ Before production, test:
 
 ### E2E
 
-Add Maestro once core flows are stable. Start with three flows:
+The E2E framework is intentionally deferred until the first vertical slice is stable (see `DECISIONS.md`, OPEN-008). Do not install Maestro, Detox, or another E2E framework during Phase 0 unless a later explicit decision selects it.
+
+Whichever framework is selected later, the first E2E coverage should include:
 
 1. Parent creates offer -> child accepts -> contract appears.
 2. Child completes -> submits -> parent approves -> reward appears.

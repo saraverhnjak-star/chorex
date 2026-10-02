@@ -12,16 +12,33 @@ There are two separate mobile apps: **Parent** and **Child**. They share domain 
 
 ## Source of truth
 
-Before changing domain behavior, read:
+Repository operational instructions live in this `AGENTS.md`, but product and architecture decisions are governed by the project documents below.
+
+Use this authority order when documents conflict:
+
+1. `docs/00_PROJECT_OVERVIEW.md`
+2. `docs/01_TECHNICAL_ARCHITECTURE.md`
+3. `docs/02_DOMAIN_MODEL.md`
+4. `docs/03_STATE_MACHINES.md`
+5. `docs/04_FIRESTORE_SCHEMA.md`
+6. `docs/05_AUTH_AND_SECURITY.md`
+7. `docs/06_PUSH_NOTIFICATIONS.md`
+8. `docs/07_IMPLEMENTATION_ROADMAP.md`
+9. `DECISIONS.md` for explicit later decisions
+
+A lower-authority document must not silently reinterpret a higher-authority document. An Accepted ADR may override an earlier higher-level decision only when the ADR explicitly identifies the decision being changed or superseded. When that happens, update the affected project document in the same documentation-hardening change before implementation relies on it.
+
+Before changing domain behavior, read at minimum:
 
 ```text
-docs/domain.md
-docs/state-machines.md
-docs/database-schema.md
-docs/security-model.md
+docs/00_PROJECT_OVERVIEW.md
+docs/02_DOMAIN_MODEL.md
+docs/03_STATE_MACHINES.md
+docs/05_AUTH_AND_SECURITY.md
+DECISIONS.md
 ```
 
-If code and docs disagree on a core invariant, do not silently choose one. Call out the conflict and update both in the same change once the intended behavior is clear.
+If code and docs disagree on a core invariant, or if two active documents appear to conflict, do not silently choose one. Report the conflict and stop that part of implementation until the source of truth is clarified.
 
 ## Non-negotiable invariants
 

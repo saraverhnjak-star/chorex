@@ -13,6 +13,12 @@ Goals:
 - server-authoritative writes;
 - predictable indexes.
 
+### Serialization-contract status
+
+The examples below describe the intended Firestore shape, but they are not yet a fully locked serialization contract. Exact rules for optional-field omission versus `null`, shared timestamp representation, and convenience/denormalized fields that appear in Firestore but not in the conceptual domain sketches remain OPEN-013 in `DECISIONS.md`.
+
+Until OPEN-013 is resolved, treat `docs/02_DOMAIN_MODEL.md` as authoritative for domain meaning and this document as authoritative for the intended collection topology and query shape. Do not invent a final persisted Zod schema to reconcile differences silently.
+
 ## 2. Proposed collections
 
 ```text

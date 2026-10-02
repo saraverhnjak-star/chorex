@@ -220,7 +220,7 @@ export interface TaskCompletion {
 
 For MVP, `recordTaskCompletion` creates an event and atomically increments the task's `completedCount`.
 
-If undo is supported, do not silently delete historical completions after launch; prefer a reversal event or a soft-revoked marker. In the earliest MVP, undo may delete only the most recent unreviewed completion if product requirements allow it.
+Undo semantics are intentionally unresolved (see `DECISIONS.md`, OPEN-010). Until that decision is made, do not implement completion deletion, reversal, or revocation behavior. Task Completion records remain immutable under the current model.
 
 ## 9. Review
 
