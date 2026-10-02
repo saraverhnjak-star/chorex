@@ -1,4 +1,12 @@
 {
   "extends": "@chorex/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "rootDir": "src",
+    "outDir": "lib",
+    "declaration": true
+  },
   "include": ["src/**/*.ts"]
 }

@@ -7,18 +7,24 @@
     "node": "22.x"
   },
   "scripts": {
-    "lint": "pnpm -r --if-present lint",
+    "lint": "pnpm -r --if-present lint && eslint firebase",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,cjs,json,css,md}\" \"packages/**/*.{ts,tsx,cjs,json,md}\" \"functions/**/*.{ts,cjs,json,md}\" firebase/README.md README.md package.json \"*.config.cjs\" .prettierrc.json",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,cjs,json,css,md}\" \"packages/**/*.{ts,tsx,cjs,json,md}\" \"functions/**/*.{ts,cjs,json,md}\" \"firebase/**/*.{json,mjs,md}\" firebase.json .firebaserc README.md package.json \"*.config.cjs\" .prettierrc.json",
     "start:parent": "pnpm --filter @chorex/parent start --port 8081",
-    "start:child": "pnpm --filter @chorex/child start --port 8082"
+    "start:child": "pnpm --filter @chorex/child start --port 8082",
+    "functions:build": "pnpm --filter @chorex/functions build",
+    "emulators:start": "pnpm functions:build && firebase emulators:start --project dev --only auth,firestore,functions",
+    "emulators:verify": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-emulators.mjs\""
   },
   "devDependencies": {
     "eslint": "9.39.5",
     "eslint-config-expo": "57.0.2",
     "jest": "29.7.0",
     "prettier": "3.9.9",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "firebase-tools": "15.32.1",
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0"
   }
 }

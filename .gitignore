@@ -36,3 +36,8 @@ firebase-debug.*.log
 /apps/*/ios/
 /apps/*/android/
 *.tsbuildinfo
+
+# Compiled emulator-only Functions entry point
+/functions/lib/
+ui-debug.log
+firestore-debug.log

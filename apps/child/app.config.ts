@@ -7,9 +7,21 @@ const config: ExpoConfig = {
   version: '0.0.0',
   userInterfaceStyle: 'light',
   scheme: 'chorex-child',
-  ios: { bundleIdentifier: 'dev.chorex.bootstrap.child' },
-  android: { package: 'dev.chorex.bootstrap.child' },
-  plugins: ['expo-router', 'expo-dev-client'],
+  ios: {
+    bundleIdentifier: 'dev.chorex.bootstrap.child',
+    googleServicesFile: './firebase/dev/GoogleService-Info.plist',
+  },
+  android: {
+    package: 'dev.chorex.bootstrap.child',
+    googleServicesFile: './firebase/dev/google-services.json',
+  },
+  plugins: [
+    'expo-router',
+    'expo-dev-client',
+    '@react-native-firebase/app',
+    '@react-native-firebase/auth',
+    ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }],
+  ],
 };
 
 export default config;

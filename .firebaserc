@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "chorex-dev",
+    "dev": "chorex-dev"
+  }
+}

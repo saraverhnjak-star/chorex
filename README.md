@@ -85,8 +85,9 @@ All nine TypeScript workspaces inherit strict settings from
 `@chorex/config/tsconfig.base.json`. Both apps typecheck an import of the empty
 `@chorex/domain` public entry point and render `AppPlaceholder` from `@chorex/ui`.
 Each app has a React Native Testing Library smoke test for that runtime boundary.
-Skeleton packages and Functions explicitly permit no tests while they have no
-behavior; the shared UI is exercised by the app tests.
+Existing package test scripts retain their explicit no-tests allowance; the shared
+UI is exercised by the app tests. The only added automated check is the emulator
+security verification.
 
 The compatible dependency baseline is Expo `57.0.26`, Expo Router `57.0.24`,
 React `19.2.3`, React Native `0.86.3`, NativeWind `4.2.7`, and TypeScript `6.0.3`.
@@ -132,13 +133,47 @@ pnpm exec expo export --platform ios --output-dir dist/ios
 pnpm exec expo export --platform android --output-dir dist/android
 ```
 
-This slice establishes independent routes, development-client configuration,
-canonical workspace skeletons, minimal shared UI/NativeWind, and local checks.
-JavaScript export and Metro startup are separate checks from native build/launch.
-The current machine has Command Line Tools but no `simctl` or `adb`, so native
-launch remains unverified.
+## Firebase development infrastructure
 
-Phase 0 is not complete: Firebase dev-project wiring, emulator setup, CI checks,
-and verified native development-build launches remain. No Firebase SDKs,
-credentials, deployment configuration, domain behavior, or E2E framework are added.
-OPEN-008 through OPEN-014 remain unresolved and must not be inferred from skeletons.
+Both native clients include React Native Firebase App, Auth, Firestore, and Functions `26.4.0`. The dev-only Firebase client files live in each app's `firebase/dev/` directory and identify `chorex-dev`; they are client configuration, not Admin credentials. Original reference files remain untouched. App identities remain as listed above.
+
+Copy `.env.example` to `apps/parent/.env.local` and `apps/child/.env.local`. All five values are required. iOS Simulator uses `127.0.0.1`; Android Emulator uses `10.0.2.2`. Physical devices require your machine's private LAN IPv4 address and deliberate LAN emulator bindings as described in `firebase/README.md`. Restart Metro after environment changes and restart the native client after emulator configuration changes. Missing/invalid configuration fails closed.
+
+Install Java 21+ and select it through `JAVA_HOME`. Then:
+
+```sh
+pnpm functions:build
+pnpm emulators:start
+# In another terminal, after stopping the interactive suite:
+pnpm emulators:verify
+```
+
+Ports: Auth 9099, Firestore 8080, Functions 5001, UI 4000, hub 4400, logging 4500.
+
+The emulator UI is at `http://127.0.0.1:4000`. All checked-in bindings are loopback. The verification command starts/stops its own suite and checks denial of authenticated and unauthenticated reads/writes. No deploy or Firebase provisioning is performed.
+
+Native Firebase requires rebuilding both development clients. From each app directory, run `pnpm exec expo prebuild --platform ios` then `pnpm exec expo run:ios`. Firebase 26 uses Swift Package Manager with dynamic frameworks through `expo-build-properties`; see the [React Native Firebase Expo setup](https://rnfirebase.io/). Firestore and Functions need no additional config plugins. Android native build remains separate from Android JavaScript export.
+
+The app root initializes emulator routing before rendering. Fast Refresh reuses initialized services; a changed configuration or partial setup failure requires a full client restart. Placeholder screens still exercise shared UI only. No product authentication, reads, mutations, Storage, notifications, analytics, or production configuration is added. Functions compiles an empty entry point and Firestore denies all client access.
+
+The scoped pnpm policy permits `unrs-resolver` and disables `@firebase/util` and `protobufjs` install scripts, which are unnecessary for this explicit emulator configuration. Workspace globs are unchanged.
+
+Phase 0 is not complete. CI and the remaining foundation gates are subsequent work. OPEN-008 through OPEN-014 remain unresolved.
+
+Manual native checklist for this infrastructure boundary:
+
+- Start the full emulator suite, then launch each rebuilt client with explicit simulator settings; confirm the setup-ready log and unchanged placeholder.
+- Trigger Fast Refresh; confirm setup remains usable without duplicate emulator-setup errors.
+- Restart with a missing mode, non-emulator mode, invalid host, or invalid port; confirm a configuration error before services are returned. Restore `.env.local` and restart.
+- Emulator unavailability must not switch to live services. This initialization configures routing; it does not perform application requests or assert server readiness.
+- Android Emulator (`10.0.2.2`) and physical-device LAN routing require their own native device checks; JavaScript export alone does not verify them.
+
+Validation on this machine for this slice:
+
+- Node 22.21.1 / pnpm 12.8.1; normal and frozen installs, formatting, lint, strict typechecks, existing tests, Functions compilation, and peer checks passed.
+- Both apps passed Expo compatibility checks and Doctor (21/21), public config checks, and iOS/Android JavaScript exports.
+- Both native iOS builds launched with the four Firebase modules, logged emulator routing for `chorex-dev`, and rendered their unchanged placeholders. Child also survived Fast Refresh/module re-evaluation and rejected a temporary missing-mode input; all temporary source probes were restored.
+- Auth, Functions, and UI readiness passed on loopback. Functions discovered zero exports intentionally. Native clients launched while these emulators were running, with Firestore routing configured but its server unavailable.
+- Full-suite startup and `emulators:verify` failed at the prerequisite check: only Java 20 and Java 8 are installed, while this CLI requires Java 21+. Firestore readiness and the deny-all check remain unverified until Java 21+ is selected through `JAVA_HOME`.
+- Android native and physical-device host routing remain unverified (`adb` is unavailable). Native builds emitted upstream build-script/optional RNFirebase config warnings; both builds succeeded without generated-source patches.
+- Task-owned servers were stopped; a pre-existing Child Metro server was preserved. No cloud deployment or provisioning was performed.
