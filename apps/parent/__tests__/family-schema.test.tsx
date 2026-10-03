@@ -3,6 +3,8 @@ import {
   createChildOutputSchema,
   createFamilyInputSchema,
   createFamilyOutputSchema,
+  createPairingSessionInputSchema,
+  createPairingSessionOutputSchema,
   persistedParentProfileSchema,
 } from '@chorex/domain';
 
@@ -111,5 +113,43 @@ describe('child creation schemas', () => {
         },
       }).membership.uid,
     ).toBe('child-uid');
+  });
+});
+
+describe('pairing session schemas', () => {
+  it('accepts only family, child, and idempotency fields', () => {
+    expect(
+      createPairingSessionInputSchema.parse({
+        familyId: 'family-id',
+        childUid: 'child-uid',
+        idempotencyKey: 'pair-child-001',
+      }),
+    ).toEqual({
+      familyId: 'family-id',
+      childUid: 'child-uid',
+      idempotencyKey: 'pair-child-001',
+    });
+    expect(
+      createPairingSessionInputSchema.safeParse({
+        familyId: 'family-id',
+        childUid: 'child-uid',
+        idempotencyKey: 'pair-child-001',
+        token: 'client-token',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('parses the first response token and a tokenless replay', () => {
+    const first = createPairingSessionOutputSchema.parse({
+      sessionId: 'session-id',
+      expiresAt: timestamp,
+      token: 'AbCdEfGhIjKlMnOpQrStUw',
+    });
+    const replay = createPairingSessionOutputSchema.parse({
+      sessionId: first.sessionId,
+      expiresAt: first.expiresAt,
+    });
+    expect(first.token).toHaveLength(22);
+    expect(replay.token).toBeUndefined();
   });
 });

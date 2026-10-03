@@ -342,15 +342,16 @@ Pairing data is server-only and short-lived.
 {
   "familyId": "familyId",
   "childUid": "childUid",
-  "codeHash": "hash",
+  "tokenHash": "sha256Hash",
   "expiresAt": "timestamp",
   "createdBy": "parentUid",
   "attemptCount": 0,
+  "status": "ACTIVE",
   "createdAt": "serverTimestamp"
 }
 ```
 
-Never store a reusable plaintext pairing code in Firestore.
+Per ADR-039, `createPairingSession` issues a random 128-bit base64url token that expires exactly 10 minutes after creation. Firestore stores only its SHA-256 hash. The creating invocation receives the plaintext token once; an idempotent replay returns the same session ID and expiry with the token omitted. Creating a new session for the same Child atomically changes prior active sessions to `INVALIDATED`. Pairing sessions remain inaccessible to Firestore clients.
 
 ## 14. Expected composite indexes
 

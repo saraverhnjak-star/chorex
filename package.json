@@ -17,7 +17,8 @@
     "emulators:start": "pnpm functions:build && firebase emulators:start --project dev --only auth,firestore,functions",
     "emulators:verify": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-emulators.mjs\"",
     "emulators:verify:create-family": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-family.mjs\"",
-    "emulators:verify:create-child": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-child.mjs\""
+    "emulators:verify:create-child": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-child.mjs\"",
+    "emulators:verify:create-pairing-session": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-pairing-session.mjs\""
   },
   "devDependencies": {
     "eslint": "9.39.5",

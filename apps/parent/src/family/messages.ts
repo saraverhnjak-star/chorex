@@ -10,6 +10,8 @@ const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
   [familyClientErrorCodes.invalidInput]: 'Check the details, then try again.',
   [familyClientErrorCodes.familyMembershipRequired]:
     'Your active family membership could not be verified.',
+  [familyClientErrorCodes.childMembershipRequired]:
+    'The selected active Child membership could not be verified.',
   [familyClientErrorCodes.wrongActorRole]:
     'Only an active Parent can make this change.',
   [familyClientErrorCodes.idempotencyConflict]:

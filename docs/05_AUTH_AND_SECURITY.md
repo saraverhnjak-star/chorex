@@ -209,17 +209,17 @@ App Check complements Auth and Security Rules; it does not replace either.
 
 Pairing sessions should have:
 
-- cryptographically random code/token;
-- short TTL, e.g. 10 minutes;
+- a cryptographically random 128-bit base64url token, with no numeric fallback;
+- an exact 10-minute TTL;
 - single use;
-- hashed server-side representation;
+- only a SHA-256 server-side hash; plaintext is returned only once and never persisted;
 - capped failed attempts;
 - cooldown/rate limit by app/device/IP signals where available;
 - App Check where technically practical;
 - activity event for successful pairing;
 - no sensitive code/token in analytics or logs.
 
-Prefer a QR code containing a high-entropy opaque token over a short numeric code when UX allows. A numeric fallback can be offered with stronger attempt throttling.
+Per ADR-039, replaying the same creation idempotency key returns the same session ID and expiry without the plaintext token. Creating a new session for the same Child invalidates every previous active session. QR presentation remains deferred.
 
 ## 11. Secure local storage
 

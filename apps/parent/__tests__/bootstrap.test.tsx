@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
+import { createPairingSession } from '@chorex/firebase-client';
 import HomeScreen from '../app/(app)/index';
 
 jest.mock('@chorex/firebase-client', () => ({
@@ -37,6 +38,11 @@ jest.mock('@chorex/firebase-client', () => ({
   }),
   createChild: jest.fn(),
   createFamily: jest.fn(),
+  createPairingSession: jest.fn().mockResolvedValue({
+    sessionId: 'pairing-session-id',
+    token: 'AbCdEfGhIjKlMnOpQrStUw',
+    expiresAt: '2026-10-03T12:44:56.789Z',
+  }),
 }));
 
 jest.mock('../src/auth/session', () => ({
@@ -64,5 +70,13 @@ it('renders the parent screen through the public shared UI package', async () =>
     screen.getByText('Welcome, Alex. Family setup is complete.'),
   ).toBeOnTheScreen();
   expect(screen.getByText('Mia')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
+  expect(await screen.findByText('AbCdEfGhIjKlMnOpQrStUw')).toBeOnTheScreen();
+  expect(createPairingSession).toHaveBeenCalledWith(
+    expect.objectContaining({
+      familyId: 'family-test-id',
+      childUid: 'child-test-uid',
+    }),
+  );
   expect(screen.getByText('Add a child')).toBeOnTheScreen();
 });

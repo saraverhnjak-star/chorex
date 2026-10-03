@@ -1664,6 +1664,20 @@ Active Family members may read and list that Family's membership documents so th
 
 ---
 
+# ADR-039 — Pairing Session Token, Expiry, and Replay Rules
+
+**Status:** Accepted
+
+## Decision
+
+`createPairingSession` issues a cryptographically random 128-bit base64url token with an exact 10-minute lifetime. Only the SHA-256 token hash is persisted; the plaintext token is returned only by the invocation that creates the session and is never logged.
+
+Replaying the same idempotency key returns the original session ID and expiry with the token omitted. A new idempotency key creates a new session for the same Child and atomically invalidates every prior active pairing session for that Child.
+
+Pairing sessions remain server-only. Numeric fallback codes, token redemption, custom-token minting, and device registration are outside this decision.
+
+---
+
 # Remaining Open Decisions Before or During Early Implementation
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.

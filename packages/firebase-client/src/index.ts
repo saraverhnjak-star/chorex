@@ -29,8 +29,11 @@ import {
   createChildOutputSchema,
   createFamilyInputSchema,
   createFamilyOutputSchema,
+  createPairingSessionInputSchema,
+  createPairingSessionOutputSchema,
   familySchema,
   familyCommandErrorCodes,
+  pairingCommandErrorCodes,
   parentFamilyMembershipSchema,
   persistedParentProfileSchema,
   type ChildFamilyMembership,
@@ -38,9 +41,12 @@ import {
   type CreateChildOutput,
   type CreateFamilyInputValue,
   type CreateFamilyOutput,
+  type CreatePairingSessionInputValue,
+  type CreatePairingSessionOutput,
   type Family,
   type FamilyCommandErrorCode,
   type ParentFamilyMembership,
+  type PairingCommandErrorCode,
   type PersistedParentProfile,
 } from '@chorex/domain';
 import {
@@ -99,6 +105,7 @@ export class AuthClientError extends Error {
 
 export const familyClientErrorCodes = {
   ...familyCommandErrorCodes,
+  ...pairingCommandErrorCodes,
   multipleFamiliesUnsupported: 'MULTIPLE_FAMILIES_UNSUPPORTED',
   networkUnavailable: 'NETWORK_UNAVAILABLE',
   profileReadFailed: 'PROFILE_READ_FAILED',
@@ -290,7 +297,7 @@ export async function signOutCurrentUser(): Promise<void> {
 
 function readStableFamilyErrorCode(
   error: unknown,
-): FamilyCommandErrorCode | undefined {
+): FamilyCommandErrorCode | PairingCommandErrorCode | undefined {
   if (typeof error !== 'object' || error === null || !('details' in error)) {
     return undefined;
   }
@@ -299,7 +306,10 @@ function readStableFamilyErrorCode(
     return undefined;
   }
   const code = details.code;
-  return Object.values(familyCommandErrorCodes).find((value) => value === code);
+  return [
+    ...Object.values(familyCommandErrorCodes),
+    ...Object.values(pairingCommandErrorCodes),
+  ].find((value) => value === code);
 }
 
 function translateFamilyError(error: unknown): FamilyClientError {
@@ -504,6 +514,25 @@ export async function createChild(
     );
     const result = await callable(parsedInput.data);
     return createChildOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translateFamilyError(error);
+  }
+}
+
+export async function createPairingSession(
+  rawInput: CreatePairingSessionInputValue,
+): Promise<CreatePairingSessionOutput> {
+  const parsedInput = createPairingSessionInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new FamilyClientError(familyClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'createPairingSession',
+    );
+    const result = await callable(parsedInput.data);
+    return createPairingSessionOutputSchema.parse(result.data);
   } catch (error) {
     throw translateFamilyError(error);
   }

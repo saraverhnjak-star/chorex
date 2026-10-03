@@ -36,3 +36,13 @@ export {
   type PersistedParentProfile,
   type UserProfile,
 } from './family';
+export {
+  createPairingSessionInputSchema,
+  createPairingSessionOutputSchema,
+  pairingCommandErrorCodes,
+  pairingSessionTokenSchema,
+  type CreatePairingSessionInput,
+  type CreatePairingSessionInputValue,
+  type CreatePairingSessionOutput,
+  type PairingCommandErrorCode,
+} from './pairing';

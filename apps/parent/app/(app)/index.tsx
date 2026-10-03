@@ -12,6 +12,7 @@ import {
 import {
   createChild,
   createFamily,
+  createPairingSession,
   readCurrentParentFamily,
   type ParentFamilyHome,
 } from '@chorex/firebase-client';
@@ -32,6 +33,17 @@ type FamilyState =
   | { status: 'onboarding' }
   | { status: 'ready'; home: ParentFamilyHome }
   | { status: 'error'; message: string };
+
+type PairingState =
+  | { status: 'idle' }
+  | { status: 'loading'; childUid: string }
+  | {
+      status: 'ready';
+      childUid: string;
+      token?: string;
+      expiresAt: string;
+    }
+  | { status: 'error'; childUid: string; message: string };
 
 type CreateChildFormInput = Pick<CreateChildInput, 'displayName'>;
 const createChildFormSchema = createChildInputSchema.pick({
@@ -75,6 +87,9 @@ export default function AuthenticatedHomeScreen() {
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string>();
   const [childIdempotencyKey, setChildIdempotencyKey] = useState<string>();
+  const [pairingState, setPairingState] = useState<PairingState>({
+    status: 'idle',
+  });
   const {
     control,
     handleSubmit,
@@ -171,6 +186,30 @@ export default function AuthenticatedHomeScreen() {
       resetChildForm();
     } catch (error) {
       setChildError('root.child', { message: getFamilyErrorMessage(error) });
+    }
+  };
+
+  const onCreatePairingSession = async (childUid: string) => {
+    if (familyState.status !== 'ready') return;
+    setPairingState({ status: 'loading', childUid });
+    try {
+      const output = await createPairingSession({
+        familyId: familyState.home.family.id,
+        childUid,
+        idempotencyKey: newIdempotencyKey(),
+      });
+      setPairingState({
+        status: 'ready',
+        childUid,
+        token: output.token,
+        expiresAt: output.expiresAt,
+      });
+    } catch (error) {
+      setPairingState({
+        status: 'error',
+        childUid,
+        message: getFamilyErrorMessage(error),
+      });
     }
   };
 
@@ -322,14 +361,68 @@ export default function AuthenticatedHomeScreen() {
               ) : (
                 <View className="mt-3 gap-2">
                   {familyState.home.children.map((child) => (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-text"
+                    <View
+                      className="gap-3 rounded-2xl border border-border bg-surface p-4"
                       key={child.uid}
-                      style={dynamicType.body}
                     >
-                      {child.displayName}
-                    </Text>
+                      <Text
+                        allowFontScaling={false}
+                        className="font-semibold text-text"
+                        style={dynamicType.body}
+                      >
+                        {child.displayName}
+                      </Text>
+                      <Button
+                        label={
+                          pairingState.status === 'ready' &&
+                          pairingState.childUid === child.uid
+                            ? 'Create new token'
+                            : 'Pair device'
+                        }
+                        loading={
+                          pairingState.status === 'loading' &&
+                          pairingState.childUid === child.uid
+                        }
+                        onPress={() => onCreatePairingSession(child.uid)}
+                        variant="secondary"
+                      />
+                      {pairingState.status === 'ready' &&
+                      pairingState.childUid === child.uid ? (
+                        <View className="gap-2 rounded-2xl bg-surface-warm p-4">
+                          {pairingState.token ? (
+                            <Text
+                              allowFontScaling={false}
+                              className="font-bold text-text"
+                              selectable
+                              style={dynamicType.body}
+                            >
+                              {pairingState.token}
+                            </Text>
+                          ) : (
+                            <Text
+                              allowFontScaling={false}
+                              className="text-text-muted"
+                              style={dynamicType.body}
+                            >
+                              This token was already shown. Create a new token
+                              to pair a device.
+                            </Text>
+                          )}
+                          <Text
+                            allowFontScaling={false}
+                            className="text-text-muted"
+                            style={dynamicType.small}
+                          >
+                            Expires{' '}
+                            {new Date(pairingState.expiresAt).toLocaleString()}
+                          </Text>
+                        </View>
+                      ) : null}
+                      {pairingState.status === 'error' &&
+                      pairingState.childUid === child.uid ? (
+                        <FormMessage message={pairingState.message} />
+                      ) : null}
+                    </View>
                   ))}
                 </View>
               )}
