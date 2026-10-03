@@ -33,6 +33,10 @@ passwordless email link
 
 A parent's Firebase Auth `uid` maps to `/users/{uid}`.
 
+The first family-onboarding mutation is an authenticated, idempotent `createFamily` callable. It atomically creates the Parent user profile if absent, the Family, and the authenticated Parent's active membership. The backend derives `uid` from Firebase Authentication and assigns the Parent ownership/role through server policy. The client may provide only validated, non-authoritative onboarding data and cannot provide authoritative UID, ownership, or role values.
+
+`createFamily` is a bootstrap command: it cannot require a pre-existing Family membership because it creates the first one. All subsequent family-scoped commands must load the active membership and role from server-side data.
+
 ## 3. Child authentication without email
 
 Recommended flow:
@@ -183,6 +187,8 @@ await executeTransaction(...);
 ```
 
 Never authorize from client-provided `role`, `parentUid`, or `childUid` alone.
+
+The initial `createFamily` callable uses the same authentication and input-validation requirements, but replaces the pre-existing membership lookup with its documented atomic bootstrap checks. It assigns the initial Parent role server-side and must be safe to retry without creating duplicate records.
 
 ## 9. App Check
 

@@ -1582,6 +1582,52 @@ Do not create empty speculative packages beyond this structure merely for archit
 
 ---
 
+# ADR-036 — Domain Serialization and Initial Family Creation Boundary
+
+**Status:** Accepted
+
+**Resolves:** OPEN-013
+
+## Decision
+
+Canonical domain timestamps use normalized UTC ISO-8601 strings. Infrastructure adapters convert timestamps at the domain boundary; Firebase-specific `Timestamp` values do not belong in canonical domain schemas.
+
+Firestore stores native `Timestamp` values. Authoritative creation and update times use server time, and Firestore adapters convert between native timestamps and normalized UTC ISO-8601 domain strings.
+
+Optional fields are omitted by default. `null` is used only when it represents an explicit persistence state documented for that field.
+
+Fields added for Firestore queries, indexing, authorization lookup, or deliberate denormalization are persistence projections. Their presence in a Firestore document does not automatically add them to the canonical domain schema.
+
+The first family-onboarding mutation is an authenticated, idempotent `createFamily` callable. It atomically:
+
+1. creates the authenticated Parent's user profile if it does not already exist;
+2. creates the Family; and
+3. creates the authenticated Parent's active Family membership.
+
+`createFamily` derives the UID from Firebase Authentication and assigns the Parent role through server policy. The client cannot provide authoritative ownership or role values.
+
+Because no Family membership exists before this command succeeds, `createFamily` is the narrow bootstrap exception to the normal requirement that a family-scoped command first load an existing membership. Replaying the same logical request must not create duplicate profiles, Families, or memberships.
+
+## Rationale
+
+Canonical domain values should remain portable and independent of Firebase SDK classes, while Firestore should retain its native timestamp semantics for querying and server-authoritative writes.
+
+Consistent omission rules avoid treating missing data and explicit empty states as interchangeable. Keeping query projections outside canonical schemas prevents storage and indexing concerns from silently redefining the domain model.
+
+Family creation establishes the first authorization boundary, so its related records must succeed or fail together and must be safe to retry.
+
+## Consequences
+
+Domain Zod schemas validate normalized UTC ISO-8601 strings. Firestore repositories/adapters validate and perform timestamp conversion on reads and writes.
+
+Persisted schemas document every intentional `null`; otherwise optional values are omitted.
+
+The `createFamily` input may contain only non-authoritative onboarding data. UID, ownership, membership role, and authoritative timestamps are assigned by trusted backend code.
+
+All later family-scoped commands continue to validate active membership and role from server-side data.
+
+---
+
 # Remaining Open Decisions Before or During Early Implementation
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.
@@ -1653,22 +1699,19 @@ Review records are immutable, but the exact meaning and increment timing of `rev
 
 ---
 
-## OPEN-013 — Firestore Serialization Contract
-
-Before persisted domain schemas are treated as final, explicitly decide:
-
-- omission versus `null` for optional fields;
-- the shared timestamp boundary representation;
-- which Firestore convenience fields are persistence-only projections;
-- which fields belong in canonical domain schemas versus repository/read models.
-
-The collection topology and conceptual domain meaning are already defined; this OPEN item concerns exact serialization.
-
----
-
 ## OPEN-014 — Individual Child Device Access Revocation
 
 Push registration revocation is not the same as Firebase Auth session revocation. Decide whether MVP needs individual paired-device auth revocation or whether child-wide refresh-token revocation is sufficient for the first release.
+
+---
+
+# Resolved Open Decisions
+
+## OPEN-013 — Firestore Serialization Contract
+
+**Status:** Resolved by ADR-036
+
+ADR-036 defines the canonical timestamp boundary, Firestore timestamp storage, optional-field omission rules, and the separation between canonical domain schemas and persistence projections. It also records the initial `createFamily` persistence boundary required before family creation implementation begins.
 
 ---
 

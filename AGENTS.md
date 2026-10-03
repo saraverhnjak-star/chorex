@@ -47,7 +47,7 @@ If code and docs disagree on a core invariant, or if two active documents appear
 3. Client code never directly changes authoritative lifecycle fields.
 4. Offers, contracts, reviews, rewards, auctions, membership, and task progress mutations use server commands/Cloud Functions unless a documented exception exists.
 5. Every server command validates input with Zod.
-6. Every server command validates authenticated actor, family membership, and role from server-side data.
+6. Every server command validates the authenticated actor and derives authoritative roles from server-side policy/data. Family-scoped commands also validate family membership; a documented bootstrap command such as `createFamily` may create the first membership atomically.
 7. Never trust client-provided role or ownership fields.
 8. Accepted terms are immutable snapshots.
 9. Contract approval and reward fulfillment are separate states.

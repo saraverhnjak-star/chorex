@@ -4,27 +4,27 @@
 
 Use these terms consistently in code, UX copy, Firestore, tests, and documentation.
 
-| Term | Meaning |
-| --- | --- |
-| Family | Security and collaboration boundary containing guardians and children. |
-| Parent | Adult/guardian member who can create offers, review work, and fulfill rewards. |
-| Child | Child member who can negotiate offers, perform tasks, submit work, and bid in auctions. |
-| Offer | A negotiable proposal containing tasks, deadline, and reward terms. |
-| Offer Revision | Immutable snapshot of one side's proposed terms. |
-| Contract | Frozen accepted terms that are now being executed. |
-| Contract Task | One task within a contract, including a target count and progress. |
-| Task Completion | One recorded completion event for a repeated task. |
-| Review | Parent decision on a submitted contract: approve or request changes. |
-| Reward | What the child earns after contract approval. |
-| Reward Fulfillment | Parent delivery of an earned reward. |
-| Auction | Parent-posted reward opportunity open to multiple eligible children. |
-| Bid | A child's proposed work in exchange for the auction reward. |
-| Activity Event | Immutable audit record describing a meaningful domain event. |
-| Device | One registered installation capable of receiving push notifications. |
+| Term               | Meaning                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| Family             | Security and collaboration boundary containing guardians and children.                  |
+| Parent             | Adult/guardian member who can create offers, review work, and fulfill rewards.          |
+| Child              | Child member who can negotiate offers, perform tasks, submit work, and bid in auctions. |
+| Offer              | A negotiable proposal containing tasks, deadline, and reward terms.                     |
+| Offer Revision     | Immutable snapshot of one side's proposed terms.                                        |
+| Contract           | Frozen accepted terms that are now being executed.                                      |
+| Contract Task      | One task within a contract, including a target count and progress.                      |
+| Task Completion    | One recorded completion event for a repeated task.                                      |
+| Review             | Parent decision on a submitted contract: approve or request changes.                    |
+| Reward             | What the child earns after contract approval.                                           |
+| Reward Fulfillment | Parent delivery of an earned reward.                                                    |
+| Auction            | Parent-posted reward opportunity open to multiple eligible children.                    |
+| Bid                | A child's proposed work in exchange for the auction reward.                             |
+| Activity Event     | Immutable audit record describing a meaningful domain event.                            |
+| Device             | One registered installation capable of receiving push notifications.                    |
 
 ## 2. Global invariants
 
-1. Every domain object belongs to exactly one family.
+1. Every family-scoped domain object is associated with exactly one family.
 2. A child can only access family data for a family in which they are an active member.
 3. A contract is created from one accepted offer revision or one selected auction bid.
 4. Contract terms are snapshots and do not change when an earlier offer is edited.
@@ -41,21 +41,22 @@ These sketches describe intent, not final generated code.
 
 ```ts
 export type UserRole = 'PARENT' | 'CHILD';
+export type UtcIsoDateTime = string; // normalized UTC ISO-8601
 
 export interface UserProfile {
   uid: string;
   displayName: string;
   avatarKey?: string;
   accountType: UserRole;
-  createdAt: Timestamp;
+  createdAt: UtcIsoDateTime;
 }
 
 export interface Family {
   id: string;
   name: string;
   createdBy: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: UtcIsoDateTime;
+  updatedAt: UtcIsoDateTime;
 }
 
 export interface FamilyMember {
@@ -64,9 +65,15 @@ export interface FamilyMember {
   role: UserRole;
   displayName: string;
   status: 'ACTIVE' | 'INVITED' | 'DISABLED';
-  joinedAt?: Timestamp;
+  joinedAt?: UtcIsoDateTime;
 }
 ```
+
+Canonical domain timestamps are normalized UTC ISO-8601 strings, for example `2026-10-03T12:34:56.789Z`. Firestore infrastructure adapters convert these values to and from native Firestore `Timestamp` values. Canonical domain schemas do not import Firebase timestamp types.
+
+Optional domain fields are omitted by default. `null` is used only when a field documents an explicit persistence state. Firestore query and denormalization fields are persistence projections and do not automatically belong in these canonical domain sketches.
+
+Initial family onboarding uses an authenticated, idempotent `createFamily` server command. It atomically creates the Parent user profile if absent, the Family, and the authenticated Parent's active membership. The server derives the UID from authentication and assigns the Parent role; the client does not provide authoritative ownership or role fields.
 
 ## 4. Tasks
 
@@ -76,7 +83,7 @@ A task is a contract-specific requirement. Avoid a global chore catalog in the f
 export interface TaskTerms {
   title: string;
   description?: string;
-  targetCount: number;       // >= 1
+  targetCount: number; // >= 1
 }
 
 export interface ContractTask extends TaskTerms {
@@ -84,10 +91,10 @@ export interface ContractTask extends TaskTerms {
   familyId: string;
   contractId: string;
   assigneeUid: string;
-  completedCount: number;    // 0..targetCount
-  lastCompletedAt?: Timestamp;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  completedCount: number; // 0..targetCount
+  lastCompletedAt?: UtcIsoDateTime;
+  createdAt: UtcIsoDateTime;
+  updatedAt: UtcIsoDateTime;
 }
 ```
 
@@ -107,11 +114,7 @@ Terms are negotiated before the contract exists. An earned reward is created onl
 
 ```ts
 export type RewardType =
-  | 'EXPERIENCE'
-  | 'ITEM'
-  | 'MONEY'
-  | 'PRIVILEGE'
-  | 'CUSTOM';
+  'EXPERIENCE' | 'ITEM' | 'MONEY' | 'PRIVILEGE' | 'CUSTOM';
 
 export interface RewardTerms {
   title: string;
@@ -126,8 +129,8 @@ export interface Reward {
   childUid: string;
   terms: RewardTerms; // frozen snapshot
   status: 'PENDING_FULFILLMENT' | 'FULFILLED' | 'CANCELLED';
-  earnedAt: Timestamp;
-  fulfilledAt?: Timestamp;
+  earnedAt: UtcIsoDateTime;
+  fulfilledAt?: UtcIsoDateTime;
   fulfilledBy?: string;
 }
 ```
@@ -151,9 +154,9 @@ export interface Offer {
     | 'CANCELLED'
     | 'EXPIRED';
   currentRevisionId?: string;
-  expiresAt?: Timestamp;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  expiresAt?: UtcIsoDateTime;
+  createdAt: UtcIsoDateTime;
+  updatedAt: UtcIsoDateTime;
 }
 
 export interface OfferRevision {
@@ -164,9 +167,9 @@ export interface OfferRevision {
   proposedByRole: UserRole;
   tasks: TaskTerms[];
   reward: RewardTerms;
-  deadlineAt: Timestamp;
+  deadlineAt: UtcIsoDateTime;
   note?: string;
-  createdAt: Timestamp;
+  createdAt: UtcIsoDateTime;
 }
 ```
 
@@ -184,7 +187,7 @@ export interface Contract {
     | { type: 'OFFER'; offerId: string; revisionId: string }
     | { type: 'AUCTION'; auctionId: string; bidId: string };
   rewardTerms: RewardTerms;
-  deadlineAt: Timestamp;
+  deadlineAt: UtcIsoDateTime;
   status:
     | 'ACTIVE'
     | 'READY_FOR_REVIEW'
@@ -193,9 +196,9 @@ export interface Contract {
     | 'CANCELLED'
     | 'EXPIRED';
   reviewCycle: number;
-  approvedAt?: Timestamp;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  approvedAt?: UtcIsoDateTime;
+  createdAt: UtcIsoDateTime;
+  updatedAt: UtcIsoDateTime;
 }
 ```
 
@@ -214,7 +217,7 @@ export interface TaskCompletion {
   childUid: string;
   ordinal: number;
   note?: string;
-  createdAt: Timestamp;
+  createdAt: UtcIsoDateTime;
 }
 ```
 
@@ -233,7 +236,7 @@ export interface ContractReview {
   reviewerUid: string;
   decision: 'APPROVE' | 'REQUEST_CHANGES';
   note?: string;
-  createdAt: Timestamp;
+  createdAt: UtcIsoDateTime;
 }
 ```
 
@@ -255,10 +258,10 @@ export interface Auction {
   reward: RewardTerms;
   eligibleChildUids: string[];
   status: 'DRAFT' | 'OPEN' | 'AWARDED' | 'CANCELLED' | 'EXPIRED';
-  biddingEndsAt: Timestamp;
+  biddingEndsAt: UtcIsoDateTime;
   winningBidId?: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: UtcIsoDateTime;
+  updatedAt: UtcIsoDateTime;
 }
 
 export interface AuctionBid {
@@ -267,11 +270,11 @@ export interface AuctionBid {
   auctionId: string;
   childUid: string;
   tasks: TaskTerms[];
-  proposedDeadlineAt?: Timestamp;
+  proposedDeadlineAt?: UtcIsoDateTime;
   note?: string;
   status: 'ACTIVE' | 'WITHDRAWN' | 'SELECTED' | 'NOT_SELECTED';
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt: UtcIsoDateTime;
+  updatedAt: UtcIsoDateTime;
 }
 ```
 
@@ -288,8 +291,8 @@ export interface ActivityEvent {
   type: string;
   entityType: 'OFFER' | 'CONTRACT' | 'TASK' | 'REWARD' | 'AUCTION' | 'FAMILY';
   entityId: string;
-  metadata?: Record<string, string | number | boolean | null>;
-  createdAt: Timestamp;
+  metadata?: Record<string, string | number | boolean>;
+  createdAt: UtcIsoDateTime;
 }
 ```
 

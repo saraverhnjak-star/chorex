@@ -13,11 +13,17 @@ Goals:
 - server-authoritative writes;
 - predictable indexes.
 
-### Serialization-contract status
+### Serialization contract
 
-The examples below describe the intended Firestore shape, but they are not yet a fully locked serialization contract. Exact rules for optional-field omission versus `null`, shared timestamp representation, and convenience/denormalized fields that appear in Firestore but not in the conceptual domain sketches remain OPEN-013 in `DECISIONS.md`.
+ADR-036 defines the Firestore serialization boundary:
 
-Until OPEN-013 is resolved, treat `docs/02_DOMAIN_MODEL.md` as authoritative for domain meaning and this document as authoritative for the intended collection topology and query shape. Do not invent a final persisted Zod schema to reconcile differences silently.
+- canonical domain timestamps are normalized UTC ISO-8601 strings;
+- Firestore stores native `Timestamp` values, converted by infrastructure adapters at the domain boundary;
+- optional fields are omitted by default;
+- `null` is used only for an explicit persistence state documented for that field; and
+- query, index, authorization lookup, and denormalization fields remain persistence projections unless the Domain Model independently defines them.
+
+The JSON-like examples below use `"serverTimestamp"` to mean a server timestamp write that resolves to a native Firestore `Timestamp`, and `"timestamp"` to mean an already stored native Firestore `Timestamp`. These labels are documentation notation, not persisted strings.
 
 ## 2. Proposed collections
 
@@ -72,7 +78,6 @@ Do not store family role solely on the user document. Membership is family-speci
   "platform": "ios",
   "appVariant": "CHILD",
   "expoPushToken": "ExponentPushToken[...]",
-  "nativePushToken": "optional",
   "pushEnabled": true,
   "appVersion": "1.0.0",
   "lastSeenAt": "serverTimestamp",
@@ -106,6 +111,8 @@ Do not store family role solely on the user document. Membership is family-speci
 }
 ```
 
+The first family-onboarding mutation is the authenticated, idempotent `createFamily` callable. In one atomic operation it creates `/users/{uid}` if absent, creates `/families/{familyId}`, and creates `/families/{familyId}/members/{uid}` with an active Parent role. The server takes `uid` from Firebase Authentication and assigns ownership and role; those authoritative values are not accepted from the client.
+
 ## 6. Offers
 
 `/offers/{offerId}`
@@ -118,8 +125,6 @@ Do not store family role solely on the user document. Membership is family-speci
   "participantUids": ["parentUid", "childUid"],
   "status": "AWAITING_CHILD",
   "currentRevisionId": "revisionId",
-  "expiresAt": "timestamp-or-null",
-  "contractId": null,
   "createdAt": "serverTimestamp",
   "updatedAt": "serverTimestamp"
 }
@@ -135,8 +140,8 @@ Revision:
   "proposedByUid": "parentUid",
   "proposedByRole": "PARENT",
   "tasks": [
-    {"title": "Load the dishwasher", "description": null, "targetCount": 1},
-    {"title": "Take out the trash", "description": null, "targetCount": 3}
+    { "title": "Load the dishwasher", "targetCount": 1 },
+    { "title": "Take out the trash", "targetCount": 3 }
   ],
   "reward": {
     "title": "Cinema",
@@ -144,7 +149,6 @@ Revision:
     "type": "EXPERIENCE"
   },
   "deadlineAt": "timestamp",
-  "note": null,
   "createdAt": "serverTimestamp"
 }
 ```
@@ -174,7 +178,6 @@ The revision array of tasks is acceptable because a revision is a small immutabl
   "deadlineAt": "timestamp",
   "status": "ACTIVE",
   "reviewCycle": 0,
-  "rewardId": null,
   "createdAt": "serverTimestamp",
   "updatedAt": "serverTimestamp"
 }
@@ -190,7 +193,6 @@ Tasks are copied from accepted terms into:
   "contractId": "contractId",
   "assigneeUid": "childUid",
   "title": "Clean your room",
-  "description": null,
   "targetCount": 100,
   "completedCount": 37,
   "lastCompletedAt": "timestamp",
@@ -210,7 +212,6 @@ Tasks are copied from accepted terms into:
   "taskId": "taskId",
   "childUid": "childUid",
   "ordinal": 37,
-  "note": null,
   "createdAt": "serverTimestamp"
 }
 ```
@@ -257,9 +258,7 @@ Tasks are copied from accepted terms into:
     "description": "Choose a movie this weekend"
   },
   "status": "PENDING_FULFILLMENT",
-  "earnedAt": "serverTimestamp",
-  "fulfilledAt": null,
-  "fulfilledBy": null
+  "earnedAt": "serverTimestamp"
 }
 ```
 
@@ -280,12 +279,10 @@ orderBy earnedAt desc
 {
   "familyId": "familyId",
   "parentUid": "parentUid",
-  "reward": {"title": "Cinema", "type": "EXPERIENCE"},
+  "reward": { "title": "Cinema", "type": "EXPERIENCE" },
   "eligibleChildUids": ["childA", "childB"],
   "status": "OPEN",
   "biddingEndsAt": "timestamp",
-  "winningBidId": null,
-  "contractId": null,
   "createdAt": "serverTimestamp",
   "updatedAt": "serverTimestamp"
 }
@@ -301,11 +298,9 @@ Bid:
   "auctionId": "auctionId",
   "childUid": "childA",
   "tasks": [
-    {"title": "Wash the car", "targetCount": 1},
-    {"title": "Clean the kitchen", "targetCount": 1}
+    { "title": "Wash the car", "targetCount": 1 },
+    { "title": "Clean the kitchen", "targetCount": 1 }
   ],
-  "proposedDeadlineAt": "timestamp-or-null",
-  "note": null,
   "status": "ACTIVE",
   "createdAt": "serverTimestamp",
   "updatedAt": "serverTimestamp"
@@ -321,7 +316,7 @@ Top-level collection simplifies a family activity feed.
 ```json
 {
   "familyId": "familyId",
-  "actorUid": "uid-or-null",
+  "actorUid": "childUid",
   "actorType": "CHILD",
   "type": "CONTRACT_SUBMITTED",
   "entityType": "CONTRACT",
@@ -344,7 +339,6 @@ Pairing data is server-only and short-lived.
   "childUid": "childUid",
   "codeHash": "hash",
   "expiresAt": "timestamp",
-  "usedAt": null,
   "createdBy": "parentUid",
   "attemptCount": 0,
   "createdAt": "serverTimestamp"

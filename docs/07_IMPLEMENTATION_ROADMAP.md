@@ -31,7 +31,7 @@ No production Firebase credentials/config are used locally.
 Build:
 
 - parent email/password auth;
-- family creation;
+- authenticated, idempotent `createFamily` callable that atomically creates the Parent profile if absent, the Family, and the Parent membership;
 - child profile creation;
 - child Auth UID creation server-side;
 - one-time pairing session;
