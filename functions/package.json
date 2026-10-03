@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest --config ../jest.config.cjs --rootDir . --passWithNoTests --runInBand",
-    "build": "tsc"
+    "build": "pnpm --filter @chorex/domain build && tsc"
   },
   "devDependencies": {
     "@chorex/config": "workspace:*",
@@ -21,6 +21,7 @@
     "node": "22"
   },
   "dependencies": {
+    "@chorex/domain": "workspace:*",
     "firebase-functions": "7.4.0",
     "firebase-admin": "14.5.0"
   }

@@ -39,5 +39,6 @@ firebase-debug.*.log
 
 # Compiled emulator-only Functions entry point
 /functions/lib/
+/packages/domain/lib/
 ui-debug.log
 firestore-debug.log

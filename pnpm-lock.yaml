@@ -420,6 +420,9 @@ importers:
 
   functions:
     dependencies:
+      '@chorex/domain':
+        specifier: workspace:*
+        version: link:../packages/domain
       firebase-admin:
         specifier: 14.5.0
         version: 14.5.0(@firebase/app-compat@0.5.18)(@firebase/app@0.16.2)(supports-color@8.1.1)
@@ -458,6 +461,9 @@ importers:
       '@chorex/config':
         specifier: workspace:*
         version: link:../config
+      '@chorex/domain':
+        specifier: workspace:*
+        version: link:../domain
     devDependencies:
       '@react-native-firebase/app':
         specifier: 26.4.0

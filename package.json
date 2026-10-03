@@ -15,7 +15,8 @@
     "start:child": "pnpm --filter @chorex/child start --port 8082",
     "functions:build": "pnpm --filter @chorex/functions build",
     "emulators:start": "pnpm functions:build && firebase emulators:start --project dev --only auth,firestore,functions",
-    "emulators:verify": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-emulators.mjs\""
+    "emulators:verify": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-emulators.mjs\"",
+    "emulators:verify:create-family": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-family.mjs\""
   },
   "devDependencies": {
     "eslint": "9.39.5",

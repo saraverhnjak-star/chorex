@@ -7,3 +7,20 @@ export {
   type SignInCredentials,
   type SignInCredentialsInput,
 } from './auth';
+export {
+  createFamilyInputSchema,
+  createFamilyOutputSchema,
+  familyCommandErrorCodes,
+  familySchema,
+  parentFamilyMembershipSchema,
+  persistedParentProfileSchema,
+  userProfileSchema,
+  userRoleSchema,
+  utcIsoDateTimeSchema,
+  type CreateFamilyInput,
+  type CreateFamilyInputValue,
+  type CreateFamilyOutput,
+  type FamilyCommandErrorCode,
+  type PersistedParentProfile,
+  type UserProfile,
+} from './family';

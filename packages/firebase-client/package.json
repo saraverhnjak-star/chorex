@@ -30,6 +30,7 @@
     "react-native": "0.86.3"
   },
   "dependencies": {
-    "@chorex/config": "workspace:*"
+    "@chorex/config": "workspace:*",
+    "@chorex/domain": "workspace:*"
   }
 }

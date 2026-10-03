@@ -10,12 +10,25 @@ import {
 } from '@react-native-firebase/auth';
 import {
   connectFirestoreEmulator,
+  doc,
+  getDoc,
   getFirestore,
 } from '@react-native-firebase/firestore';
 import {
   connectFunctionsEmulator,
   getFunctions,
+  httpsCallable,
 } from '@react-native-firebase/functions';
+import {
+  createFamilyInputSchema,
+  createFamilyOutputSchema,
+  familyCommandErrorCodes,
+  persistedParentProfileSchema,
+  type CreateFamilyInputValue,
+  type CreateFamilyOutput,
+  type FamilyCommandErrorCode,
+  type PersistedParentProfile,
+} from '@chorex/domain';
 import {
   firebaseDevelopmentProjectId,
   readFirebaseEmulatorConfig,
@@ -67,6 +80,23 @@ export class AuthClientError extends Error {
   constructor(readonly code: AuthErrorCode) {
     super(code);
     this.name = 'AuthClientError';
+  }
+}
+
+export const familyClientErrorCodes = {
+  ...familyCommandErrorCodes,
+  networkUnavailable: 'NETWORK_UNAVAILABLE',
+  profileReadFailed: 'PROFILE_READ_FAILED',
+  unknown: 'UNKNOWN_FAMILY_FAILURE',
+} as const;
+
+export type FamilyClientErrorCode =
+  (typeof familyClientErrorCodes)[keyof typeof familyClientErrorCodes];
+
+export class FamilyClientError extends Error {
+  constructor(readonly code: FamilyClientErrorCode) {
+    super(code);
+    this.name = 'FamilyClientError';
   }
 }
 
@@ -123,6 +153,24 @@ function getInitializedAuth() {
   if (state?.failure) throw state.failure;
   throw new Error(
     'FIREBASE_SETUP_REQUIRED: initialize development Firebase before using Auth.',
+  );
+}
+
+function getInitializedFirestore() {
+  const state = registry.__chorexDevelopmentFirebase;
+  if (state?.services) return state.services.firestore;
+  if (state?.failure) throw state.failure;
+  throw new Error(
+    'FIREBASE_SETUP_REQUIRED: initialize development Firebase before using Firestore.',
+  );
+}
+
+function getInitializedFunctions() {
+  const state = registry.__chorexDevelopmentFirebase;
+  if (state?.services) return state.services.functions;
+  if (state?.failure) throw state.failure;
+  throw new Error(
+    'FIREBASE_SETUP_REQUIRED: initialize development Firebase before using Functions.',
   );
 }
 
@@ -215,5 +263,104 @@ export async function signOutCurrentUser(): Promise<void> {
     await firebaseSignOut(getInitializedAuth());
   } catch (error) {
     throw translateAuthError(error);
+  }
+}
+
+function readStableFamilyErrorCode(
+  error: unknown,
+): FamilyCommandErrorCode | undefined {
+  if (typeof error !== 'object' || error === null || !('details' in error)) {
+    return undefined;
+  }
+  const details = error.details;
+  if (typeof details !== 'object' || details === null || !('code' in details)) {
+    return undefined;
+  }
+  const code = details.code;
+  return Object.values(familyCommandErrorCodes).find((value) => value === code);
+}
+
+function translateFamilyError(error: unknown): FamilyClientError {
+  if (error instanceof FamilyClientError) return error;
+  const stableCode = readStableFamilyErrorCode(error);
+  if (stableCode) return new FamilyClientError(stableCode);
+  const providerCode = readProviderErrorCode(error);
+  if (
+    providerCode === 'functions/unavailable' ||
+    providerCode === 'firestore/unavailable' ||
+    providerCode === 'firestore/network-request-failed'
+  ) {
+    return new FamilyClientError(familyClientErrorCodes.networkUnavailable);
+  }
+  return new FamilyClientError(familyClientErrorCodes.unknown);
+}
+
+function timestampToIso(value: unknown): string {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('toDate' in value) ||
+    typeof value.toDate !== 'function'
+  ) {
+    throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+  }
+  const date = value.toDate();
+  if (!(date instanceof Date) || Number.isNaN(date.valueOf())) {
+    throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+  }
+  return date.toISOString();
+}
+
+export function isFamilyClientError(
+  error: unknown,
+): error is FamilyClientError {
+  return error instanceof FamilyClientError;
+}
+
+export async function readCurrentParentProfile(): Promise<PersistedParentProfile | null> {
+  const user = getInitializedAuth().currentUser;
+  if (!user) {
+    throw new FamilyClientError(familyClientErrorCodes.authRequired);
+  }
+  try {
+    const snapshot = await getDoc(
+      doc(getInitializedFirestore(), 'users', user.uid),
+    );
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data();
+    if (data.accountType === 'CHILD') {
+      throw new FamilyClientError(familyClientErrorCodes.wrongActorRole);
+    }
+    return persistedParentProfileSchema.parse({
+      uid: user.uid,
+      displayName: data.displayName,
+      accountType: data.accountType,
+      createdAt: timestampToIso(data.createdAt),
+    });
+  } catch (error) {
+    if (error instanceof FamilyClientError) throw error;
+    if (typeof error === 'object' && error !== null && 'issues' in error) {
+      throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+    }
+    throw translateFamilyError(error);
+  }
+}
+
+export async function createFamily(
+  rawInput: CreateFamilyInputValue,
+): Promise<CreateFamilyOutput> {
+  const parsedInput = createFamilyInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new FamilyClientError(familyClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'createFamily',
+    );
+    const result = await callable(parsedInput.data);
+    return createFamilyOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translateFamilyError(error);
   }
 }

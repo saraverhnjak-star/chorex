@@ -10,6 +10,7 @@ module.exports = [
   {
     ignores: [
       '**/dist/**',
+      'packages/domain/lib/**',
       'functions/lib/**',
       '**/coverage/**',
       '**/.expo/**',
