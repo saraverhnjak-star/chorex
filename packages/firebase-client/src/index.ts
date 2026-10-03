@@ -36,6 +36,7 @@ import {
   familyCommandErrorCodes,
   pairingCommandErrorCodes,
   parentFamilyMembershipSchema,
+  persistedChildProfileSchema,
   persistedParentProfileSchema,
   redeemPairingSessionInputSchema,
   redeemPairingSessionOutputSchema,
@@ -50,6 +51,7 @@ import {
   type FamilyCommandErrorCode,
   type ParentFamilyMembership,
   type PairingCommandErrorCode,
+  type PersistedChildProfile,
   type PersistedParentProfile,
   type RedeemPairingSessionInputValue,
   type RedeemPairingSessionOutput,
@@ -148,6 +150,12 @@ export interface ParentFamilyHome {
   readonly family: Family;
   readonly membership: ParentFamilyMembership;
   readonly children: readonly ChildFamilyMembership[];
+}
+
+export interface ChildFamilyHome {
+  readonly profile: PersistedChildProfile;
+  readonly family: Family;
+  readonly membership: ChildFamilyMembership;
 }
 
 export function initializeDevelopmentFirebase(
@@ -412,6 +420,11 @@ interface ParentProfileProjection {
   familyIds: string[];
 }
 
+interface ChildProfileProjection {
+  profile: PersistedChildProfile;
+  familyIds: string[];
+}
+
 function parseFamilyIds(value: unknown): string[] {
   if (value === undefined) return [];
   if (
@@ -458,6 +471,92 @@ async function readCurrentParentProfileProjection(): Promise<ParentProfileProjec
 
 export async function readCurrentParentProfile(): Promise<PersistedParentProfile | null> {
   return (await readCurrentParentProfileProjection())?.profile ?? null;
+}
+
+async function readCurrentChildProfileProjection(): Promise<ChildProfileProjection> {
+  const user = getInitializedAuth().currentUser;
+  if (!user) {
+    throw new FamilyClientError(familyClientErrorCodes.authRequired);
+  }
+  try {
+    const snapshot = await getDoc(
+      doc(getInitializedFirestore(), 'users', user.uid),
+    );
+    if (!snapshot.exists()) {
+      throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+    }
+    const data = snapshot.data();
+    if (data.accountType !== 'CHILD') {
+      throw new FamilyClientError(familyClientErrorCodes.wrongActorRole);
+    }
+    return {
+      profile: persistedChildProfileSchema.parse({
+        uid: user.uid,
+        displayName: data.displayName,
+        accountType: data.accountType,
+        createdAt: timestampToIso(data.createdAt),
+      }),
+      familyIds: parseFamilyIds(data.familyIds),
+    };
+  } catch (error) {
+    if (error instanceof FamilyClientError) throw error;
+    if (typeof error === 'object' && error !== null && 'issues' in error) {
+      throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+    }
+    throw translateFamilyError(error);
+  }
+}
+
+export async function readCurrentChildFamily(): Promise<ChildFamilyHome> {
+  const projection = await readCurrentChildProfileProjection();
+  if (projection.familyIds.length === 0) {
+    throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+  }
+  if (projection.familyIds.length > 1) {
+    throw new FamilyClientError(
+      familyClientErrorCodes.multipleFamiliesUnsupported,
+    );
+  }
+
+  const familyId = projection.familyIds[0];
+  try {
+    const firestore = getInitializedFirestore();
+    const [familySnapshot, membershipSnapshot] = await Promise.all([
+      getDoc(doc(firestore, 'families', familyId)),
+      getDoc(
+        doc(firestore, 'families', familyId, 'members', projection.profile.uid),
+      ),
+    ]);
+    if (!familySnapshot.exists() || !membershipSnapshot.exists()) {
+      throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+    }
+    const familyData = familySnapshot.data();
+    const membershipData = membershipSnapshot.data();
+    return {
+      profile: projection.profile,
+      family: familySchema.parse({
+        id: familyId,
+        name: familyData.name,
+        createdBy: familyData.createdBy,
+        createdAt: timestampToIso(familyData.createdAt),
+        updatedAt: timestampToIso(familyData.updatedAt),
+      }),
+      membership: childFamilyMembershipSchema.parse({
+        uid: projection.profile.uid,
+        familyId,
+        role: membershipData.role,
+        displayName: membershipData.displayName,
+        status: membershipData.status,
+        joinedAt: timestampToIso(membershipData.joinedAt),
+      }),
+    };
+  } catch (error) {
+    if (error instanceof FamilyClientError) throw error;
+    if (typeof error === 'object' && error !== null && 'issues' in error) {
+      throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+    }
+    throw translateFamilyError(error);
+  }
 }
 
 export async function readCurrentParentFamily(): Promise<ParentFamilyHome | null> {

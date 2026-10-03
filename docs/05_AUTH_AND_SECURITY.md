@@ -81,6 +81,8 @@ When a parent creates a child profile, server code should create the child Fireb
 
 Per ADR-038, `createChild` derives a deterministic UID from the authenticated Parent, Family, and idempotency key. A server-only Firestore reservation binds that key to the request before Auth creation, allowing retries to reuse the same Auth identity and finish the atomic Firestore records after a partial cross-service failure.
 
+Per ADR-041, the server also maintains `familyIds` on Child profiles as a discovery projection. An authenticated Child reads only its own profile, then its sole projected Family and its own active membership. The projection grants no access by itself; Firestore Rules continue to require the membership document for Family reads, and all client writes remain denied.
+
 Push-device registration removal and authentication-session revocation are separate concerns. Deleting or disabling `/users/{uid}/devices/{deviceId}` stops that registration from receiving ChoreX pushes but does not, by itself, revoke the Firebase Auth session on that installation. Exact individual-device access revocation semantics remain OPEN-014 in `DECISIONS.md`; until resolved, do not claim that deleting a device registration signs that device out. Child-wide Firebase refresh-token revocation may be used only when child-wide session invalidation is intended.
 
 ## 5. Authorization source of truth

@@ -1692,6 +1692,18 @@ Redemption uses a fixed 10-minute rate-limit window per platform-provided source
 
 ---
 
+# ADR-041 — Family Discovery Projection Covers Child Profiles
+
+**Status:** Accepted
+
+## Decision
+
+ADR-037's server-managed `/users/{uid}.familyIds` persistence projection applies to both Parent and Child profiles. It remains outside the canonical `UserProfile` schema and is used only to discover Family documents; `/families/{familyId}/members/{uid}` remains authoritative for membership and role.
+
+`createChild` writes the supplied Family ID into the Child profile in the same Firestore transaction as the profile, membership, activity event, and completed idempotency state. A matching completed retry backfills a missing projection with `arrayUnion`, preserving one Family ID. During the single-family MVP, a Child profile must contain exactly one valid Family ID: zero or malformed IDs produce a setup error, and more than one returns `MULTIPLE_FAMILIES_UNSUPPORTED`.
+
+---
+
 # Remaining Open Decisions Before or During Early Implementation
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.

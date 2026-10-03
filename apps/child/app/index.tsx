@@ -1,18 +1,29 @@
-import { useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
+import {
+  readCurrentChildFamily,
+  type ChildFamilyHome,
+} from '@chorex/firebase-client';
 import {
   Button,
   FormMessage,
   Screen,
   TextField,
+  amberAuroraColors,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { useChildSession } from '../src/auth/session';
+import { getChildFamilyErrorMessage } from '../src/family/messages';
 import { getPairingErrorMessage } from '../src/pairing/messages';
 
 function newIdempotencyKey(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 }
+
+type ChildFamilyState =
+  | { status: 'loading' }
+  | { status: 'ready'; home: ChildFamilyHome }
+  | { status: 'error'; message: string };
 
 export default function HomeScreen() {
   const session = useChildSession();
@@ -21,6 +32,43 @@ export default function HomeScreen() {
   const idempotencyKey = useRef<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
+  const [familyState, setFamilyState] = useState<ChildFamilyState>({
+    status: 'loading',
+  });
+  const uid = session.user?.uid;
+
+  const loadFamily = useCallback(async () => {
+    setFamilyState({ status: 'loading' });
+    try {
+      const home = await readCurrentChildFamily();
+      setFamilyState({ status: 'ready', home });
+    } catch (familyError) {
+      setFamilyState({
+        status: 'error',
+        message: getChildFamilyErrorMessage(familyError),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!uid) return;
+    let active = true;
+    void readCurrentChildFamily()
+      .then((home) => {
+        if (active) setFamilyState({ status: 'ready', home });
+      })
+      .catch((familyError: unknown) => {
+        if (active) {
+          setFamilyState({
+            status: 'error',
+            message: getChildFamilyErrorMessage(familyError),
+          });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [uid]);
 
   if (session.user) {
     return (
@@ -39,15 +87,52 @@ export default function HomeScreen() {
             className="mt-2 font-bold text-text"
             style={dynamicType.title}
           >
-            Device paired
+            ChoreX Child
           </Text>
-          <Text
-            allowFontScaling={false}
-            className="mt-3 text-text-muted"
-            style={dynamicType.body}
-          >
-            This device is signed in and ready for ChoreX.
-          </Text>
+
+          {familyState.status === 'loading' ? (
+            <View className="items-center py-12">
+              <ActivityIndicator
+                accessibilityLabel="Loading your Child profile"
+                color={amberAuroraColors.primaryPressed}
+                size="large"
+              />
+              <Text
+                allowFontScaling={false}
+                className="mt-4 text-text-muted"
+                style={dynamicType.body}
+              >
+                Loading your family…
+              </Text>
+            </View>
+          ) : null}
+
+          {familyState.status === 'error' ? (
+            <View className="mt-8 gap-4">
+              <FormMessage message={familyState.message} />
+              <Button label="Try again" onPress={() => void loadFamily()} />
+            </View>
+          ) : null}
+
+          {familyState.status === 'ready' ? (
+            <View className="mt-8 rounded-3xl border border-border bg-surface-warm p-5">
+              <Text
+                allowFontScaling={false}
+                className="font-bold text-text"
+                style={dynamicType.title}
+              >
+                {familyState.home.family.name}
+              </Text>
+              <Text
+                allowFontScaling={false}
+                className="mt-3 text-text-muted"
+                style={dynamicType.body}
+              >
+                Welcome, {familyState.home.profile.displayName}. Your family is
+                ready.
+              </Text>
+            </View>
+          ) : null}
         </View>
       </Screen>
     );

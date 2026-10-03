@@ -70,7 +70,7 @@ The JSON-like examples below use `"serverTimestamp"` to mean a server timestamp 
 
 Do not store family role solely on the user document. Membership is family-specific and belongs in `/families/{familyId}/members/{uid}`.
 
-`familyIds` is a server-managed persistence projection for Parent family discovery, as defined by ADR-037. It does not belong in the canonical `UserProfile` schema and does not replace membership authorization. During the single-family MVP, clients treat zero IDs as incomplete onboarding, read the Family referenced by the sole ID, and return `MULTIPLE_FAMILIES_UNSUPPORTED` if more than one ID is present.
+`familyIds` is a server-managed persistence projection for Parent and Child family discovery, as defined by ADR-037 and extended by ADR-041. It does not belong in the canonical `UserProfile` schema and does not replace membership authorization. During the single-family MVP, clients read the Family referenced by the sole valid ID. A Parent with zero IDs has incomplete onboarding; a Child with zero or malformed IDs has incomplete setup. Either app returns `MULTIPLE_FAMILIES_UNSUPPORTED` if more than one ID is present.
 
 ## 4. Device registrations
 
@@ -116,7 +116,7 @@ Do not store family role solely on the user document. Membership is family-speci
 
 The first family-onboarding mutation is the authenticated, idempotent `createFamily` callable. In one atomic operation it creates `/users/{uid}` if absent, adds the new Family ID to the profile's `familyIds` projection, creates `/families/{familyId}`, and creates `/families/{familyId}/members/{uid}` with an active Parent role. The server takes `uid` from Firebase Authentication and assigns ownership and role; those authoritative values are not accepted from the client.
 
-The authenticated, idempotent `createChild` callable requires the actor's active Parent membership. It accepts only `familyId`, `displayName`, and an idempotency key; the server derives the Child UID and role. Following ADR-038, it reserves the deterministic UID before Auth creation, then atomically creates the Child profile, active Child membership, `CHILD_CREATED` activity event, and completed idempotency state. This permits a retry to finish after an Auth/Firestore partial failure without creating another child.
+The authenticated, idempotent `createChild` callable requires the actor's active Parent membership. It accepts only `familyId`, `displayName`, and an idempotency key; the server derives the Child UID and role. Following ADR-038 and ADR-041, it reserves the deterministic UID before Auth creation, then atomically creates the Child profile with its `familyIds` projection, active Child membership, `CHILD_CREATED` activity event, and completed idempotency state. This permits a retry to finish after an Auth/Firestore partial failure without creating another child; a matching completed retry safely backfills a missing projection without adding a duplicate.
 
 ## 6. Offers
 

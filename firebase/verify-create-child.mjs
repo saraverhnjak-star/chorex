@@ -7,12 +7,14 @@ import {
 import {
   Timestamp,
   collection,
+  deleteField,
   deleteDoc,
   doc,
   getDoc,
   getDocs,
   query,
   setDoc,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 
@@ -198,11 +200,12 @@ try {
   );
 
   const otherParent = await createIdentity('other-parent');
-  await callFunction(
+  const otherParentFamily = await callFunction(
     'createFamily',
     { displayName: 'Jordan', familyName: 'Other Family' },
     otherParent.idToken,
   );
+  const otherFamilyId = otherParentFamily.family.id;
   await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
     callFunction(
       'createChild',
@@ -269,6 +272,34 @@ try {
   assert(
     retried.profile.uid === created.profile.uid,
     'Retry changed child UID',
+  );
+  const initialProjection = await readAdmin(`users/${created.profile.uid}`);
+  assert(
+    JSON.stringify(initialProjection.data()?.familyIds) ===
+      JSON.stringify([familyId]),
+    'Child profile did not persist one Family ID',
+  );
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await updateDoc(doc(context.firestore(), `users/${created.profile.uid}`), {
+      familyIds: deleteField(),
+    });
+  });
+  const projectionRetries = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      callFunction('createChild', payload, parent.idToken),
+    ),
+  );
+  assert(
+    projectionRetries.every(
+      (result) => result.profile.uid === created.profile.uid,
+    ),
+    'Projection retry changed child UID',
+  );
+  const backfilledProjection = await readAdmin(`users/${created.profile.uid}`);
+  assert(
+    JSON.stringify(backfilledProjection.data()?.familyIds) ===
+      JSON.stringify([familyId]),
+    'Retry did not backfill exactly one Family ID',
   );
   await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
     callFunction(
@@ -397,6 +428,37 @@ try {
   await assertSucceeds(
     getDocs(collection(childFirestore, `families/${familyId}/members`)),
   );
+  const createdChildFirestore = environment
+    .authenticatedContext(created.profile.uid)
+    .firestore();
+  await assertSucceeds(
+    getDoc(doc(createdChildFirestore, `users/${created.profile.uid}`)),
+  );
+  await assertSucceeds(
+    getDoc(doc(createdChildFirestore, `families/${familyId}`)),
+  );
+  await assertSucceeds(
+    getDoc(
+      doc(
+        createdChildFirestore,
+        `families/${familyId}/members/${created.profile.uid}`,
+      ),
+    ),
+  );
+  await assertFails(
+    getDoc(doc(createdChildFirestore, `families/${otherFamilyId}`)),
+  );
+  await assertFails(
+    getDoc(
+      doc(
+        createdChildFirestore,
+        `families/${otherFamilyId}/members/${otherParent.localId}`,
+      ),
+    ),
+  );
+  await assertFails(
+    getDoc(doc(createdChildFirestore, `users/${parent.localId}`)),
+  );
   await assertSucceeds(
     getDoc(
       doc(childFirestore, `families/${familyId}/members/${parent.localId}`),
@@ -425,9 +487,17 @@ try {
   ]) {
     await assertFails(setDoc(doc(parentFirestore, path), { denied: true }));
   }
+  for (const path of [
+    `users/${created.profile.uid}`,
+    `families/${familyId}/members/${created.profile.uid}`,
+  ]) {
+    await assertFails(
+      setDoc(doc(createdChildFirestore, path), { denied: true }),
+    );
+  }
 
   console.info(
-    'PASS: createChild authorization, idempotency, records, reads, and denied writes',
+    'PASS: createChild projection recovery, records, Child reads, wrong-family denial, and denied writes',
   );
 } finally {
   try {

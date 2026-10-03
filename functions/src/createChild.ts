@@ -94,6 +94,20 @@ function parseIdempotencyRecord(
   };
 }
 
+function parseFamilyIds(data: DocumentData | undefined): string[] {
+  if (!data || data.familyIds === undefined) return [];
+  if (
+    !Array.isArray(data.familyIds) ||
+    data.familyIds.some(
+      (familyId: unknown) => typeof familyId !== 'string' || !familyId,
+    ) ||
+    new Set(data.familyIds).size !== data.familyIds.length
+  ) {
+    throw new Error('INVALID_FAMILY_IDS_PROJECTION');
+  }
+  return data.familyIds;
+}
+
 function requireMatchingRequest(
   record: IdempotencyRecord,
   actorUid: string,
@@ -213,14 +227,32 @@ export async function executeCreateChild(
   const activityReference = firestore.doc(`activityEvents/${activityEventId}`);
 
   await firestore.runTransaction(async (transaction) => {
-    const [idempotencySnapshot, membershipSnapshot] = await Promise.all([
-      transaction.get(idempotencyReference),
-      transaction.get(actorMembershipReference),
-    ]);
+    const [idempotencySnapshot, membershipSnapshot, profileSnapshot] =
+      await Promise.all([
+        transaction.get(idempotencyReference),
+        transaction.get(actorMembershipReference),
+        transaction.get(profileReference),
+      ]);
     requireActiveParentMembership(membershipSnapshot.data());
     const record = parseIdempotencyRecord(idempotencySnapshot.data());
     requireMatchingRequest(record, actorUid, input.familyId, payloadHash);
-    if (record.status === 'COMPLETE') return;
+    if (record.status === 'COMPLETE') {
+      const profileData = profileSnapshot.data();
+      if (
+        !profileSnapshot.exists ||
+        !profileData ||
+        profileData.accountType !== 'CHILD'
+      ) {
+        throw new Error('INVALID_CHILD_PROFILE');
+      }
+      if (!parseFamilyIds(profileData).includes(input.familyId)) {
+        transaction.update(profileReference, {
+          familyIds: FieldValue.arrayUnion(input.familyId),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+      return;
+    }
     if (
       record.childUid !== derivedChildUid ||
       record.activityEventId !== activityEventId
@@ -232,6 +264,7 @@ export async function executeCreateChild(
     transaction.create(profileReference, {
       displayName: input.displayName,
       accountType: 'CHILD',
+      familyIds: [input.familyId],
       createdAt: timestamp,
       updatedAt: timestamp,
     });
