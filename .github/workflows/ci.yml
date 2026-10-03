@@ -69,4 +69,8 @@ jobs:
         run: pnpm test
 
       - name: Build Functions and verify emulator security
-        run: pnpm emulators:verify
+        run: |
+          printf '%s\n' 'PAIRING_RATE_LIMIT_HMAC_SECRET=ci-emulator-only-pairing-hmac-secret' > functions/.secret.local
+          printf '%s\n' 'PAIRING_RATE_LIMIT_HMAC_SECRET_EMULATOR=ci-emulator-only-pairing-hmac-secret' > functions/.env.local
+          pnpm emulators:verify
+          pnpm emulators:verify:redeem-pairing-session

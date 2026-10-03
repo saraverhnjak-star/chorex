@@ -16,6 +16,16 @@ const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
     'Only an active Parent can make this change.',
   [familyClientErrorCodes.idempotencyConflict]:
     'This request was already completed with different details. Refresh and try again.',
+  [familyClientErrorCodes.pairingInvalid]: 'This pairing token is invalid.',
+  [familyClientErrorCodes.pairingExpired]: 'This pairing token has expired.',
+  [familyClientErrorCodes.pairingInvalidated]:
+    'This pairing token was replaced by a newer one.',
+  [familyClientErrorCodes.pairingAlreadyUsed]:
+    'This pairing token has already been used.',
+  [familyClientErrorCodes.pairingRateLimited]:
+    'Too many pairing attempts. Wait and try again.',
+  [familyClientErrorCodes.pairingServiceUnavailable]:
+    'Pairing is temporarily unavailable. Try again.',
   [familyClientErrorCodes.multipleFamiliesUnsupported]:
     'This version cannot open accounts with more than one family yet.',
   [familyClientErrorCodes.networkUnavailable]:

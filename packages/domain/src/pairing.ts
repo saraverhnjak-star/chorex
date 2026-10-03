@@ -17,6 +17,15 @@ export const createPairingSessionOutputSchema = z.strictObject({
   token: pairingSessionTokenSchema.optional(),
 });
 
+export const redeemPairingSessionInputSchema = z.strictObject({
+  token: z.string().trim().min(1).max(256),
+  idempotencyKey: idempotencyKeySchema,
+});
+
+export const redeemPairingSessionOutputSchema = z.strictObject({
+  customToken: z.string().min(1),
+});
+
 export const pairingCommandErrorCodes = {
   authRequired: 'AUTH_REQUIRED',
   invalidInput: 'INVALID_INPUT',
@@ -24,6 +33,12 @@ export const pairingCommandErrorCodes = {
   wrongActorRole: 'WRONG_ACTOR_ROLE',
   childMembershipRequired: 'CHILD_MEMBERSHIP_REQUIRED',
   idempotencyConflict: 'IDEMPOTENCY_CONFLICT',
+  pairingInvalid: 'PAIRING_INVALID',
+  pairingExpired: 'PAIRING_EXPIRED',
+  pairingInvalidated: 'PAIRING_INVALIDATED',
+  pairingAlreadyUsed: 'PAIRING_ALREADY_USED',
+  pairingRateLimited: 'PAIRING_RATE_LIMITED',
+  pairingServiceUnavailable: 'PAIRING_SERVICE_UNAVAILABLE',
 } as const;
 
 export type CreatePairingSessionInput = z.output<
@@ -34,6 +49,15 @@ export type CreatePairingSessionInputValue = z.input<
 >;
 export type CreatePairingSessionOutput = z.output<
   typeof createPairingSessionOutputSchema
+>;
+export type RedeemPairingSessionInput = z.output<
+  typeof redeemPairingSessionInputSchema
+>;
+export type RedeemPairingSessionInputValue = z.input<
+  typeof redeemPairingSessionInputSchema
+>;
+export type RedeemPairingSessionOutput = z.output<
+  typeof redeemPairingSessionOutputSchema
 >;
 export type PairingCommandErrorCode =
   (typeof pairingCommandErrorCodes)[keyof typeof pairingCommandErrorCodes];

@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword,
   getAuth,
   onAuthStateChanged as firebaseOnAuthStateChanged,
+  signInWithCustomToken as firebaseSignInWithCustomToken,
   signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
   signOut as firebaseSignOut,
   type User,
@@ -36,6 +37,8 @@ import {
   pairingCommandErrorCodes,
   parentFamilyMembershipSchema,
   persistedParentProfileSchema,
+  redeemPairingSessionInputSchema,
+  redeemPairingSessionOutputSchema,
   type ChildFamilyMembership,
   type CreateChildInputValue,
   type CreateChildOutput,
@@ -48,6 +51,8 @@ import {
   type ParentFamilyMembership,
   type PairingCommandErrorCode,
   type PersistedParentProfile,
+  type RedeemPairingSessionInputValue,
+  type RedeemPairingSessionOutput,
 } from '@chorex/domain';
 import {
   firebaseDevelopmentProjectId,
@@ -119,6 +124,22 @@ export class FamilyClientError extends Error {
   constructor(readonly code: FamilyClientErrorCode) {
     super(code);
     this.name = 'FamilyClientError';
+  }
+}
+
+export const pairingClientErrorCodes = {
+  ...pairingCommandErrorCodes,
+  networkUnavailable: 'NETWORK_UNAVAILABLE',
+  unknown: 'UNKNOWN_PAIRING_FAILURE',
+} as const;
+
+export type PairingClientErrorCode =
+  (typeof pairingClientErrorCodes)[keyof typeof pairingClientErrorCodes];
+
+export class PairingClientError extends Error {
+  constructor(readonly code: PairingClientErrorCode) {
+    super(code);
+    this.name = 'PairingClientError';
   }
 }
 
@@ -287,6 +308,20 @@ export async function signInWithEmailAndPassword(
   }
 }
 
+export async function signInWithChildCustomToken(
+  customToken: string,
+): Promise<AuthUser> {
+  try {
+    const result = await firebaseSignInWithCustomToken(
+      getInitializedAuth(),
+      customToken,
+    );
+    return toAuthUser(result.user);
+  } catch (error) {
+    throw translateAuthError(error);
+  }
+}
+
 export async function signOutCurrentUser(): Promise<void> {
   try {
     await firebaseSignOut(getInitializedAuth());
@@ -325,6 +360,29 @@ function translateFamilyError(error: unknown): FamilyClientError {
     return new FamilyClientError(familyClientErrorCodes.networkUnavailable);
   }
   return new FamilyClientError(familyClientErrorCodes.unknown);
+}
+
+function translatePairingError(error: unknown): PairingClientError {
+  if (error instanceof PairingClientError) return error;
+  const stableCode = readStableFamilyErrorCode(error);
+  if (
+    stableCode &&
+    Object.values(pairingCommandErrorCodes).some(
+      (value) => value === stableCode,
+    )
+  ) {
+    return new PairingClientError(stableCode as PairingCommandErrorCode);
+  }
+  if (readProviderErrorCode(error) === 'functions/unavailable') {
+    return new PairingClientError(pairingClientErrorCodes.networkUnavailable);
+  }
+  return new PairingClientError(pairingClientErrorCodes.unknown);
+}
+
+export function isPairingClientError(
+  error: unknown,
+): error is PairingClientError {
+  return error instanceof PairingClientError;
 }
 
 function timestampToIso(value: unknown): string {
@@ -535,5 +593,24 @@ export async function createPairingSession(
     return createPairingSessionOutputSchema.parse(result.data);
   } catch (error) {
     throw translateFamilyError(error);
+  }
+}
+
+export async function redeemPairingSession(
+  rawInput: RedeemPairingSessionInputValue,
+): Promise<RedeemPairingSessionOutput> {
+  const parsedInput = redeemPairingSessionInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new PairingClientError(pairingClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'redeemPairingSession',
+    );
+    const result = await callable(parsedInput.data);
+    return redeemPairingSessionOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translatePairingError(error);
   }
 }

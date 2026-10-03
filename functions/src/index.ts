@@ -1,6 +1,9 @@
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { createHmac } from 'node:crypto';
+import { defineSecret } from 'firebase-functions/params';
+import { warn } from 'firebase-functions/logger';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import {
   familyCommandErrorCodes,
@@ -12,17 +15,25 @@ import {
   CreatePairingSessionCommandError,
   executeCreatePairingSession,
 } from './createPairingSession';
+import {
+  RedeemPairingSessionCommandError,
+  executeRedeemPairingSession,
+} from './redeemPairingSession';
 
 if (getApps().length === 0) initializeApp();
 
 const firestore = getFirestore();
 const auth = getAuth();
+const pairingRateLimitHmacSecret = defineSecret(
+  'PAIRING_RATE_LIMIT_HMAC_SECRET',
+);
 
 function callableError(
   error:
     | CreateFamilyCommandError
     | CreateChildCommandError
-    | CreatePairingSessionCommandError,
+    | CreatePairingSessionCommandError
+    | RedeemPairingSessionCommandError,
 ): HttpsError {
   const details = { code: error.code };
   switch (error.code) {
@@ -37,6 +48,16 @@ function callableError(
       return new HttpsError('unauthenticated', error.code, details);
     case pairingCommandErrorCodes.childMembershipRequired:
       return new HttpsError('permission-denied', error.code, details);
+    case pairingCommandErrorCodes.pairingInvalid:
+      return new HttpsError('not-found', error.code, details);
+    case pairingCommandErrorCodes.pairingExpired:
+    case pairingCommandErrorCodes.pairingInvalidated:
+    case pairingCommandErrorCodes.pairingAlreadyUsed:
+      return new HttpsError('failed-precondition', error.code, details);
+    case pairingCommandErrorCodes.pairingRateLimited:
+      return new HttpsError('resource-exhausted', error.code, details);
+    case pairingCommandErrorCodes.pairingServiceUnavailable:
+      return new HttpsError('unavailable', error.code, details);
   }
 }
 
@@ -98,3 +119,56 @@ export const createPairingSession = onCall(async (request) => {
     throw new HttpsError('internal', 'INTERNAL');
   }
 });
+
+export const redeemPairingSession = onCall(
+  { secrets: [pairingRateLimitHmacSecret] },
+  async (request) => {
+    const sourceIp =
+      request.rawRequest.ip ||
+      request.rawRequest.socket.remoteAddress ||
+      (process.env.FIREBASE_AUTH_EMULATOR_HOST
+        ? 'LOCAL_FIREBASE_EMULATOR'
+        : undefined);
+    let secret: string;
+    try {
+      secret = process.env.FIREBASE_AUTH_EMULATOR_HOST
+        ? (process.env.PAIRING_RATE_LIMIT_HMAC_SECRET_EMULATOR ??
+          pairingRateLimitHmacSecret.value())
+        : pairingRateLimitHmacSecret.value();
+    } catch {
+      warn('Pairing redemption service unavailable', {
+        reason: 'HMAC_SECRET_ACCESS_FAILED',
+      });
+      const error = new RedeemPairingSessionCommandError(
+        pairingCommandErrorCodes.pairingServiceUnavailable,
+      );
+      throw callableError(error);
+    }
+    if (!sourceIp || !secret) {
+      warn('Pairing redemption service unavailable', {
+        reason: !sourceIp ? 'SOURCE_ADDRESS_MISSING' : 'HMAC_SECRET_MISSING',
+      });
+      const error = new RedeemPairingSessionCommandError(
+        pairingCommandErrorCodes.pairingServiceUnavailable,
+      );
+      throw callableError(error);
+    }
+    const sourceKey = createHmac('sha256', secret)
+      .update(sourceIp)
+      .digest('hex');
+
+    try {
+      return await executeRedeemPairingSession(
+        firestore,
+        auth,
+        sourceKey,
+        request.data,
+      );
+    } catch (error) {
+      if (error instanceof RedeemPairingSessionCommandError) {
+        throw callableError(error);
+      }
+      throw new HttpsError('internal', 'INTERNAL');
+    }
+  },
+);

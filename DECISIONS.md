@@ -1678,6 +1678,20 @@ Pairing sessions remain server-only. Numeric fallback codes, token redemption, c
 
 ---
 
+# ADR-040 — Pairing Redemption Retry and Rate-Limit Policy
+
+**Status:** Accepted
+
+## Decision
+
+`redeemPairingSession` is unauthenticated and accepts only a pairing token and client-generated idempotency key. The server hashes the token before lookup and never persists or logs plaintext. A successful Firestore transaction marks the active, unexpired session `REDEEMED`, records `redeemedAt`, binds a hash of the redemption idempotency key, and writes one activity event before minting a Firebase custom token for the existing Child UID.
+
+A retry with the same pairing token and idempotency key may mint a fresh custom token for that same Child. Any other replay of a redeemed session fails as already used.
+
+Redemption uses a fixed 10-minute rate-limit window per platform-provided source IP, with at most 20 total requests and 10 failed requests per window. Invalid tokens count as failures. Exceeding either limit returns `PAIRING_RATE_LIMITED`. Server-only rate-limit records use an HMAC of the source IP, keyed by an uncommitted server secret, and store `expiresAt`; raw IP addresses are never stored or logged. Missing source-IP or HMAC-secret infrastructure returns `PAIRING_SERVICE_UNAVAILABLE`. App Check enforcement remains deferred to Phase 7.
+
+---
+
 # Remaining Open Decisions Before or During Early Implementation
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.

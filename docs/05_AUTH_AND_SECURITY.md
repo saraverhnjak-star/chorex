@@ -221,6 +221,10 @@ Pairing sessions should have:
 
 Per ADR-039, replaying the same creation idempotency key returns the same session ID and expiry without the plaintext token. Creating a new session for the same Child invalidates every previous active session. QR presentation remains deferred.
 
+Per ADR-040, `redeemPairingSession` hashes the submitted token before lookup and atomically redeems only an active, unexpired session. The transaction binds a hash of the client-generated redemption idempotency key and writes one activity event before the backend mints a Firebase custom token for the existing Child UID. A retry with the same token and idempotency key may mint a fresh custom token; any different replay fails as already used.
+
+Redemption has a fixed 10-minute window per platform-provided source IP, capped at 20 total requests and 10 failed requests. Invalid tokens count as failures. Rate-limit records are server-only, expire after the window, and use an HMAC-derived source key with an uncommitted server secret; the raw IP is never stored or logged. Exceeding either limit returns `PAIRING_RATE_LIMITED`. App Check enforcement for this endpoint remains deferred to Phase 7.
+
 ## 11. Secure local storage
 
 Use Expo SecureStore for installation identifiers or app-lock secrets that truly require secure device storage.

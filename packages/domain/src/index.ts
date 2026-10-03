@@ -41,8 +41,13 @@ export {
   createPairingSessionOutputSchema,
   pairingCommandErrorCodes,
   pairingSessionTokenSchema,
+  redeemPairingSessionInputSchema,
+  redeemPairingSessionOutputSchema,
   type CreatePairingSessionInput,
   type CreatePairingSessionInputValue,
   type CreatePairingSessionOutput,
   type PairingCommandErrorCode,
+  type RedeemPairingSessionInput,
+  type RedeemPairingSessionInputValue,
+  type RedeemPairingSessionOutput,
 } from './pairing';
