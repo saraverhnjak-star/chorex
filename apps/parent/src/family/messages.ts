@@ -7,12 +7,13 @@ import {
 const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
   [familyClientErrorCodes.authRequired]:
     'Your session has ended. Sign in and try again.',
-  [familyClientErrorCodes.invalidInput]:
-    'Check your name and family name, then try again.',
+  [familyClientErrorCodes.invalidInput]: 'Check the details, then try again.',
+  [familyClientErrorCodes.familyMembershipRequired]:
+    'Your active family membership could not be verified.',
   [familyClientErrorCodes.wrongActorRole]:
-    'This account cannot create a Parent family.',
+    'Only an active Parent can make this change.',
   [familyClientErrorCodes.idempotencyConflict]:
-    'Family setup was already completed with different details.',
+    'This request was already completed with different details. Refresh and try again.',
   [familyClientErrorCodes.multipleFamiliesUnsupported]:
     'This version cannot open accounts with more than one family yet.',
   [familyClientErrorCodes.networkUnavailable]:

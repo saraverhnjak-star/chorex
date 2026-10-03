@@ -24,7 +24,18 @@ jest.mock('@chorex/firebase-client', () => ({
       status: 'ACTIVE',
       joinedAt: '2026-10-03T12:34:56.789Z',
     },
+    children: [
+      {
+        uid: 'child-test-uid',
+        familyId: 'family-test-id',
+        role: 'CHILD',
+        displayName: 'Mia',
+        status: 'ACTIVE',
+        joinedAt: '2026-10-03T12:34:56.789Z',
+      },
+    ],
   }),
+  createChild: jest.fn(),
   createFamily: jest.fn(),
 }));
 
@@ -52,4 +63,6 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(
     screen.getByText('Welcome, Alex. Family setup is complete.'),
   ).toBeOnTheScreen();
+  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  expect(screen.getByText('Add a child')).toBeOnTheScreen();
 });

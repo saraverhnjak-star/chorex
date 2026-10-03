@@ -1646,6 +1646,24 @@ The Parent client reads its own profile first, then directly reads the projected
 
 ---
 
+# ADR-038 — Child Creation Uses a Deterministic Cross-Service Retry Identity
+
+**Status:** Accepted
+
+**Supersedes:** ADR-037's collection-listing restriction only for the Family membership subcollection
+
+## Decision
+
+`createChild` accepts an authenticated Parent's `familyId`, `displayName`, and client-generated `idempotencyKey`. The server requires an active Parent membership and derives the child Firebase Auth UID deterministically from the authenticated actor, Family, and idempotency key.
+
+Before creating the Auth user, the command reserves the key, payload hash, and derived child UID in one server-only Firestore idempotency record. It then creates or reuses that exact Auth identity and atomically creates the Child profile, active Child membership, activity event, and completed idempotency state in Firestore. A retry after Auth succeeds but Firestore fails therefore resumes with the same UID; a reused key with a different payload returns `IDEMPOTENCY_CONFLICT`.
+
+The client cannot provide a child UID, role, ownership field, or Auth credential. Pairing and custom-token sign-in remain separate later commands.
+
+Active Family members may read and list that Family's membership documents so the Parent home can discover active children. All membership writes remain server-only, and this does not permit listing any other collection.
+
+---
+
 # Remaining Open Decisions Before or During Early Implementation
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.

@@ -116,6 +116,8 @@ Do not store family role solely on the user document. Membership is family-speci
 
 The first family-onboarding mutation is the authenticated, idempotent `createFamily` callable. In one atomic operation it creates `/users/{uid}` if absent, adds the new Family ID to the profile's `familyIds` projection, creates `/families/{familyId}`, and creates `/families/{familyId}/members/{uid}` with an active Parent role. The server takes `uid` from Firebase Authentication and assigns ownership and role; those authoritative values are not accepted from the client.
 
+The authenticated, idempotent `createChild` callable requires the actor's active Parent membership. It accepts only `familyId`, `displayName`, and an idempotency key; the server derives the Child UID and role. Following ADR-038, it reserves the deterministic UID before Auth creation, then atomically creates the Child profile, active Child membership, `CHILD_CREATED` activity event, and completed idempotency state. This permits a retry to finish after an Auth/Firestore partial failure without creating another child.
+
 ## 6. Offers
 
 `/offers/{offerId}`

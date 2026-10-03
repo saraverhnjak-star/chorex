@@ -21,10 +21,8 @@ service cloud.firestore {
       allow list, write: if false;
 
       match /members/{uid} {
-        allow get: if isSignedIn()
-          && request.auth.uid == uid
-          && resource.data.status == 'ACTIVE';
-        allow list, write: if false;
+        allow get, list: if isActiveFamilyMember(familyId);
+        allow write: if false;
       }
     }
 

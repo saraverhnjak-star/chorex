@@ -1,4 +1,6 @@
 import {
+  createChildInputSchema,
+  createChildOutputSchema,
   createFamilyInputSchema,
   createFamilyOutputSchema,
   persistedParentProfileSchema,
@@ -63,5 +65,51 @@ describe('family bootstrap schemas', () => {
         createdAt: '2026-10-03T12:34:56Z',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('child creation schemas', () => {
+  it('accepts only family, display name, and idempotency key', () => {
+    expect(
+      createChildInputSchema.parse({
+        familyId: 'family-id',
+        displayName: '  Mia  ',
+        idempotencyKey: 'create-mia-001',
+      }),
+    ).toEqual({
+      familyId: 'family-id',
+      displayName: 'Mia',
+      idempotencyKey: 'create-mia-001',
+    });
+
+    expect(
+      createChildInputSchema.safeParse({
+        familyId: 'family-id',
+        displayName: 'Mia',
+        idempotencyKey: 'create-mia-001',
+        role: 'CHILD',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('parses canonical child creation output', () => {
+    expect(
+      createChildOutputSchema.parse({
+        profile: {
+          uid: 'child-uid',
+          displayName: 'Mia',
+          accountType: 'CHILD',
+          createdAt: timestamp,
+        },
+        membership: {
+          uid: 'child-uid',
+          familyId: 'family-id',
+          role: 'CHILD',
+          displayName: 'Mia',
+          status: 'ACTIVE',
+          joinedAt: timestamp,
+        },
+      }).membership.uid,
+    ).toBe('child-uid');
   });
 });

@@ -9,10 +9,14 @@ import {
   type User,
 } from '@react-native-firebase/auth';
 import {
+  collection,
   connectFirestoreEmulator,
   doc,
   getDoc,
+  getDocs,
   getFirestore,
+  query,
+  where,
 } from '@react-native-firebase/firestore';
 import {
   connectFunctionsEmulator,
@@ -20,12 +24,18 @@ import {
   httpsCallable,
 } from '@react-native-firebase/functions';
 import {
+  childFamilyMembershipSchema,
+  createChildInputSchema,
+  createChildOutputSchema,
   createFamilyInputSchema,
   createFamilyOutputSchema,
   familySchema,
   familyCommandErrorCodes,
   parentFamilyMembershipSchema,
   persistedParentProfileSchema,
+  type ChildFamilyMembership,
+  type CreateChildInputValue,
+  type CreateChildOutput,
   type CreateFamilyInputValue,
   type CreateFamilyOutput,
   type Family,
@@ -109,6 +119,7 @@ export interface ParentFamilyHome {
   readonly profile: PersistedParentProfile;
   readonly family: Family;
   readonly membership: ParentFamilyMembership;
+  readonly children: readonly ChildFamilyMembership[];
 }
 
 export function initializeDevelopmentFirebase(
@@ -393,12 +404,26 @@ export async function readCurrentParentFamily(): Promise<ParentFamilyHome | null
   const familyId = projection.familyIds[0];
   try {
     const firestore = getInitializedFirestore();
-    const [familySnapshot, membershipSnapshot] = await Promise.all([
-      getDoc(doc(firestore, 'families', familyId)),
-      getDoc(
-        doc(firestore, 'families', familyId, 'members', projection.profile.uid),
-      ),
-    ]);
+    const [familySnapshot, membershipSnapshot, childrenSnapshot] =
+      await Promise.all([
+        getDoc(doc(firestore, 'families', familyId)),
+        getDoc(
+          doc(
+            firestore,
+            'families',
+            familyId,
+            'members',
+            projection.profile.uid,
+          ),
+        ),
+        getDocs(
+          query(
+            collection(firestore, 'families', familyId, 'members'),
+            where('role', '==', 'CHILD'),
+            where('status', '==', 'ACTIVE'),
+          ),
+        ),
+      ]);
     if (!familySnapshot.exists() || !membershipSnapshot.exists()) {
       throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
     }
@@ -421,6 +446,21 @@ export async function readCurrentParentFamily(): Promise<ParentFamilyHome | null
         status: membershipData.status,
         joinedAt: timestampToIso(membershipData.joinedAt),
       }),
+      children: childrenSnapshot.docs
+        .map((childSnapshot) => {
+          const childData = childSnapshot.data();
+          return childFamilyMembershipSchema.parse({
+            uid: childSnapshot.id,
+            familyId,
+            role: childData.role,
+            displayName: childData.displayName,
+            status: childData.status,
+            joinedAt: timestampToIso(childData.joinedAt),
+          });
+        })
+        .sort((left, right) =>
+          left.displayName.localeCompare(right.displayName),
+        ),
     };
   } catch (error) {
     if (error instanceof FamilyClientError) throw error;
@@ -445,6 +485,25 @@ export async function createFamily(
     );
     const result = await callable(parsedInput.data);
     return createFamilyOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translateFamilyError(error);
+  }
+}
+
+export async function createChild(
+  rawInput: CreateChildInputValue,
+): Promise<CreateChildOutput> {
+  const parsedInput = createChildInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new FamilyClientError(familyClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'createChild',
+    );
+    const result = await callable(parsedInput.data);
+    return createChildOutputSchema.parse(result.data);
   } catch (error) {
     throw translateFamilyError(error);
   }
