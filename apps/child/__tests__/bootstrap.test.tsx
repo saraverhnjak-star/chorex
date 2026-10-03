@@ -42,6 +42,12 @@ const mockReadCurrentChildFamily = jest.fn().mockResolvedValue({
     joinedAt: '2026-10-03T12:34:56.789Z',
   },
 });
+const mockRegisterCurrentDevice = jest
+  .fn()
+  .mockResolvedValue({ status: 'registered' });
+const mockRemoveCurrentDeviceRegistration = jest
+  .fn()
+  .mockResolvedValue(undefined);
 
 jest.mock('@chorex/firebase-client', () => ({
   observeAuthState: jest.fn((listener) => {
@@ -55,10 +61,22 @@ jest.mock('@chorex/firebase-client', () => ({
     mockReadCurrentChildFamily(...args),
   signInWithChildCustomToken: (...args: unknown[]) =>
     mockSignInWithChildCustomToken(...args),
+  signOutCurrentUser: jest.fn(),
+}));
+
+jest.mock('@chorex/notifications', () => ({
+  registerCurrentDevice: (...args: unknown[]) =>
+    mockRegisterCurrentDevice(...args),
+  removeCurrentDeviceRegistration: (...args: unknown[]) =>
+    mockRemoveCurrentDeviceRegistration(...args),
 }));
 
 jest.mock('../src/pairing/messages', () => ({
   getPairingErrorMessage: () => 'Pairing could not be completed.',
+}));
+
+jest.mock('../src/notifications/messages', () => ({
+  getNotificationErrorMessage: () => 'Notifications could not be enabled.',
 }));
 
 it('pairs, loads the Child home, and restores it after restart', async () => {
@@ -80,6 +98,8 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(
     screen.getByText('Welcome, Mia. Your family is ready.'),
   ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
+  expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('CHILD');
   expect(mockRedeemPairingSession).toHaveBeenCalledWith(
     expect.objectContaining({ token: 'AbCdEfGhIjKlMnOpQrStUw' }),
   );

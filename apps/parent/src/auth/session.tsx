@@ -15,6 +15,7 @@ import {
   type AuthCredentials,
   type AuthUser,
 } from '@chorex/firebase-client';
+import { removeCurrentDeviceRegistration } from '@chorex/notifications';
 
 type ParentSessionState =
   | { status: 'loading'; user: null; error: null }
@@ -52,7 +53,10 @@ export function ParentSessionProvider({ children }: { children: ReactNode }) {
       ...state,
       register: registerWithEmailAndPassword,
       signIn: signInWithEmailAndPassword,
-      signOut: signOutCurrentUser,
+      signOut: async () => {
+        await removeCurrentDeviceRegistration();
+        await signOutCurrentUser();
+      },
     }),
     [state],
   );

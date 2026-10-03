@@ -14,6 +14,54 @@ service cloud.firestore {
     match /users/{uid} {
       allow get: if isSignedIn() && request.auth.uid == uid;
       allow list, write: if false;
+
+      match /devices/{deviceId} {
+        function isDeviceOwner() {
+          return isSignedIn() && request.auth.uid == uid;
+        }
+
+        function hasValidDeviceShape() {
+          return request.resource.data.keys().hasOnly([
+              'platform',
+              'appVariant',
+              'appVersion',
+              'expoPushToken',
+              'pushEnabled',
+              'createdAt',
+              'lastSeenAt'
+            ])
+            && request.resource.data.keys().hasAll([
+              'platform',
+              'appVariant',
+              'appVersion',
+              'expoPushToken',
+              'pushEnabled',
+              'createdAt',
+              'lastSeenAt'
+            ])
+            && request.resource.data.platform in ['ios', 'android']
+            && request.resource.data.appVariant in ['PARENT', 'CHILD']
+            && request.resource.data.appVersion is string
+            && request.resource.data.appVersion.size() > 0
+            && request.resource.data.appVersion.size() <= 64
+            && request.resource.data.expoPushToken is string
+            && request.resource.data.expoPushToken.size() > 0
+            && request.resource.data.expoPushToken.size() <= 512
+            && request.resource.data.pushEnabled == true
+            && request.resource.data.lastSeenAt == request.time;
+        }
+
+        allow get, list: if isDeviceOwner();
+        allow create: if isDeviceOwner()
+          && deviceId.size() > 0
+          && deviceId.size() <= 128
+          && hasValidDeviceShape()
+          && request.resource.data.createdAt == request.time;
+        allow update: if isDeviceOwner()
+          && hasValidDeviceShape()
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isDeviceOwner();
+      }
     }
 
     match /families/{familyId} {

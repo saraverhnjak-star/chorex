@@ -4,6 +4,7 @@ import {
   readCurrentChildFamily,
   type ChildFamilyHome,
 } from '@chorex/firebase-client';
+import { registerCurrentDevice } from '@chorex/notifications';
 import {
   Button,
   FormMessage,
@@ -14,6 +15,7 @@ import {
 } from '@chorex/ui';
 import { useChildSession } from '../src/auth/session';
 import { getChildFamilyErrorMessage } from '../src/family/messages';
+import { getNotificationErrorMessage } from '../src/notifications/messages';
 import { getPairingErrorMessage } from '../src/pairing/messages';
 
 function newIdempotencyKey(): string {
@@ -23,6 +25,13 @@ function newIdempotencyKey(): string {
 type ChildFamilyState =
   | { status: 'loading' }
   | { status: 'ready'; home: ChildFamilyHome }
+  | { status: 'error'; message: string };
+
+type NotificationState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'registered' }
+  | { status: 'denied' }
   | { status: 'error'; message: string };
 
 export default function HomeScreen() {
@@ -35,6 +44,11 @@ export default function HomeScreen() {
   const [familyState, setFamilyState] = useState<ChildFamilyState>({
     status: 'loading',
   });
+  const [notificationState, setNotificationState] = useState<NotificationState>(
+    { status: 'idle' },
+  );
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string>();
   const uid = session.user?.uid;
 
   const loadFamily = useCallback(async () => {
@@ -69,6 +83,32 @@ export default function HomeScreen() {
       active = false;
     };
   }, [uid]);
+
+  const enableNotifications = async () => {
+    if (notificationState.status === 'loading') return;
+    setNotificationState({ status: 'loading' });
+    try {
+      const result = await registerCurrentDevice('CHILD');
+      setNotificationState({ status: result.status });
+    } catch (notificationError) {
+      setNotificationState({
+        status: 'error',
+        message: getNotificationErrorMessage(notificationError),
+      });
+    }
+  };
+
+  const signOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    setSignOutError(undefined);
+    try {
+      await session.signOut();
+    } catch {
+      setSignOutError('This device could not be signed out. Try again.');
+      setSigningOut(false);
+    }
+  };
 
   if (session.user) {
     return (
@@ -115,24 +155,84 @@ export default function HomeScreen() {
           ) : null}
 
           {familyState.status === 'ready' ? (
-            <View className="mt-8 rounded-3xl border border-border bg-surface-warm p-5">
-              <Text
-                allowFontScaling={false}
-                className="font-bold text-text"
-                style={dynamicType.title}
-              >
-                {familyState.home.family.name}
-              </Text>
-              <Text
-                allowFontScaling={false}
-                className="mt-3 text-text-muted"
-                style={dynamicType.body}
-              >
-                Welcome, {familyState.home.profile.displayName}. Your family is
-                ready.
-              </Text>
+            <View className="mt-8 gap-5">
+              <View className="rounded-3xl border border-border bg-surface-warm p-5">
+                <Text
+                  allowFontScaling={false}
+                  className="font-bold text-text"
+                  style={dynamicType.title}
+                >
+                  {familyState.home.family.name}
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  className="mt-3 text-text-muted"
+                  style={dynamicType.body}
+                >
+                  Welcome, {familyState.home.profile.displayName}. Your family
+                  is ready.
+                </Text>
+              </View>
+
+              <View className="gap-3 rounded-3xl border border-border bg-surface-warm p-5">
+                <Text
+                  allowFontScaling={false}
+                  className="font-bold text-text"
+                  style={dynamicType.title}
+                >
+                  Notifications
+                </Text>
+                <Text
+                  allowFontScaling={false}
+                  className="text-text-muted"
+                  style={dynamicType.body}
+                >
+                  Get updates when a family agreement is ready for you.
+                </Text>
+                {notificationState.status === 'registered' ? (
+                  <Text
+                    allowFontScaling={false}
+                    accessibilityLiveRegion="polite"
+                    className="font-semibold text-text"
+                    style={dynamicType.body}
+                  >
+                    Notifications are enabled on this device.
+                  </Text>
+                ) : null}
+                {notificationState.status === 'denied' ? (
+                  <Text
+                    allowFontScaling={false}
+                    accessibilityLiveRegion="polite"
+                    className="text-text-muted"
+                    style={dynamicType.body}
+                  >
+                    Notifications are off. You can keep using ChoreX normally.
+                  </Text>
+                ) : null}
+                {notificationState.status === 'error' ? (
+                  <FormMessage message={notificationState.message} />
+                ) : null}
+                {notificationState.status !== 'registered' ? (
+                  <Button
+                    label="Enable notifications"
+                    loading={notificationState.status === 'loading'}
+                    onPress={() => void enableNotifications()}
+                    variant="secondary"
+                  />
+                ) : null}
+              </View>
             </View>
           ) : null}
+
+          <View className="mt-6 gap-4">
+            <FormMessage message={signOutError} />
+            <Button
+              label="Sign out"
+              loading={signingOut}
+              onPress={() => void signOut()}
+              variant="secondary"
+            />
+          </View>
         </View>
       </Screen>
     );

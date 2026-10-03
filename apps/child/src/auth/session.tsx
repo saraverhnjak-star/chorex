@@ -10,9 +10,11 @@ import {
   observeAuthState,
   redeemPairingSession,
   signInWithChildCustomToken,
+  signOutCurrentUser,
   type AuthClientError,
   type AuthUser,
 } from '@chorex/firebase-client';
+import { removeCurrentDeviceRegistration } from '@chorex/notifications';
 
 type ChildSessionState =
   | { status: 'loading'; user: null; error: null }
@@ -21,6 +23,7 @@ type ChildSessionState =
 
 type ChildSessionContextValue = ChildSessionState & {
   pair: (token: string, idempotencyKey: string) => Promise<AuthUser>;
+  signOut: () => Promise<void>;
 };
 
 const ChildSessionContext = createContext<ChildSessionContextValue | null>(
@@ -52,6 +55,10 @@ export function ChildSessionProvider({ children }: { children: ReactNode }) {
           idempotencyKey,
         });
         return signInWithChildCustomToken(redemption.customToken);
+      },
+      signOut: async () => {
+        await removeCurrentDeviceRegistration();
+        await signOutCurrentUser();
       },
     }),
     [state],

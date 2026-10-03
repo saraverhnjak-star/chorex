@@ -74,3 +74,4 @@ jobs:
           printf '%s\n' 'PAIRING_RATE_LIMIT_HMAC_SECRET_EMULATOR=ci-emulator-only-pairing-hmac-secret' > functions/.env.local
           pnpm emulators:verify
           pnpm emulators:verify:redeem-pairing-session
+          pnpm emulators:verify:device-registration

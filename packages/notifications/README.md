@@ -1,5 +1,5 @@
 # notifications
 
-Reserved for push registration and notification routing. No SDK, permissions, registration, or delivery behavior exists.
+Owns contextual notification permission requests and authenticated Expo push registration for both mobile apps.
 
-This empty module is typechecked and linted. Its test script explicitly allows no tests because it has no behavior.
+The package generates a random installation ID with `expo-crypto`, persists it in SecureStore, and writes only the signed-in user's shape-restricted Firestore device record. It removes that account's record before local sign-out. Registration removal does not revoke a Firebase Auth session or resolve individual Child-device access revocation.

@@ -16,6 +16,7 @@ import {
   readCurrentParentFamily,
   type ParentFamilyHome,
 } from '@chorex/firebase-client';
+import { registerCurrentDevice } from '@chorex/notifications';
 import {
   Button,
   FormMessage,
@@ -27,6 +28,7 @@ import {
 import { getAuthErrorMessage } from '../../src/auth/messages';
 import { useParentSession } from '../../src/auth/session';
 import { getFamilyErrorMessage } from '../../src/family/messages';
+import { getNotificationErrorMessage } from '../../src/notifications/messages';
 
 type FamilyState =
   | { status: 'loading' }
@@ -44,6 +46,13 @@ type PairingState =
       expiresAt: string;
     }
   | { status: 'error'; childUid: string; message: string };
+
+type NotificationState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'registered' }
+  | { status: 'denied' }
+  | { status: 'error'; message: string };
 
 type CreateChildFormInput = Pick<CreateChildInput, 'displayName'>;
 const createChildFormSchema = createChildInputSchema.pick({
@@ -90,6 +99,9 @@ export default function AuthenticatedHomeScreen() {
   const [pairingState, setPairingState] = useState<PairingState>({
     status: 'idle',
   });
+  const [notificationState, setNotificationState] = useState<NotificationState>(
+    { status: 'idle' },
+  );
   const {
     control,
     handleSubmit,
@@ -225,6 +237,20 @@ export default function AuthenticatedHomeScreen() {
     }
   };
 
+  const enableNotifications = async () => {
+    if (notificationState.status === 'loading') return;
+    setNotificationState({ status: 'loading' });
+    try {
+      const result = await registerCurrentDevice('PARENT');
+      setNotificationState({ status: result.status });
+    } catch (notificationError) {
+      setNotificationState({
+        status: 'error',
+        message: getNotificationErrorMessage(notificationError),
+      });
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -340,6 +366,54 @@ export default function AuthenticatedHomeScreen() {
                 Welcome, {familyState.home.profile.displayName}. Family setup is
                 complete.
               </Text>
+            </View>
+
+            <View className="gap-3 rounded-3xl border border-border bg-surface-warm p-5">
+              <Text
+                allowFontScaling={false}
+                className="font-bold text-text"
+                style={dynamicType.title}
+              >
+                Notifications
+              </Text>
+              <Text
+                allowFontScaling={false}
+                className="text-text-muted"
+                style={dynamicType.body}
+              >
+                Get updates when your family agreements need your attention.
+              </Text>
+              {notificationState.status === 'registered' ? (
+                <Text
+                  allowFontScaling={false}
+                  accessibilityLiveRegion="polite"
+                  className="font-semibold text-text"
+                  style={dynamicType.body}
+                >
+                  Notifications are enabled on this device.
+                </Text>
+              ) : null}
+              {notificationState.status === 'denied' ? (
+                <Text
+                  allowFontScaling={false}
+                  accessibilityLiveRegion="polite"
+                  className="text-text-muted"
+                  style={dynamicType.body}
+                >
+                  Notifications are off. You can keep using ChoreX normally.
+                </Text>
+              ) : null}
+              {notificationState.status === 'error' ? (
+                <FormMessage message={notificationState.message} />
+              ) : null}
+              {notificationState.status !== 'registered' ? (
+                <Button
+                  label="Enable notifications"
+                  loading={notificationState.status === 'loading'}
+                  onPress={() => void enableNotifications()}
+                  variant="secondary"
+                />
+              ) : null}
             </View>
 
             <View className="rounded-3xl border border-border bg-surface-warm p-5">
