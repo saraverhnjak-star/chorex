@@ -13,6 +13,8 @@ const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
     'This account cannot create a Parent family.',
   [familyClientErrorCodes.idempotencyConflict]:
     'Family setup was already completed with different details.',
+  [familyClientErrorCodes.multipleFamiliesUnsupported]:
+    'This version cannot open accounts with more than one family yet.',
   [familyClientErrorCodes.networkUnavailable]:
     'The local family service is unavailable. Check your connection and try again.',
   [familyClientErrorCodes.profileReadFailed]:

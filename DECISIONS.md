@@ -1628,6 +1628,24 @@ All later family-scoped commands continue to validate active membership and role
 
 ---
 
+# ADR-037 — Parent Family Discovery Projection
+
+**Status:** Accepted
+
+## Decision
+
+`/users/{uid}.familyIds` is a server-managed Firestore projection used to discover a signed-in Parent's Family documents. It is not part of the canonical `UserProfile` domain schema, and Family membership and role remain authoritative in `/families/{familyId}/members/{uid}`.
+
+`createFamily` adds the created Family ID to `familyIds` in the same transaction as the profile, Family, membership, activity event, and idempotency record. Idempotent retries must preserve one occurrence of that ID.
+
+During the single-family MVP, zero IDs means onboarding is incomplete, one ID selects that Family, and more than one ID returns `MULTIPLE_FAMILIES_UNSUPPORTED`. Family selection and switching are deferred.
+
+## Consequences
+
+The Parent client reads its own profile first, then directly reads the projected Family and its own membership. Firestore Rules may allow those direct document reads while continuing to deny all client writes and collection listing.
+
+---
+
 # Remaining Open Decisions Before or During Early Implementation
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.

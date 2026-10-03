@@ -61,6 +61,7 @@ The JSON-like examples below use `"serverTimestamp"` to mean a server timestamp 
 {
   "displayName": "Alex",
   "accountType": "PARENT",
+  "familyIds": ["familyId"],
   "avatarKey": "avatar-03",
   "createdAt": "serverTimestamp",
   "updatedAt": "serverTimestamp"
@@ -68,6 +69,8 @@ The JSON-like examples below use `"serverTimestamp"` to mean a server timestamp 
 ```
 
 Do not store family role solely on the user document. Membership is family-specific and belongs in `/families/{familyId}/members/{uid}`.
+
+`familyIds` is a server-managed persistence projection for Parent family discovery, as defined by ADR-037. It does not belong in the canonical `UserProfile` schema and does not replace membership authorization. During the single-family MVP, clients treat zero IDs as incomplete onboarding, read the Family referenced by the sole ID, and return `MULTIPLE_FAMILIES_UNSUPPORTED` if more than one ID is present.
 
 ## 4. Device registrations
 
@@ -111,7 +114,7 @@ Do not store family role solely on the user document. Membership is family-speci
 }
 ```
 
-The first family-onboarding mutation is the authenticated, idempotent `createFamily` callable. In one atomic operation it creates `/users/{uid}` if absent, creates `/families/{familyId}`, and creates `/families/{familyId}/members/{uid}` with an active Parent role. The server takes `uid` from Firebase Authentication and assigns ownership and role; those authoritative values are not accepted from the client.
+The first family-onboarding mutation is the authenticated, idempotent `createFamily` callable. In one atomic operation it creates `/users/{uid}` if absent, adds the new Family ID to the profile's `familyIds` projection, creates `/families/{familyId}`, and creates `/families/{familyId}/members/{uid}` with an active Parent role. The server takes `uid` from Firebase Authentication and assigns ownership and role; those authoritative values are not accepted from the client.
 
 ## 6. Offers
 

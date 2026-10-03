@@ -6,11 +6,11 @@ import {
   createFamilyInputSchema,
   type CreateFamilyInput,
   type CreateFamilyInputValue,
-  type PersistedParentProfile,
 } from '@chorex/domain';
 import {
   createFamily,
-  readCurrentParentProfile,
+  readCurrentParentFamily,
+  type ParentFamilyHome,
 } from '@chorex/firebase-client';
 import {
   Button,
@@ -24,10 +24,10 @@ import { getAuthErrorMessage } from '../../src/auth/messages';
 import { useParentSession } from '../../src/auth/session';
 import { getFamilyErrorMessage } from '../../src/family/messages';
 
-type ProfileState =
+type FamilyState =
   | { status: 'loading' }
   | { status: 'onboarding' }
-  | { status: 'ready'; profile: PersistedParentProfile }
+  | { status: 'ready'; home: ParentFamilyHome }
   | { status: 'error'; message: string };
 
 function ScreenHeading() {
@@ -57,7 +57,7 @@ export default function AuthenticatedHomeScreen() {
   const { user, signOut } = useParentSession();
   const uid = user?.uid;
   const dynamicType = useDynamicTypeStyles();
-  const [profileState, setProfileState] = useState<ProfileState>({
+  const [familyState, setFamilyState] = useState<FamilyState>({
     status: 'loading',
   });
   const [signingOut, setSigningOut] = useState(false);
@@ -73,14 +73,14 @@ export default function AuthenticatedHomeScreen() {
   });
 
   const loadProfile = useCallback(async () => {
-    setProfileState({ status: 'loading' });
+    setFamilyState({ status: 'loading' });
     try {
-      const profile = await readCurrentParentProfile();
-      setProfileState(
-        profile ? { status: 'ready', profile } : { status: 'onboarding' },
+      const home = await readCurrentParentFamily();
+      setFamilyState(
+        home ? { status: 'ready', home } : { status: 'onboarding' },
       );
     } catch (error) {
-      setProfileState({
+      setFamilyState({
         status: 'error',
         message: getFamilyErrorMessage(error),
       });
@@ -90,17 +90,17 @@ export default function AuthenticatedHomeScreen() {
   useEffect(() => {
     if (!uid) return;
     let active = true;
-    void readCurrentParentProfile()
-      .then((profile) => {
+    void readCurrentParentFamily()
+      .then((home) => {
         if (active) {
-          setProfileState(
-            profile ? { status: 'ready', profile } : { status: 'onboarding' },
+          setFamilyState(
+            home ? { status: 'ready', home } : { status: 'onboarding' },
           );
         }
       })
       .catch((error: unknown) => {
         if (active) {
-          setProfileState({
+          setFamilyState({
             status: 'error',
             message: getFamilyErrorMessage(error),
           });
@@ -114,7 +114,7 @@ export default function AuthenticatedHomeScreen() {
   const onCreateFamily = async (input: CreateFamilyInput) => {
     try {
       const output = await createFamily(input);
-      setProfileState({ status: 'ready', profile: output.profile });
+      setFamilyState({ status: 'ready', home: output });
     } catch (error) {
       setError('root.family', { message: getFamilyErrorMessage(error) });
     }
@@ -139,7 +139,7 @@ export default function AuthenticatedHomeScreen() {
       <View className="py-6">
         <ScreenHeading />
 
-        {profileState.status === 'loading' ? (
+        {familyState.status === 'loading' ? (
           <View className="flex-1 items-center justify-center py-16">
             <ActivityIndicator
               accessibilityLabel="Loading your Parent profile"
@@ -156,14 +156,14 @@ export default function AuthenticatedHomeScreen() {
           </View>
         ) : null}
 
-        {profileState.status === 'error' ? (
+        {familyState.status === 'error' ? (
           <View className="mt-8 gap-4">
-            <FormMessage message={profileState.message} />
+            <FormMessage message={familyState.message} />
             <Button label="Try again" onPress={loadProfile} />
           </View>
         ) : null}
 
-        {profileState.status === 'onboarding' ? (
+        {familyState.status === 'onboarding' ? (
           <View className="mt-8 gap-5 rounded-3xl border border-border bg-surface-warm p-5">
             <Text
               allowFontScaling={false}
@@ -223,7 +223,7 @@ export default function AuthenticatedHomeScreen() {
           </View>
         ) : null}
 
-        {profileState.status === 'ready' ? (
+        {familyState.status === 'ready' ? (
           <View className="mt-8 rounded-3xl border border-border bg-surface-warm p-5">
             <View className="flex-row items-center">
               <View
@@ -235,7 +235,7 @@ export default function AuthenticatedHomeScreen() {
                 className="flex-1 font-semibold text-text"
                 style={dynamicType.body}
               >
-                Family setup complete
+                {familyState.home.family.name}
               </Text>
             </View>
             <Text
@@ -243,12 +243,13 @@ export default function AuthenticatedHomeScreen() {
               className="mt-4 text-text-muted"
               style={dynamicType.body}
             >
-              Welcome, {profileState.profile.displayName}.
+              Welcome, {familyState.home.profile.displayName}. Family setup is
+              complete.
             </Text>
           </View>
         ) : null}
 
-        {profileState.status !== 'loading' ? (
+        {familyState.status !== 'loading' ? (
           <View className="mt-6 gap-4">
             <FormMessage message={signOutError} />
             <Button

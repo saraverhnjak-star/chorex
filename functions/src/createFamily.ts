@@ -56,6 +56,19 @@ function parseUserProfile(
   });
 }
 
+function parseFamilyIds(data: DocumentData | undefined): string[] {
+  if (!data || data.familyIds === undefined) return [];
+  if (
+    !Array.isArray(data.familyIds) ||
+    data.familyIds.some(
+      (familyId: unknown) => typeof familyId !== 'string' || !familyId,
+    )
+  ) {
+    throw new Error('INVALID_FAMILY_IDS_PROJECTION');
+  }
+  return data.familyIds;
+}
+
 function parseIdempotencyRecord(
   data: DocumentData | undefined,
 ): IdempotencyRecord {
@@ -120,6 +133,19 @@ export async function executeCreateFamily(
           familyCommandErrorCodes.idempotencyConflict,
         );
       }
+      const profileSnapshot = await transaction.get(profileReference);
+      const profile = parseUserProfile(uid, profileSnapshot);
+      if (profile.accountType !== 'PARENT') {
+        throw new CreateFamilyCommandError(
+          familyCommandErrorCodes.wrongActorRole,
+        );
+      }
+      if (!parseFamilyIds(profileSnapshot.data()).includes(record.familyId)) {
+        transaction.update(profileReference, {
+          familyIds: FieldValue.arrayUnion(record.familyId),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
       return record.familyId;
     }
 
@@ -140,7 +166,13 @@ export async function executeCreateFamily(
       transaction.create(profileReference, {
         displayName: input.displayName,
         accountType: 'PARENT',
+        familyIds: [familyReference.id],
         createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+    } else {
+      transaction.update(profileReference, {
+        familyIds: FieldValue.arrayUnion(familyReference.id),
         updatedAt: timestamp,
       });
     }

@@ -185,6 +185,14 @@ try {
 
   const retried = await callCreateFamily(payload, parentIdentity.idToken);
   assert(retried.family.id === created.family.id, 'Retry changed family ID');
+  const persistedParentProfile = await readAdmin(
+    `users/${parentIdentity.localId}`,
+  );
+  assert(
+    JSON.stringify(persistedParentProfile.data()?.familyIds) ===
+      JSON.stringify([created.family.id]),
+    'Retry did not preserve exactly one projected family ID',
+  );
   await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
     callCreateFamily(
       { displayName: 'Alex', familyName: 'Changed Family' },
@@ -232,6 +240,15 @@ try {
     concurrentResults.map((result) => result.family.id),
   );
   assert(concurrentFamilyIds.size === 1, 'Concurrent calls created duplicates');
+  const concurrentFamilyId = concurrentResults[0].family.id;
+  const concurrentProfile = await readAdmin(
+    `users/${concurrentIdentity.localId}`,
+  );
+  assert(
+    JSON.stringify(concurrentProfile.data()?.familyIds) ===
+      JSON.stringify([concurrentFamilyId]),
+    'Concurrent retries did not preserve exactly one projected family ID',
+  );
   assert(
     (await countAdmin('families', 'createdBy', concurrentIdentity.localId)) ===
       1,
@@ -260,13 +277,50 @@ try {
   await assertFails(
     getDoc(doc(parentFirestore, `users/${childIdentity.localId}`)),
   );
-  for (const path of [
-    `families/${created.family.id}`,
-    `families/${created.family.id}/members/${parentIdentity.localId}`,
-    `idempotency/${idempotencyId(parentIdentity.localId)}`,
-  ]) {
-    await assertFails(getDoc(doc(parentFirestore, path)));
-  }
+  await assertSucceeds(
+    getDoc(doc(parentFirestore, `families/${created.family.id}`)),
+  );
+  await assertSucceeds(
+    getDoc(
+      doc(
+        parentFirestore,
+        `families/${created.family.id}/members/${parentIdentity.localId}`,
+      ),
+    ),
+  );
+  await assertFails(
+    getDoc(
+      doc(
+        parentFirestore,
+        `idempotency/${idempotencyId(parentIdentity.localId)}`,
+      ),
+    ),
+  );
+  await assertFails(
+    getDoc(doc(parentFirestore, `families/${concurrentFamilyId}`)),
+  );
+  await assertFails(
+    getDoc(
+      doc(
+        parentFirestore,
+        `families/${concurrentFamilyId}/members/${concurrentIdentity.localId}`,
+      ),
+    ),
+  );
+  const concurrentFirestore = environment
+    .authenticatedContext(concurrentIdentity.localId)
+    .firestore();
+  await assertFails(
+    getDoc(doc(concurrentFirestore, `families/${created.family.id}`)),
+  );
+  await assertFails(
+    getDoc(
+      doc(
+        concurrentFirestore,
+        `families/${created.family.id}/members/${parentIdentity.localId}`,
+      ),
+    ),
+  );
   await assertFails(getDocs(collection(parentFirestore, 'activityEvents')));
   await assertFails(getDocs(collection(parentFirestore, 'users')));
   for (const path of [

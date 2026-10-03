@@ -58,6 +58,10 @@ export const familyCommandErrorCodes = {
 export type CreateFamilyInput = z.output<typeof createFamilyInputSchema>;
 export type CreateFamilyInputValue = z.input<typeof createFamilyInputSchema>;
 export type CreateFamilyOutput = z.output<typeof createFamilyOutputSchema>;
+export type Family = z.output<typeof familySchema>;
+export type ParentFamilyMembership = z.output<
+  typeof parentFamilyMembershipSchema
+>;
 export type UserProfile = z.output<typeof userProfileSchema>;
 export type PersistedParentProfile = z.output<
   typeof persistedParentProfileSchema

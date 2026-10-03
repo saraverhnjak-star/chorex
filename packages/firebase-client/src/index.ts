@@ -22,11 +22,15 @@ import {
 import {
   createFamilyInputSchema,
   createFamilyOutputSchema,
+  familySchema,
   familyCommandErrorCodes,
+  parentFamilyMembershipSchema,
   persistedParentProfileSchema,
   type CreateFamilyInputValue,
   type CreateFamilyOutput,
+  type Family,
   type FamilyCommandErrorCode,
+  type ParentFamilyMembership,
   type PersistedParentProfile,
 } from '@chorex/domain';
 import {
@@ -85,6 +89,7 @@ export class AuthClientError extends Error {
 
 export const familyClientErrorCodes = {
   ...familyCommandErrorCodes,
+  multipleFamiliesUnsupported: 'MULTIPLE_FAMILIES_UNSUPPORTED',
   networkUnavailable: 'NETWORK_UNAVAILABLE',
   profileReadFailed: 'PROFILE_READ_FAILED',
   unknown: 'UNKNOWN_FAMILY_FAILURE',
@@ -98,6 +103,12 @@ export class FamilyClientError extends Error {
     super(code);
     this.name = 'FamilyClientError';
   }
+}
+
+export interface ParentFamilyHome {
+  readonly profile: PersistedParentProfile;
+  readonly family: Family;
+  readonly membership: ParentFamilyMembership;
 }
 
 export function initializeDevelopmentFirebase(
@@ -317,7 +328,24 @@ export function isFamilyClientError(
   return error instanceof FamilyClientError;
 }
 
-export async function readCurrentParentProfile(): Promise<PersistedParentProfile | null> {
+interface ParentProfileProjection {
+  profile: PersistedParentProfile;
+  familyIds: string[];
+}
+
+function parseFamilyIds(value: unknown): string[] {
+  if (value === undefined) return [];
+  if (
+    !Array.isArray(value) ||
+    value.some((familyId) => typeof familyId !== 'string' || !familyId) ||
+    new Set(value).size !== value.length
+  ) {
+    throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+  }
+  return value;
+}
+
+async function readCurrentParentProfileProjection(): Promise<ParentProfileProjection | null> {
   const user = getInitializedAuth().currentUser;
   if (!user) {
     throw new FamilyClientError(familyClientErrorCodes.authRequired);
@@ -331,12 +359,69 @@ export async function readCurrentParentProfile(): Promise<PersistedParentProfile
     if (data.accountType === 'CHILD') {
       throw new FamilyClientError(familyClientErrorCodes.wrongActorRole);
     }
-    return persistedParentProfileSchema.parse({
-      uid: user.uid,
-      displayName: data.displayName,
-      accountType: data.accountType,
-      createdAt: timestampToIso(data.createdAt),
-    });
+    return {
+      profile: persistedParentProfileSchema.parse({
+        uid: user.uid,
+        displayName: data.displayName,
+        accountType: data.accountType,
+        createdAt: timestampToIso(data.createdAt),
+      }),
+      familyIds: parseFamilyIds(data.familyIds),
+    };
+  } catch (error) {
+    if (error instanceof FamilyClientError) throw error;
+    if (typeof error === 'object' && error !== null && 'issues' in error) {
+      throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+    }
+    throw translateFamilyError(error);
+  }
+}
+
+export async function readCurrentParentProfile(): Promise<PersistedParentProfile | null> {
+  return (await readCurrentParentProfileProjection())?.profile ?? null;
+}
+
+export async function readCurrentParentFamily(): Promise<ParentFamilyHome | null> {
+  const projection = await readCurrentParentProfileProjection();
+  if (!projection || projection.familyIds.length === 0) return null;
+  if (projection.familyIds.length > 1) {
+    throw new FamilyClientError(
+      familyClientErrorCodes.multipleFamiliesUnsupported,
+    );
+  }
+
+  const familyId = projection.familyIds[0];
+  try {
+    const firestore = getInitializedFirestore();
+    const [familySnapshot, membershipSnapshot] = await Promise.all([
+      getDoc(doc(firestore, 'families', familyId)),
+      getDoc(
+        doc(firestore, 'families', familyId, 'members', projection.profile.uid),
+      ),
+    ]);
+    if (!familySnapshot.exists() || !membershipSnapshot.exists()) {
+      throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
+    }
+    const familyData = familySnapshot.data();
+    const membershipData = membershipSnapshot.data();
+    return {
+      profile: projection.profile,
+      family: familySchema.parse({
+        id: familyId,
+        name: familyData.name,
+        createdBy: familyData.createdBy,
+        createdAt: timestampToIso(familyData.createdAt),
+        updatedAt: timestampToIso(familyData.updatedAt),
+      }),
+      membership: parentFamilyMembershipSchema.parse({
+        uid: projection.profile.uid,
+        familyId,
+        role: membershipData.role,
+        displayName: membershipData.displayName,
+        status: membershipData.status,
+        joinedAt: timestampToIso(membershipData.joinedAt),
+      }),
+    };
   } catch (error) {
     if (error instanceof FamilyClientError) throw error;
     if (typeof error === 'object' && error !== null && 'issues' in error) {

@@ -20,7 +20,9 @@ export {
   type CreateFamilyInput,
   type CreateFamilyInputValue,
   type CreateFamilyOutput,
+  type Family,
   type FamilyCommandErrorCode,
+  type ParentFamilyMembership,
   type PersistedParentProfile,
   type UserProfile,
 } from './family';
