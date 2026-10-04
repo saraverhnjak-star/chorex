@@ -42,6 +42,35 @@ const mockReadCurrentChildFamily = jest.fn().mockResolvedValue({
     joinedAt: '2026-10-03T12:34:56.789Z',
   },
 });
+const mockReadCurrentChildOfferInbox = jest.fn().mockResolvedValue([
+  {
+    offer: {
+      id: 'offer-test-id',
+      familyId: 'family-test-id',
+      parentUid: 'parent-test-uid',
+      childUid: 'child-test-uid',
+      status: 'AWAITING_CHILD',
+      currentRevisionId: 'revision-test-id',
+      createdAt: '2026-10-03T12:34:56.789Z',
+      updatedAt: '2026-10-03T12:35:56.789Z',
+    },
+    revision: {
+      id: 'revision-test-id',
+      offerId: 'offer-test-id',
+      revisionNumber: 1,
+      proposedByUid: 'parent-test-uid',
+      proposedByRole: 'PARENT',
+      tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
+      reward: {
+        title: 'Cinema',
+        description: 'Choose a movie',
+        type: 'EXPERIENCE',
+      },
+      deadlineAt: '2026-10-10T18:00:00.000Z',
+      createdAt: '2026-10-03T12:34:56.789Z',
+    },
+  },
+]);
 const mockRegisterCurrentDevice = jest
   .fn()
   .mockResolvedValue({ status: 'registered' });
@@ -59,6 +88,8 @@ jest.mock('@chorex/firebase-client', () => ({
     mockRedeemPairingSession(...args),
   readCurrentChildFamily: (...args: unknown[]) =>
     mockReadCurrentChildFamily(...args),
+  readCurrentChildOfferInbox: (...args: unknown[]) =>
+    mockReadCurrentChildOfferInbox(...args),
   signInWithChildCustomToken: (...args: unknown[]) =>
     mockSignInWithChildCustomToken(...args),
   signOutCurrentUser: jest.fn(),
@@ -98,6 +129,8 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(
     screen.getByText('Welcome, Mia. Your family is ready.'),
   ).toBeOnTheScreen();
+  expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('CHILD');
   expect(mockRedeemPairingSession).toHaveBeenCalledWith(
@@ -120,4 +153,5 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     screen.getByText('Welcome, Mia. Your family is ready.'),
   ).toBeOnTheScreen();
   expect(mockReadCurrentChildFamily).toHaveBeenCalledTimes(2);
+  expect(mockReadCurrentChildOfferInbox).toHaveBeenCalledWith('family-test-id');
 });

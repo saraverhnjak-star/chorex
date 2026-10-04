@@ -135,6 +135,24 @@ const publishedOfferSchema = offerSchema.extend({
   currentRevisionId: boundedIdSchema,
 });
 
+export const childOfferInboxItemSchema = z
+  .strictObject({
+    offer: publishedOfferSchema,
+    revision: offerRevisionSchema,
+  })
+  .superRefine(({ offer, revision }, context) => {
+    if (
+      revision.id !== offer.currentRevisionId ||
+      revision.offerId !== offer.id
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Revision must be the Offer current revision.',
+        path: ['revision', 'id'],
+      });
+    }
+  });
+
 export const publishOfferOutputSchema = z.strictObject({
   offer: publishedOfferSchema,
 });
@@ -169,5 +187,6 @@ export type CreateOfferDraftOutput = z.output<
 export type PublishOfferInput = z.output<typeof publishOfferInputSchema>;
 export type PublishOfferInputValue = z.input<typeof publishOfferInputSchema>;
 export type PublishOfferOutput = z.output<typeof publishOfferOutputSchema>;
+export type ChildOfferInboxItem = z.output<typeof childOfferInboxItemSchema>;
 export type OfferCommandErrorCode =
   (typeof offerCommandErrorCodes)[keyof typeof offerCommandErrorCodes];

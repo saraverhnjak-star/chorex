@@ -16,6 +16,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  orderBy,
   query,
   where,
 } from '@react-native-firebase/firestore';
@@ -26,6 +27,7 @@ import {
 } from '@react-native-firebase/functions';
 import {
   childFamilyMembershipSchema,
+  childOfferInboxItemSchema,
   createChildInputSchema,
   createChildOutputSchema,
   createFamilyInputSchema,
@@ -46,6 +48,7 @@ import {
   redeemPairingSessionInputSchema,
   redeemPairingSessionOutputSchema,
   type ChildFamilyMembership,
+  type ChildOfferInboxItem,
   type CreateChildInputValue,
   type CreateChildOutput,
   type CreateFamilyInputValue,
@@ -71,6 +74,8 @@ import {
   readFirebaseEmulatorConfig,
   type FirebaseEmulatorInput,
 } from '@chorex/config';
+
+export type { ChildOfferInboxItem };
 
 interface DevelopmentFirebase {
   app: ReturnType<typeof getApp>;
@@ -138,6 +143,29 @@ export class FamilyClientError extends Error {
     super(code);
     this.name = 'FamilyClientError';
   }
+}
+
+export const offerInboxClientErrorCodes = {
+  authRequired: 'AUTH_REQUIRED',
+  networkUnavailable: 'NETWORK_UNAVAILABLE',
+  readFailed: 'OFFER_INBOX_READ_FAILED',
+  malformedData: 'MALFORMED_OFFER_DATA',
+} as const;
+
+export type OfferInboxClientErrorCode =
+  (typeof offerInboxClientErrorCodes)[keyof typeof offerInboxClientErrorCodes];
+
+export class OfferInboxClientError extends Error {
+  constructor(readonly code: OfferInboxClientErrorCode) {
+    super(code);
+    this.name = 'OfferInboxClientError';
+  }
+}
+
+export function isOfferInboxClientError(
+  error: unknown,
+): error is OfferInboxClientError {
+  return error instanceof OfferInboxClientError;
 }
 
 export const pairingClientErrorCodes = {
@@ -572,6 +600,107 @@ export async function readCurrentChildFamily(): Promise<ChildFamilyHome> {
       throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
     }
     throw translateFamilyError(error);
+  }
+}
+
+export async function readCurrentChildOfferInbox(
+  familyId: string,
+): Promise<readonly ChildOfferInboxItem[]> {
+  const user = getInitializedAuth().currentUser;
+  if (!user) {
+    throw new OfferInboxClientError(offerInboxClientErrorCodes.authRequired);
+  }
+  if (!familyId.trim() || familyId.length > 128) {
+    throw new OfferInboxClientError(offerInboxClientErrorCodes.readFailed);
+  }
+
+  try {
+    const firestore = getInitializedFirestore();
+    const offersSnapshot = await getDocs(
+      query(
+        collection(firestore, 'offers'),
+        where('familyId', '==', familyId),
+        where('participantUids', 'array-contains', user.uid),
+        where('status', '==', 'AWAITING_CHILD'),
+        orderBy('updatedAt', 'desc'),
+      ),
+    );
+
+    return await Promise.all(
+      offersSnapshot.docs.map(async (offerSnapshot) => {
+        const offerData = offerSnapshot.data();
+        if (
+          typeof offerData.currentRevisionId !== 'string' ||
+          !offerData.currentRevisionId
+        ) {
+          throw new OfferInboxClientError(
+            offerInboxClientErrorCodes.malformedData,
+          );
+        }
+        const revisionSnapshot = await getDoc(
+          doc(
+            firestore,
+            'offers',
+            offerSnapshot.id,
+            'revisions',
+            offerData.currentRevisionId,
+          ),
+        );
+        if (!revisionSnapshot.exists()) {
+          throw new OfferInboxClientError(
+            offerInboxClientErrorCodes.malformedData,
+          );
+        }
+        const revisionData = revisionSnapshot.data();
+
+        return childOfferInboxItemSchema.parse({
+          offer: {
+            id: offerSnapshot.id,
+            familyId: offerData.familyId,
+            parentUid: offerData.parentUid,
+            childUid: offerData.childUid,
+            status: offerData.status,
+            currentRevisionId: offerData.currentRevisionId,
+            ...(offerData.expiresAt === undefined
+              ? {}
+              : { expiresAt: timestampToIso(offerData.expiresAt) }),
+            createdAt: timestampToIso(offerData.createdAt),
+            updatedAt: timestampToIso(offerData.updatedAt),
+          },
+          revision: {
+            id: revisionSnapshot.id,
+            offerId: offerSnapshot.id,
+            revisionNumber: revisionData.revisionNumber,
+            proposedByUid: revisionData.proposedByUid,
+            proposedByRole: revisionData.proposedByRole,
+            tasks: revisionData.tasks,
+            reward: revisionData.reward,
+            deadlineAt: timestampToIso(revisionData.deadlineAt),
+            ...(revisionData.note === undefined
+              ? {}
+              : { note: revisionData.note }),
+            createdAt: timestampToIso(revisionData.createdAt),
+          },
+        });
+      }),
+    );
+  } catch (error) {
+    if (error instanceof OfferInboxClientError) {
+      throw error;
+    }
+    if (error instanceof FamilyClientError) {
+      throw new OfferInboxClientError(offerInboxClientErrorCodes.malformedData);
+    }
+    if (typeof error === 'object' && error !== null && 'issues' in error) {
+      throw new OfferInboxClientError(offerInboxClientErrorCodes.malformedData);
+    }
+    const translated = translateFamilyError(error);
+    if (translated.code === familyClientErrorCodes.networkUnavailable) {
+      throw new OfferInboxClientError(
+        offerInboxClientErrorCodes.networkUnavailable,
+      );
+    }
+    throw new OfferInboxClientError(offerInboxClientErrorCodes.readFailed);
   }
 }
 

@@ -16,6 +16,7 @@ import {
 import { useChildSession } from '../src/auth/session';
 import { getChildFamilyErrorMessage } from '../src/family/messages';
 import { getNotificationErrorMessage } from '../src/notifications/messages';
+import { OfferInbox } from '../src/offers/OfferInbox';
 import { getPairingErrorMessage } from '../src/pairing/messages';
 
 function newIdempotencyKey(): string {
@@ -173,6 +174,8 @@ export default function HomeScreen() {
                   is ready.
                 </Text>
               </View>
+
+              <OfferInbox familyId={familyState.home.family.id} />
 
               <View className="gap-3 rounded-3xl border border-border bg-surface-warm p-5">
                 <Text

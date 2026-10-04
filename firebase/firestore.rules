@@ -81,20 +81,26 @@ service cloud.firestore {
 
     match /offers/{offerId} {
       function canReadOffer() {
-        return (resource.data.parentUid == request.auth.uid
+        return isSignedIn()
+          && ((resource.data.status == 'DRAFT'
+            && resource.data.parentUid == request.auth.uid
             && isActiveParent(resource.data.familyId))
-          || (isActiveFamilyMember(resource.data.familyId)
+          || (request.auth.uid in resource.data.participantUids
+            && isActiveFamilyMember(resource.data.familyId)
             && resource.data.status in [
               'AWAITING_CHILD',
               'AWAITING_PARENT',
               'ACCEPTED',
               'REJECTED',
+              'CANCELLED',
               'EXPIRED'
-            ]);
+            ]));
       }
 
       allow get: if canReadOffer();
-      allow list, write: if false;
+      allow list: if canReadOffer()
+        && resource.data.status == 'AWAITING_CHILD';
+      allow write: if false;
 
       match /revisions/{revisionId} {
         function offer() {
@@ -102,16 +108,20 @@ service cloud.firestore {
         }
 
         function canReadOfferRevision() {
-          return (offer().data.parentUid == request.auth.uid
+          return isSignedIn()
+            && ((offer().data.status == 'DRAFT'
+              && offer().data.parentUid == request.auth.uid
               && isActiveParent(offer().data.familyId))
-            || (isActiveFamilyMember(offer().data.familyId)
+            || (request.auth.uid in offer().data.participantUids
+              && isActiveFamilyMember(offer().data.familyId)
               && offer().data.status in [
                 'AWAITING_CHILD',
                 'AWAITING_PARENT',
                 'ACCEPTED',
                 'REJECTED',
+                'CANCELLED',
                 'EXPIRED'
-              ]);
+              ]));
         }
 
         allow get: if canReadOfferRevision();
