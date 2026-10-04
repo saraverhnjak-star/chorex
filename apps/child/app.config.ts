@@ -7,6 +7,7 @@ const config: ExpoConfig = {
   name: 'ChoreX Child',
   slug: 'chorex-child',
   version: '0.0.0',
+  icon: './assets/icon.png',
   userInterfaceStyle: 'light',
   scheme: 'chorex-child',
   ios: {

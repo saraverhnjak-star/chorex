@@ -7,6 +7,7 @@ const config: ExpoConfig = {
   name: 'ChoreX Parent',
   slug: 'chorex-parent',
   version: '0.0.0',
+  icon: './assets/icon.png',
   userInterfaceStyle: 'light',
   scheme: 'chorex-parent',
   ios: {
