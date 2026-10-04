@@ -41,6 +41,8 @@ import {
   parentFamilyMembershipSchema,
   persistedChildProfileSchema,
   persistedParentProfileSchema,
+  publishOfferInputSchema,
+  publishOfferOutputSchema,
   redeemPairingSessionInputSchema,
   redeemPairingSessionOutputSchema,
   type ChildFamilyMembership,
@@ -59,6 +61,8 @@ import {
   type PairingCommandErrorCode,
   type PersistedChildProfile,
   type PersistedParentProfile,
+  type PublishOfferInputValue,
+  type PublishOfferOutput,
   type RedeemPairingSessionInputValue,
   type RedeemPairingSessionOutput,
 } from '@chorex/domain';
@@ -702,6 +706,25 @@ export async function createOfferDraft(
     );
     const result = await callable(parsedInput.data);
     return createOfferDraftOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translateFamilyError(error);
+  }
+}
+
+export async function publishOffer(
+  rawInput: PublishOfferInputValue,
+): Promise<PublishOfferOutput> {
+  const parsedInput = publishOfferInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new FamilyClientError(familyClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'publishOffer',
+    );
+    const result = await callable(parsedInput.data);
+    return publishOfferOutputSchema.parse(result.data);
   } catch (error) {
     throw translateFamilyError(error);
   }

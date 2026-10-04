@@ -16,6 +16,7 @@ import {
   CreateOfferDraftCommandError,
   executeCreateOfferDraft,
 } from './createOfferDraft';
+import { executePublishOffer, PublishOfferCommandError } from './publishOffer';
 import {
   CreatePairingSessionCommandError,
   executeCreatePairingSession,
@@ -38,6 +39,7 @@ function callableError(
     | CreateFamilyCommandError
     | CreateChildCommandError
     | CreateOfferDraftCommandError
+    | PublishOfferCommandError
     | CreatePairingSessionCommandError
     | RedeemPairingSessionCommandError,
 ): HttpsError {
@@ -47,13 +49,16 @@ function callableError(
       return new HttpsError('invalid-argument', error.code, details);
     case familyCommandErrorCodes.wrongActorRole:
     case familyCommandErrorCodes.familyMembershipRequired:
+    case offerCommandErrorCodes.forbidden:
+    case offerCommandErrorCodes.childMembershipRequired:
       return new HttpsError('permission-denied', error.code, details);
     case familyCommandErrorCodes.idempotencyConflict:
+    case offerCommandErrorCodes.invalidState:
+    case offerCommandErrorCodes.staleRevision:
+    case offerCommandErrorCodes.deadlinePassed:
       return new HttpsError('failed-precondition', error.code, details);
     case familyCommandErrorCodes.authRequired:
       return new HttpsError('unauthenticated', error.code, details);
-    case pairingCommandErrorCodes.childMembershipRequired:
-      return new HttpsError('permission-denied', error.code, details);
     case pairingCommandErrorCodes.pairingInvalid:
       return new HttpsError('not-found', error.code, details);
     case pairingCommandErrorCodes.pairingExpired:
@@ -120,6 +125,24 @@ export const createOfferDraft = onCall(async (request) => {
     );
   } catch (error) {
     if (error instanceof CreateOfferDraftCommandError) {
+      throw callableError(error);
+    }
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const publishOffer = onCall(async (request) => {
+  if (!request.auth) {
+    const error = new PublishOfferCommandError(
+      offerCommandErrorCodes.authRequired,
+    );
+    throw callableError(error);
+  }
+
+  try {
+    return await executePublishOffer(firestore, request.auth.uid, request.data);
+  } catch (error) {
+    if (error instanceof PublishOfferCommandError) {
       throw callableError(error);
     }
     throw new HttpsError('internal', 'INTERNAL');

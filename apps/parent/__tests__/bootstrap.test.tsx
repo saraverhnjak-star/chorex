@@ -1,10 +1,47 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { createPairingSession } from '@chorex/firebase-client';
 import HomeScreen from '../app/(app)/index';
+import { OfferDraftComposer } from '../src/offers/OfferDraftComposer';
 
 const mockRegisterCurrentDevice = jest
   .fn()
   .mockResolvedValue({ status: 'registered' });
+const offerDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+const mockCreateOfferDraft = jest.fn().mockResolvedValue({
+  offer: {
+    id: 'offer-test-id',
+    familyId: 'family-test-id',
+    parentUid: 'parent-test-uid',
+    childUid: 'child-test-uid',
+    status: 'DRAFT',
+    currentRevisionId: 'revision-test-id',
+    createdAt: '2026-10-03T12:34:56.789Z',
+    updatedAt: '2026-10-03T12:34:56.789Z',
+  },
+  revision: {
+    id: 'revision-test-id',
+    offerId: 'offer-test-id',
+    revisionNumber: 1,
+    proposedByUid: 'parent-test-uid',
+    proposedByRole: 'PARENT',
+    tasks: [{ title: 'Load the dishwasher', targetCount: 1 }],
+    reward: { title: 'Cinema', type: 'EXPERIENCE' },
+    deadlineAt: offerDeadline,
+    createdAt: '2026-10-03T12:34:56.789Z',
+  },
+});
+const mockPublishOffer = jest.fn().mockResolvedValue({
+  offer: {
+    id: 'offer-test-id',
+    familyId: 'family-test-id',
+    parentUid: 'parent-test-uid',
+    childUid: 'child-test-uid',
+    status: 'AWAITING_CHILD',
+    currentRevisionId: 'revision-test-id',
+    createdAt: '2026-10-03T12:34:56.789Z',
+    updatedAt: '2026-10-03T12:35:56.789Z',
+  },
+});
 
 jest.mock('@chorex/firebase-client', () => ({
   readCurrentParentFamily: jest.fn().mockResolvedValue({
@@ -42,7 +79,8 @@ jest.mock('@chorex/firebase-client', () => ({
   }),
   createChild: jest.fn(),
   createFamily: jest.fn(),
-  createOfferDraft: jest.fn(),
+  createOfferDraft: (...args: unknown[]) => mockCreateOfferDraft(...args),
+  publishOffer: (...args: unknown[]) => mockPublishOffer(...args),
   createPairingSession: jest.fn().mockResolvedValue({
     sessionId: 'pairing-session-id',
     token: 'AbCdEfGhIjKlMnOpQrStUw',
@@ -96,4 +134,38 @@ it('renders the parent screen through the public shared UI package', async () =>
   );
   expect(screen.getByText('Add a child')).toBeOnTheScreen();
   expect(screen.getByText('Create an offer draft')).toBeOnTheScreen();
+});
+
+it('publishes the saved Offer draft and shows the published result', async () => {
+  render(
+    <OfferDraftComposer
+      activeChildren={[
+        {
+          uid: 'child-test-uid',
+          familyId: 'family-test-id',
+          role: 'CHILD',
+          displayName: 'Mia',
+          status: 'ACTIVE',
+          joinedAt: '2026-10-03T12:34:56.789Z',
+        },
+      ]}
+      familyId="family-test-id"
+    />,
+  );
+
+  fireEvent.changeText(screen.getByLabelText('Task 1'), 'Load the dishwasher');
+  fireEvent.changeText(screen.getByLabelText('Reward title'), 'Cinema');
+  fireEvent.press(screen.getByRole('button', { name: 'Save offer draft' }));
+
+  expect(await screen.findByText('Draft saved')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Publish offer' }));
+
+  expect(await screen.findByText('Offer published')).toBeOnTheScreen();
+  expect(screen.getByText('Waiting for the child response.')).toBeOnTheScreen();
+  expect(mockPublishOffer).toHaveBeenCalledWith(
+    expect.objectContaining({
+      offerId: 'offer-test-id',
+      currentRevisionId: 'revision-test-id',
+    }),
+  );
 });

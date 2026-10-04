@@ -19,6 +19,7 @@
     "emulators:verify:create-family": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-family.mjs\"",
     "emulators:verify:create-child": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-child.mjs\"",
     "emulators:verify:create-offer-draft": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-offer-draft.mjs\"",
+    "emulators:verify:publish-offer": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-publish-offer.mjs\"",
     "emulators:verify:create-pairing-session": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-pairing-session.mjs\"",
     "emulators:verify:redeem-pairing-session": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-redeem-pairing-session.mjs\"",
     "emulators:verify:device-registration": "firebase emulators:exec --project dev --only firestore \"node firebase/verify-device-registration.mjs\""

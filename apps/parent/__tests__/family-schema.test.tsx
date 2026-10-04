@@ -9,6 +9,8 @@ import {
   createPairingSessionOutputSchema,
   offerValidationBounds,
   persistedParentProfileSchema,
+  publishOfferInputSchema,
+  publishOfferOutputSchema,
 } from '@chorex/domain';
 
 const timestamp = '2026-10-03T12:34:56.789Z';
@@ -258,5 +260,54 @@ describe('Offer draft schemas', () => {
     expect(output.offer.status).toBe('DRAFT');
     expect(output.revision.revisionNumber).toBe(1);
     expect(output.revision.reward.description).toBeUndefined();
+  });
+});
+
+describe('Offer publication schemas', () => {
+  const validInput = {
+    offerId: 'offer-id',
+    currentRevisionId: 'revision-id',
+    idempotencyKey: 'publish-offer-001',
+  };
+
+  it('accepts only the Offer, expected revision, and idempotency key', () => {
+    expect(publishOfferInputSchema.parse(validInput)).toEqual(validInput);
+    expect(
+      publishOfferInputSchema.safeParse({
+        ...validInput,
+        status: 'AWAITING_CHILD',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires a canonical published Offer result', () => {
+    expect(
+      publishOfferOutputSchema.parse({
+        offer: {
+          id: 'offer-id',
+          familyId: 'family-id',
+          parentUid: 'parent-id',
+          childUid: 'child-id',
+          status: 'AWAITING_CHILD',
+          currentRevisionId: 'revision-id',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      }).offer.status,
+    ).toBe('AWAITING_CHILD');
+    expect(
+      publishOfferOutputSchema.safeParse({
+        offer: {
+          id: 'offer-id',
+          familyId: 'family-id',
+          parentUid: 'parent-id',
+          childUid: 'child-id',
+          status: 'DRAFT',
+          currentRevisionId: 'revision-id',
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+      }).success,
+    ).toBe(false);
   });
 });

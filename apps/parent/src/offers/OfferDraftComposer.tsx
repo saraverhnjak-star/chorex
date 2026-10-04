@@ -5,12 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   createOfferDraft,
+  publishOffer,
   type ParentFamilyHome,
 } from '@chorex/firebase-client';
 import {
   offerValidationBounds,
   rewardTypeSchema,
   type CreateOfferDraftOutput,
+  type PublishOfferOutput,
 } from '@chorex/domain';
 import {
   Button,
@@ -99,7 +101,13 @@ function localDeadlineToUtc(dateText: string, timeText: string): string | null {
   return local.toISOString();
 }
 
-function SavedDraft({ draft }: { draft: CreateOfferDraftOutput }) {
+function SavedDraft({
+  draft,
+  published,
+}: {
+  draft: CreateOfferDraftOutput;
+  published?: PublishOfferOutput;
+}) {
   const dynamicType = useDynamicTypeStyles();
   return (
     <View className="gap-3 rounded-2xl border border-border bg-surface p-4">
@@ -109,7 +117,7 @@ function SavedDraft({ draft }: { draft: CreateOfferDraftOutput }) {
         className="font-bold text-text"
         style={dynamicType.body}
       >
-        Draft saved
+        {published ? 'Offer published' : 'Draft saved'}
       </Text>
       {draft.revision.tasks.map((task, index) => (
         <Text
@@ -135,6 +143,15 @@ function SavedDraft({ draft }: { draft: CreateOfferDraftOutput }) {
       >
         Due {new Date(draft.revision.deadlineAt).toLocaleString()}
       </Text>
+      {published ? (
+        <Text
+          allowFontScaling={false}
+          className="font-semibold text-text"
+          style={dynamicType.body}
+        >
+          Waiting for the child response.
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -153,6 +170,10 @@ export function OfferDraftComposer({
     idempotencyKey: string;
   }>();
   const [savedDraft, setSavedDraft] = useState<CreateOfferDraftOutput>();
+  const [publishedOffer, setPublishedOffer] = useState<PublishOfferOutput>();
+  const [publishIdempotencyKey, setPublishIdempotencyKey] = useState<string>();
+  const [publishError, setPublishError] = useState<string>();
+  const [isPublishing, setIsPublishing] = useState(false);
   const {
     control,
     handleSubmit,
@@ -219,9 +240,30 @@ export function OfferDraftComposer({
         idempotencyKey: requestKey,
       });
       setSavedDraft(output);
+      setPublishedOffer(undefined);
       setPendingRequest(undefined);
     } catch (error) {
       setError('root.offer', { message: getFamilyErrorMessage(error) });
+    }
+  };
+
+  const publishSavedDraft = async () => {
+    if (!savedDraft) return;
+    const requestKey = publishIdempotencyKey ?? newIdempotencyKey();
+    setPublishIdempotencyKey(requestKey);
+    setPublishError(undefined);
+    setIsPublishing(true);
+    try {
+      const output = await publishOffer({
+        offerId: savedDraft.offer.id,
+        currentRevisionId: savedDraft.revision.id,
+        idempotencyKey: requestKey,
+      });
+      setPublishedOffer(output);
+    } catch (error) {
+      setPublishError(getFamilyErrorMessage(error));
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -235,6 +277,9 @@ export function OfferDraftComposer({
       ...defaultDeadline(),
     });
     setSavedDraft(undefined);
+    setPublishedOffer(undefined);
+    setPublishIdempotencyKey(undefined);
+    setPublishError(undefined);
     setPendingRequest(undefined);
   };
 
@@ -249,7 +294,15 @@ export function OfferDraftComposer({
       </Text>
       {savedDraft ? (
         <>
-          <SavedDraft draft={savedDraft} />
+          <SavedDraft draft={savedDraft} published={publishedOffer} />
+          <FormMessage message={publishError} />
+          {!publishedOffer ? (
+            <Button
+              label="Publish offer"
+              loading={isPublishing}
+              onPress={() => void publishSavedDraft()}
+            />
+          ) : null}
           <Button
             label="Create another draft"
             onPress={startAnother}

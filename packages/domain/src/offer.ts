@@ -124,12 +124,31 @@ export const createOfferDraftOutputSchema = z.strictObject({
   revision: initialOfferRevisionSchema,
 });
 
+export const publishOfferInputSchema = z.strictObject({
+  offerId: boundedIdSchema,
+  currentRevisionId: boundedIdSchema,
+  idempotencyKey: idempotencyKeySchema,
+});
+
+const publishedOfferSchema = offerSchema.extend({
+  status: z.literal('AWAITING_CHILD'),
+  currentRevisionId: boundedIdSchema,
+});
+
+export const publishOfferOutputSchema = z.strictObject({
+  offer: publishedOfferSchema,
+});
+
 export const offerCommandErrorCodes = {
   authRequired: 'AUTH_REQUIRED',
   invalidInput: 'INVALID_INPUT',
+  forbidden: 'FORBIDDEN',
   familyMembershipRequired: 'FAMILY_MEMBERSHIP_REQUIRED',
   wrongActorRole: 'WRONG_ACTOR_ROLE',
   childMembershipRequired: 'CHILD_MEMBERSHIP_REQUIRED',
+  invalidState: 'INVALID_STATE',
+  staleRevision: 'STALE_REVISION',
+  deadlinePassed: 'DEADLINE_PASSED',
   idempotencyConflict: 'IDEMPOTENCY_CONFLICT',
 } as const;
 
@@ -147,5 +166,8 @@ export type CreateOfferDraftInputValue = z.input<
 export type CreateOfferDraftOutput = z.output<
   typeof createOfferDraftOutputSchema
 >;
+export type PublishOfferInput = z.output<typeof publishOfferInputSchema>;
+export type PublishOfferInputValue = z.input<typeof publishOfferInputSchema>;
+export type PublishOfferOutput = z.output<typeof publishOfferOutputSchema>;
 export type OfferCommandErrorCode =
   (typeof offerCommandErrorCodes)[keyof typeof offerCommandErrorCodes];
