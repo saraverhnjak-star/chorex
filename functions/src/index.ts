@@ -10,6 +10,7 @@ import {
   offerCommandErrorCodes,
   pairingCommandErrorCodes,
 } from '@chorex/domain';
+import { AcceptOfferCommandError, executeAcceptOffer } from './acceptOffer';
 import { CreateChildCommandError, executeCreateChild } from './createChild';
 import { CreateFamilyCommandError, executeCreateFamily } from './createFamily';
 import {
@@ -40,6 +41,7 @@ function callableError(
     | CreateChildCommandError
     | CreateOfferDraftCommandError
     | PublishOfferCommandError
+    | AcceptOfferCommandError
     | CreatePairingSessionCommandError
     | RedeemPairingSessionCommandError,
 ): HttpsError {
@@ -143,6 +145,24 @@ export const publishOffer = onCall(async (request) => {
     return await executePublishOffer(firestore, request.auth.uid, request.data);
   } catch (error) {
     if (error instanceof PublishOfferCommandError) {
+      throw callableError(error);
+    }
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const acceptOffer = onCall(async (request) => {
+  if (!request.auth) {
+    const error = new AcceptOfferCommandError(
+      offerCommandErrorCodes.authRequired,
+    );
+    throw callableError(error);
+  }
+
+  try {
+    return await executeAcceptOffer(firestore, request.auth.uid, request.data);
+  } catch (error) {
+    if (error instanceof AcceptOfferCommandError) {
       throw callableError(error);
     }
     throw new HttpsError('internal', 'INTERNAL');

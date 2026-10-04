@@ -162,7 +162,11 @@ Example policy intent:
   read: the creating active Parent while DRAFT; later-state visibility follows the authorized negotiation command
   write: server only
 
-/contracts, rewards, auctions, activityEvents
+/contracts and /contracts/{contractId}/tasks
+  read: only active Parent/Child participants named by the Contract
+  write: server only
+
+/rewards, auctions, activityEvents
   read: only active family members for the referenced family
   write: server only
 

@@ -71,6 +71,36 @@ const mockReadCurrentChildOfferInbox = jest.fn().mockResolvedValue([
     },
   },
 ]);
+const mockAcceptOffer = jest.fn().mockResolvedValue({
+  offer: {
+    id: 'offer-test-id',
+    familyId: 'family-test-id',
+    parentUid: 'parent-test-uid',
+    childUid: 'child-test-uid',
+    status: 'ACCEPTED',
+    currentRevisionId: 'revision-test-id',
+    createdAt: '2026-10-03T12:34:56.789Z',
+    updatedAt: '2026-10-03T12:36:56.789Z',
+  },
+  contract: {
+    id: 'contract-test-id',
+    familyId: 'family-test-id',
+    parentUid: 'parent-test-uid',
+    childUid: 'child-test-uid',
+    source: {
+      type: 'OFFER',
+      offerId: 'offer-test-id',
+      revisionId: 'revision-test-id',
+    },
+    rewardTerms: { title: 'Cinema', type: 'EXPERIENCE' },
+    deadlineAt: '2026-10-10T18:00:00.000Z',
+    status: 'ACTIVE',
+    reviewCycle: 0,
+    createdAt: '2026-10-03T12:36:56.789Z',
+    updatedAt: '2026-10-03T12:36:56.789Z',
+  },
+  tasks: [],
+});
 const mockRegisterCurrentDevice = jest
   .fn()
   .mockResolvedValue({ status: 'registered' });
@@ -79,6 +109,7 @@ const mockRemoveCurrentDeviceRegistration = jest
   .mockResolvedValue(undefined);
 
 jest.mock('@chorex/firebase-client', () => ({
+  acceptOffer: (...args: unknown[]) => mockAcceptOffer(...args),
   observeAuthState: jest.fn((listener) => {
     mockAuthListener = listener;
     listener(mockAuthUser);
@@ -131,6 +162,14 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   ).toBeOnTheScreen();
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Accept offer' }));
+  expect(await screen.findByText('Contract is active.')).toBeOnTheScreen();
+  expect(screen.queryByText('Load the dishwasher · 2×')).not.toBeOnTheScreen();
+  expect(mockAcceptOffer).toHaveBeenCalledWith({
+    offerId: 'offer-test-id',
+    currentRevisionId: 'revision-test-id',
+    idempotencyKey: expect.stringMatching(/^accept-/),
+  });
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('CHILD');
   expect(mockRedeemPairingSession).toHaveBeenCalledWith(

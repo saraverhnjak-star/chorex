@@ -26,6 +26,8 @@ import {
   httpsCallable,
 } from '@react-native-firebase/functions';
 import {
+  acceptOfferInputSchema,
+  acceptOfferOutputSchema,
   childFamilyMembershipSchema,
   childOfferInboxItemSchema,
   createChildInputSchema,
@@ -47,6 +49,8 @@ import {
   publishOfferOutputSchema,
   redeemPairingSessionInputSchema,
   redeemPairingSessionOutputSchema,
+  type AcceptOfferInputValue,
+  type AcceptOfferOutput,
   type ChildFamilyMembership,
   type ChildOfferInboxItem,
   type CreateChildInputValue,
@@ -75,7 +79,7 @@ import {
   type FirebaseEmulatorInput,
 } from '@chorex/config';
 
-export type { ChildOfferInboxItem };
+export type { AcceptOfferOutput, ChildOfferInboxItem };
 
 interface DevelopmentFirebase {
   app: ReturnType<typeof getApp>;
@@ -854,6 +858,25 @@ export async function publishOffer(
     );
     const result = await callable(parsedInput.data);
     return publishOfferOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translateFamilyError(error);
+  }
+}
+
+export async function acceptOffer(
+  rawInput: AcceptOfferInputValue,
+): Promise<AcceptOfferOutput> {
+  const parsedInput = acceptOfferInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new FamilyClientError(familyClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'acceptOffer',
+    );
+    const result = await callable(parsedInput.data);
+    return acceptOfferOutputSchema.parse(result.data);
   } catch (error) {
     throw translateFamilyError(error);
   }

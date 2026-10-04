@@ -129,6 +129,37 @@ service cloud.firestore {
       }
     }
 
+    match /contracts/{contractId} {
+      function canReadContract() {
+        return isSignedIn()
+          && request.auth.uid in resource.data.participantUids
+          && isActiveFamilyMember(resource.data.familyId);
+      }
+
+      allow get, list: if canReadContract();
+      allow write: if false;
+
+      match /tasks/{taskId} {
+        function contract() {
+          return get(/databases/$(database)/documents/contracts/$(contractId));
+        }
+
+        function canReadContractTask() {
+          return isSignedIn()
+            && request.auth.uid in contract().data.participantUids
+            && isActiveFamilyMember(contract().data.familyId)
+            && resource.data.contractId == contractId
+            && resource.data.familyId == contract().data.familyId;
+        }
+
+        allow get: if canReadContractTask();
+        allow list: if isSignedIn()
+          && request.auth.uid in contract().data.participantUids
+          && isActiveFamilyMember(contract().data.familyId);
+        allow write: if false;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

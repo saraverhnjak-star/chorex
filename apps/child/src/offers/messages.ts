@@ -1,4 +1,6 @@
 import {
+  familyClientErrorCodes,
+  isFamilyClientError,
   isOfferInboxClientError,
   offerInboxClientErrorCodes,
 } from '@chorex/firebase-client';
@@ -16,5 +18,29 @@ export function getOfferInboxErrorMessage(error: unknown): string {
       return 'One of your offers is incomplete. Ask your parent to publish it again.';
     default:
       return 'Your offers could not be loaded. Try again.';
+  }
+}
+
+export function getAcceptOfferErrorMessage(error: unknown): string {
+  if (!isFamilyClientError(error)) {
+    return 'This offer could not be accepted. Try again.';
+  }
+  switch (error.code) {
+    case familyClientErrorCodes.authRequired:
+      return 'Your Child session has ended. Pair this device again.';
+    case familyClientErrorCodes.invalidState:
+      return 'This offer is no longer waiting for your response.';
+    case familyClientErrorCodes.staleRevision:
+      return 'This offer changed. Refresh it before accepting.';
+    case familyClientErrorCodes.deadlinePassed:
+      return 'This offer deadline has passed.';
+    case familyClientErrorCodes.networkUnavailable:
+      return 'The local offer service is unavailable. Check your connection and try again.';
+    case familyClientErrorCodes.forbidden:
+    case familyClientErrorCodes.familyMembershipRequired:
+    case familyClientErrorCodes.wrongActorRole:
+      return 'You cannot accept this offer.';
+    default:
+      return 'This offer could not be accepted. Try again.';
   }
 }

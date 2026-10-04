@@ -208,6 +208,8 @@ Tasks are copied from accepted terms into:
 }
 ```
 
+The authenticated, idempotent `acceptOffer` command requires the Offer's active Child participant, the exact current Parent-proposed revision, `AWAITING_CHILD`, and a future revision deadline according to server time. In one transaction it moves the Offer to `ACCEPTED`, creates one deterministic `ACTIVE` Contract, copies the immutable reward terms and deadline, creates deterministic Contract tasks at `completedCount: 0`, initializes `reviewCycle: 0`, writes one `OFFER_ACCEPTED` activity event, and completes the server-only idempotency record. No Reward entity exists until Contract approval. The value `reviewCycle: 0` is only the initial value and does not resolve the later increment semantics in OPEN-012.
+
 ## 8. Task completions
 
 `/contracts/{contractId}/tasks/{taskId}/completions/{completionId}`
