@@ -3,6 +3,8 @@ import {
   acceptOfferOutputSchema,
   contractSchema,
   contractTaskSchema,
+  rejectOfferInputSchema,
+  rejectOfferOutputSchema,
 } from '@chorex/domain';
 
 const timestamp = '2026-10-04T10:00:00.000Z';
@@ -64,6 +66,31 @@ it('rejects authoritative or malformed acceptOffer input', () => {
       updatedAt: timestamp,
     }).success,
   ).toBe(false);
+});
+
+it('validates strict rejectOffer input and rejected output', () => {
+  expect(
+    rejectOfferInputSchema.safeParse({
+      offerId: 'offer-1',
+      currentRevisionId: 'revision-1',
+      idempotencyKey: 'reject-offer-001',
+      role: 'CHILD',
+    }).success,
+  ).toBe(false);
+  expect(
+    rejectOfferOutputSchema.parse({
+      offer: {
+        id: 'offer-1',
+        familyId: 'family-1',
+        parentUid: 'parent-1',
+        childUid: 'child-1',
+        status: 'REJECTED',
+        currentRevisionId: 'revision-1',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    }).offer.status,
+  ).toBe('REJECTED');
 });
 
 it('requires output tasks to belong to the accepted Contract', () => {

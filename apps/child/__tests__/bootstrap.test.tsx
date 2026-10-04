@@ -101,6 +101,18 @@ const mockAcceptOffer = jest.fn().mockResolvedValue({
   },
   tasks: [],
 });
+const mockRejectOffer = jest.fn().mockResolvedValue({
+  offer: {
+    id: 'offer-test-id',
+    familyId: 'family-test-id',
+    parentUid: 'parent-test-uid',
+    childUid: 'child-test-uid',
+    status: 'REJECTED',
+    currentRevisionId: 'revision-test-id',
+    createdAt: '2026-10-03T12:34:56.789Z',
+    updatedAt: '2026-10-03T12:36:56.789Z',
+  },
+});
 const mockRegisterCurrentDevice = jest
   .fn()
   .mockResolvedValue({ status: 'registered' });
@@ -121,6 +133,7 @@ jest.mock('@chorex/firebase-client', () => ({
     mockReadCurrentChildFamily(...args),
   readCurrentChildOfferInbox: (...args: unknown[]) =>
     mockReadCurrentChildOfferInbox(...args),
+  rejectOffer: (...args: unknown[]) => mockRejectOffer(...args),
   signInWithChildCustomToken: (...args: unknown[]) =>
     mockSignInWithChildCustomToken(...args),
   signOutCurrentUser: jest.fn(),
@@ -191,6 +204,21 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(
     screen.getByText('Welcome, Mia. Your family is ready.'),
   ).toBeOnTheScreen();
+  expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));
+  expect(screen.getByText('Reject this offer?')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Keep offer' }));
+  expect(screen.queryByText('Reject this offer?')).not.toBeOnTheScreen();
+  expect(screen.getByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Confirm rejection' }));
+  expect(await screen.findByText('Offer rejected.')).toBeOnTheScreen();
+  expect(screen.queryByText('Load the dishwasher · 2×')).not.toBeOnTheScreen();
+  expect(mockRejectOffer).toHaveBeenCalledWith({
+    offerId: 'offer-test-id',
+    currentRevisionId: 'revision-test-id',
+    idempotencyKey: expect.stringMatching(/^reject-/),
+  });
   expect(mockReadCurrentChildFamily).toHaveBeenCalledTimes(2);
   expect(mockReadCurrentChildOfferInbox).toHaveBeenCalledWith('family-test-id');
 });

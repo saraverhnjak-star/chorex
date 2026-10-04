@@ -3,6 +3,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import {
   acceptOffer,
   readCurrentChildOfferInbox,
+  rejectOffer,
   type ChildOfferInboxItem,
 } from '@chorex/firebase-client';
 import {
@@ -14,6 +15,7 @@ import {
 import {
   getAcceptOfferErrorMessage,
   getOfferInboxErrorMessage,
+  getRejectOfferErrorMessage,
 } from './messages';
 
 type OfferInboxState =
@@ -26,17 +28,23 @@ function formatDeadline(deadlineAt: string): string {
 }
 
 function newIdempotencyKey(): string {
-  return `accept-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
+
+type MutationState =
+  { offerId: string; action: 'accept' | 'reject' } | undefined;
 
 export function OfferInbox({ familyId }: { familyId: string }) {
   const dynamicType = useDynamicTypeStyles();
   const [state, setState] = useState<OfferInboxState>({ status: 'loading' });
-  const [acceptingOfferId, setAcceptingOfferId] = useState<string>();
-  const [acceptError, setAcceptError] = useState<string>();
-  const [activeContractId, setActiveContractId] = useState<string>();
-  const acceptingRef = useRef(false);
-  const idempotencyKeys = useRef(new Map<string, string>());
+  const [mutation, setMutation] = useState<MutationState>();
+  const [actionError, setActionError] = useState<string>();
+  const [resultMessage, setResultMessage] = useState<string>();
+  const [rejectionConfirmationOfferId, setRejectionConfirmationOfferId] =
+    useState<string>();
+  const mutatingRef = useRef(false);
+  const acceptIdempotencyKeys = useRef(new Map<string, string>());
+  const rejectIdempotencyKeys = useRef(new Map<string, string>());
 
   const loadOffers = useCallback(async () => {
     try {
@@ -67,26 +75,30 @@ export function OfferInbox({ familyId }: { familyId: string }) {
   }, [familyId]);
 
   const refreshOffers = () => {
+    setActionError(undefined);
+    setRejectionConfirmationOfferId(undefined);
     setState({ status: 'loading' });
     void loadOffers();
   };
 
   const acceptCurrentOffer = async (item: ChildOfferInboxItem) => {
-    if (acceptingRef.current) return;
-    acceptingRef.current = true;
+    if (mutatingRef.current) return;
+    mutatingRef.current = true;
     const key =
-      idempotencyKeys.current.get(item.offer.id) ?? newIdempotencyKey();
-    idempotencyKeys.current.set(item.offer.id, key);
-    setAcceptingOfferId(item.offer.id);
-    setAcceptError(undefined);
+      acceptIdempotencyKeys.current.get(item.offer.id) ??
+      `accept-${newIdempotencyKey()}`;
+    acceptIdempotencyKeys.current.set(item.offer.id, key);
+    setMutation({ offerId: item.offer.id, action: 'accept' });
+    setActionError(undefined);
+    setResultMessage(undefined);
     try {
-      const output = await acceptOffer({
+      await acceptOffer({
         offerId: item.offer.id,
         currentRevisionId: item.offer.currentRevisionId,
         idempotencyKey: key,
       });
-      idempotencyKeys.current.delete(item.offer.id);
-      setActiveContractId(output.contract.id);
+      acceptIdempotencyKeys.current.delete(item.offer.id);
+      setResultMessage('Contract is active.');
       setState((current) =>
         current.status === 'ready'
           ? {
@@ -98,10 +110,47 @@ export function OfferInbox({ familyId }: { familyId: string }) {
           : current,
       );
     } catch (error) {
-      setAcceptError(getAcceptOfferErrorMessage(error));
+      setActionError(getAcceptOfferErrorMessage(error));
     } finally {
-      acceptingRef.current = false;
-      setAcceptingOfferId(undefined);
+      mutatingRef.current = false;
+      setMutation(undefined);
+    }
+  };
+
+  const rejectCurrentOffer = async (item: ChildOfferInboxItem) => {
+    if (mutatingRef.current) return;
+    mutatingRef.current = true;
+    const key =
+      rejectIdempotencyKeys.current.get(item.offer.id) ??
+      `reject-${newIdempotencyKey()}`;
+    rejectIdempotencyKeys.current.set(item.offer.id, key);
+    setMutation({ offerId: item.offer.id, action: 'reject' });
+    setActionError(undefined);
+    setResultMessage(undefined);
+    try {
+      await rejectOffer({
+        offerId: item.offer.id,
+        currentRevisionId: item.offer.currentRevisionId,
+        idempotencyKey: key,
+      });
+      rejectIdempotencyKeys.current.delete(item.offer.id);
+      setRejectionConfirmationOfferId(undefined);
+      setResultMessage('Offer rejected.');
+      setState((current) =>
+        current.status === 'ready'
+          ? {
+              status: 'ready',
+              items: current.items.filter(
+                ({ offer }) => offer.id !== item.offer.id,
+              ),
+            }
+          : current,
+      );
+    } catch (error) {
+      setActionError(getRejectOfferErrorMessage(error));
+    } finally {
+      mutatingRef.current = false;
+      setMutation(undefined);
     }
   };
 
@@ -125,18 +174,18 @@ export function OfferInbox({ familyId }: { familyId: string }) {
         </Text>
       </View>
 
-      {activeContractId ? (
+      {resultMessage ? (
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
           className="font-semibold text-text"
           style={dynamicType.body}
         >
-          Contract is active.
+          {resultMessage}
         </Text>
       ) : null}
 
-      <FormMessage message={acceptError} />
+      <FormMessage message={actionError} />
 
       {state.status === 'loading' ? (
         <View className="items-center py-6">
@@ -246,15 +295,65 @@ export function OfferInbox({ familyId }: { familyId: string }) {
               >
                 Deadline: {formatDeadline(revision.deadlineAt)}
               </Text>
-              <Button
-                label="Accept offer"
-                loading={acceptingOfferId === offer.id}
-                disabled={
-                  acceptingOfferId !== undefined &&
-                  acceptingOfferId !== offer.id
-                }
-                onPress={() => void acceptCurrentOffer({ offer, revision })}
-              />
+              {rejectionConfirmationOfferId === offer.id ? (
+                <View className="gap-3 rounded-2xl border border-border bg-surface-warm p-4">
+                  <Text
+                    allowFontScaling={false}
+                    accessibilityLiveRegion="polite"
+                    className="font-semibold text-text"
+                    style={dynamicType.body}
+                  >
+                    Reject this offer?
+                  </Text>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-text-muted"
+                    style={dynamicType.body}
+                  >
+                    This will close the offer without creating a contract.
+                  </Text>
+                  <Button
+                    label="Confirm rejection"
+                    loading={
+                      mutation?.offerId === offer.id &&
+                      mutation.action === 'reject'
+                    }
+                    disabled={
+                      mutation !== undefined && mutation.offerId !== offer.id
+                    }
+                    onPress={() => void rejectCurrentOffer({ offer, revision })}
+                  />
+                  <Button
+                    label="Keep offer"
+                    disabled={mutation !== undefined}
+                    onPress={() => setRejectionConfirmationOfferId(undefined)}
+                    variant="secondary"
+                  />
+                </View>
+              ) : (
+                <View className="gap-3">
+                  <Button
+                    label="Accept offer"
+                    loading={
+                      mutation?.offerId === offer.id &&
+                      mutation.action === 'accept'
+                    }
+                    disabled={
+                      mutation !== undefined && mutation.offerId !== offer.id
+                    }
+                    onPress={() => void acceptCurrentOffer({ offer, revision })}
+                  />
+                  <Button
+                    label="Reject offer"
+                    disabled={mutation !== undefined}
+                    onPress={() => {
+                      setActionError(undefined);
+                      setRejectionConfirmationOfferId(offer.id);
+                    }}
+                    variant="secondary"
+                  />
+                </View>
+              )}
             </View>
           ))}
 

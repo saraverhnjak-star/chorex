@@ -157,6 +157,21 @@ export const publishOfferOutputSchema = z.strictObject({
   offer: publishedOfferSchema,
 });
 
+export const rejectOfferInputSchema = z.strictObject({
+  offerId: boundedIdSchema,
+  currentRevisionId: boundedIdSchema,
+  idempotencyKey: idempotencyKeySchema,
+});
+
+const rejectedOfferSchema = offerSchema.extend({
+  status: z.literal('REJECTED'),
+  currentRevisionId: boundedIdSchema,
+});
+
+export const rejectOfferOutputSchema = z.strictObject({
+  offer: rejectedOfferSchema,
+});
+
 export const offerCommandErrorCodes = {
   authRequired: 'AUTH_REQUIRED',
   invalidInput: 'INVALID_INPUT',
@@ -187,6 +202,9 @@ export type CreateOfferDraftOutput = z.output<
 export type PublishOfferInput = z.output<typeof publishOfferInputSchema>;
 export type PublishOfferInputValue = z.input<typeof publishOfferInputSchema>;
 export type PublishOfferOutput = z.output<typeof publishOfferOutputSchema>;
+export type RejectOfferInput = z.output<typeof rejectOfferInputSchema>;
+export type RejectOfferInputValue = z.input<typeof rejectOfferInputSchema>;
+export type RejectOfferOutput = z.output<typeof rejectOfferOutputSchema>;
 export type ChildOfferInboxItem = z.output<typeof childOfferInboxItemSchema>;
 export type OfferCommandErrorCode =
   (typeof offerCommandErrorCodes)[keyof typeof offerCommandErrorCodes];

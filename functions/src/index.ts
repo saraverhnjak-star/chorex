@@ -18,6 +18,7 @@ import {
   executeCreateOfferDraft,
 } from './createOfferDraft';
 import { executePublishOffer, PublishOfferCommandError } from './publishOffer';
+import { executeRejectOffer, RejectOfferCommandError } from './rejectOffer';
 import {
   CreatePairingSessionCommandError,
   executeCreatePairingSession,
@@ -42,6 +43,7 @@ function callableError(
     | CreateOfferDraftCommandError
     | PublishOfferCommandError
     | AcceptOfferCommandError
+    | RejectOfferCommandError
     | CreatePairingSessionCommandError
     | RedeemPairingSessionCommandError,
 ): HttpsError {
@@ -163,6 +165,24 @@ export const acceptOffer = onCall(async (request) => {
     return await executeAcceptOffer(firestore, request.auth.uid, request.data);
   } catch (error) {
     if (error instanceof AcceptOfferCommandError) {
+      throw callableError(error);
+    }
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const rejectOffer = onCall(async (request) => {
+  if (!request.auth) {
+    const error = new RejectOfferCommandError(
+      offerCommandErrorCodes.authRequired,
+    );
+    throw callableError(error);
+  }
+
+  try {
+    return await executeRejectOffer(firestore, request.auth.uid, request.data);
+  } catch (error) {
+    if (error instanceof RejectOfferCommandError) {
       throw callableError(error);
     }
     throw new HttpsError('internal', 'INTERNAL');
