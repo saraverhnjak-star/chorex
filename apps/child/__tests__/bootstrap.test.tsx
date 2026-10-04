@@ -113,6 +113,34 @@ const mockRejectOffer = jest.fn().mockResolvedValue({
     updatedAt: '2026-10-03T12:36:56.789Z',
   },
 });
+const mockCounterOffer = jest.fn().mockResolvedValue({
+  offer: {
+    id: 'offer-test-id',
+    familyId: 'family-test-id',
+    parentUid: 'parent-test-uid',
+    childUid: 'child-test-uid',
+    status: 'AWAITING_PARENT',
+    currentRevisionId: 'revision-counter-id',
+    createdAt: '2026-10-03T12:34:56.789Z',
+    updatedAt: '2026-10-03T12:36:56.789Z',
+  },
+  revision: {
+    id: 'revision-counter-id',
+    offerId: 'offer-test-id',
+    revisionNumber: 2,
+    proposedByUid: 'child-test-uid',
+    proposedByRole: 'CHILD',
+    tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
+    reward: {
+      title: 'One hour of games',
+      description: 'After dinner',
+      type: 'PRIVILEGE',
+    },
+    deadlineAt: '2026-10-10T18:00:00.000Z',
+    note: 'This feels fair.',
+    createdAt: '2026-10-03T12:36:56.789Z',
+  },
+});
 const mockRegisterCurrentDevice = jest
   .fn()
   .mockResolvedValue({ status: 'registered' });
@@ -122,6 +150,7 @@ const mockRemoveCurrentDeviceRegistration = jest
 
 jest.mock('@chorex/firebase-client', () => ({
   acceptOffer: (...args: unknown[]) => mockAcceptOffer(...args),
+  counterOffer: (...args: unknown[]) => mockCounterOffer(...args),
   observeAuthState: jest.fn((listener) => {
     mockAuthListener = listener;
     listener(mockAuthUser);
@@ -193,7 +222,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   );
 
   firstLaunch.unmount();
-  render(
+  const secondLaunch = render(
     <ChildSessionProvider>
       <HomeScreen />
     </ChildSessionProvider>,
@@ -219,6 +248,45 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     currentRevisionId: 'revision-test-id',
     idempotencyKey: expect.stringMatching(/^reject-/),
   });
-  expect(mockReadCurrentChildFamily).toHaveBeenCalledTimes(2);
+
+  secondLaunch.unmount();
+  render(
+    <ChildSessionProvider>
+      <HomeScreen />
+    </ChildSessionProvider>,
+  );
+  expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Counter reward' }));
+  expect(
+    screen.getByRole('header', { name: 'Counter the reward' }),
+  ).toBeOnTheScreen();
+  fireEvent.changeText(
+    screen.getByLabelText('Counteroffer reward title'),
+    'One hour of games',
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Select privilege' }));
+  fireEvent.changeText(
+    screen.getByLabelText('Counteroffer reward description (optional)'),
+    'After dinner',
+  );
+  fireEvent.changeText(
+    screen.getByLabelText('Counteroffer note (optional)'),
+    'This feels fair.',
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Send counteroffer' }));
+  expect(await screen.findByText('Waiting for parent')).toBeOnTheScreen();
+  expect(screen.queryByText('Load the dishwasher · 2×')).not.toBeOnTheScreen();
+  expect(mockCounterOffer).toHaveBeenCalledWith({
+    offerId: 'offer-test-id',
+    currentRevisionId: 'revision-test-id',
+    reward: {
+      title: 'One hour of games',
+      type: 'PRIVILEGE',
+      description: 'After dinner',
+    },
+    note: 'This feels fair.',
+    idempotencyKey: expect.stringMatching(/^counter-/),
+  });
+  expect(mockReadCurrentChildFamily).toHaveBeenCalledTimes(3);
   expect(mockReadCurrentChildOfferInbox).toHaveBeenCalledWith('family-test-id');
 });

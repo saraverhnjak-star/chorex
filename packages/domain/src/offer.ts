@@ -172,6 +172,43 @@ export const rejectOfferOutputSchema = z.strictObject({
   offer: rejectedOfferSchema,
 });
 
+export const counterOfferInputSchema = z.strictObject({
+  offerId: boundedIdSchema,
+  currentRevisionId: boundedIdSchema,
+  reward: rewardTermsSchema,
+  note: optionalDescriptionSchema,
+  idempotencyKey: idempotencyKeySchema,
+});
+
+const counteredOfferSchema = offerSchema.extend({
+  status: z.literal('AWAITING_PARENT'),
+  currentRevisionId: boundedIdSchema,
+});
+
+const childCounterOfferRevisionSchema = offerRevisionSchema.extend({
+  revisionNumber: z.number().int().min(2),
+  proposedByRole: z.literal('CHILD'),
+});
+
+export const counterOfferOutputSchema = z
+  .strictObject({
+    offer: counteredOfferSchema,
+    revision: childCounterOfferRevisionSchema,
+  })
+  .superRefine(({ offer, revision }, context) => {
+    if (
+      revision.id !== offer.currentRevisionId ||
+      revision.offerId !== offer.id ||
+      revision.proposedByUid !== offer.childUid
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Counteroffer revision must be the current Child revision.',
+        path: ['revision', 'id'],
+      });
+    }
+  });
+
 export const offerCommandErrorCodes = {
   authRequired: 'AUTH_REQUIRED',
   invalidInput: 'INVALID_INPUT',
@@ -205,6 +242,9 @@ export type PublishOfferOutput = z.output<typeof publishOfferOutputSchema>;
 export type RejectOfferInput = z.output<typeof rejectOfferInputSchema>;
 export type RejectOfferInputValue = z.input<typeof rejectOfferInputSchema>;
 export type RejectOfferOutput = z.output<typeof rejectOfferOutputSchema>;
+export type CounterOfferInput = z.output<typeof counterOfferInputSchema>;
+export type CounterOfferInputValue = z.input<typeof counterOfferInputSchema>;
+export type CounterOfferOutput = z.output<typeof counterOfferOutputSchema>;
 export type ChildOfferInboxItem = z.output<typeof childOfferInboxItemSchema>;
 export type OfferCommandErrorCode =
   (typeof offerCommandErrorCodes)[keyof typeof offerCommandErrorCodes];

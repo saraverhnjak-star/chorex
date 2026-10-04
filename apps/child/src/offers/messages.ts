@@ -66,3 +66,29 @@ export function getRejectOfferErrorMessage(error: unknown): string {
       return 'This offer could not be rejected. Try again.';
   }
 }
+
+export function getCounterOfferErrorMessage(error: unknown): string {
+  if (!isFamilyClientError(error)) {
+    return 'This counteroffer could not be sent. Try again.';
+  }
+  switch (error.code) {
+    case familyClientErrorCodes.authRequired:
+      return 'Your Child session has ended. Pair this device again.';
+    case familyClientErrorCodes.invalidInput:
+      return 'Check the reward details and try again.';
+    case familyClientErrorCodes.invalidState:
+      return 'This offer is no longer waiting for your response.';
+    case familyClientErrorCodes.staleRevision:
+      return 'This offer changed. Refresh it before countering.';
+    case familyClientErrorCodes.deadlinePassed:
+      return 'This offer deadline has passed.';
+    case familyClientErrorCodes.networkUnavailable:
+      return 'The local offer service is unavailable. Check your connection and try again.';
+    case familyClientErrorCodes.forbidden:
+    case familyClientErrorCodes.familyMembershipRequired:
+    case familyClientErrorCodes.wrongActorRole:
+      return 'You cannot counter this offer.';
+    default:
+      return 'This counteroffer could not be sent. Try again.';
+  }
+}

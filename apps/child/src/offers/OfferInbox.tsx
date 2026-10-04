@@ -2,18 +2,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import {
   acceptOffer,
+  counterOffer,
   readCurrentChildOfferInbox,
   rejectOffer,
   type ChildOfferInboxItem,
 } from '@chorex/firebase-client';
+import { rewardTypeSchema, type RewardType } from '@chorex/domain';
 import {
   Button,
   FormMessage,
+  TextField,
   amberAuroraColors,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import {
   getAcceptOfferErrorMessage,
+  getCounterOfferErrorMessage,
   getOfferInboxErrorMessage,
   getRejectOfferErrorMessage,
 } from './messages';
@@ -32,7 +36,17 @@ function newIdempotencyKey(): string {
 }
 
 type MutationState =
-  { offerId: string; action: 'accept' | 'reject' } | undefined;
+  { offerId: string; action: 'accept' | 'reject' | 'counter' } | undefined;
+
+interface CounterOfferFormState {
+  offerId: string;
+  rewardTitle: string;
+  rewardType: RewardType;
+  rewardDescription: string;
+  note: string;
+}
+
+const rewardTypes = rewardTypeSchema.options;
 
 export function OfferInbox({ familyId }: { familyId: string }) {
   const dynamicType = useDynamicTypeStyles();
@@ -42,9 +56,14 @@ export function OfferInbox({ familyId }: { familyId: string }) {
   const [resultMessage, setResultMessage] = useState<string>();
   const [rejectionConfirmationOfferId, setRejectionConfirmationOfferId] =
     useState<string>();
+  const [counterOfferForm, setCounterOfferForm] =
+    useState<CounterOfferFormState>();
+  const [counterOfferTitleError, setCounterOfferTitleError] =
+    useState<string>();
   const mutatingRef = useRef(false);
   const acceptIdempotencyKeys = useRef(new Map<string, string>());
   const rejectIdempotencyKeys = useRef(new Map<string, string>());
+  const counterOfferIdempotencyKeys = useRef(new Map<string, string>());
 
   const loadOffers = useCallback(async () => {
     try {
@@ -77,6 +96,7 @@ export function OfferInbox({ familyId }: { familyId: string }) {
   const refreshOffers = () => {
     setActionError(undefined);
     setRejectionConfirmationOfferId(undefined);
+    setCounterOfferForm(undefined);
     setState({ status: 'loading' });
     void loadOffers();
   };
@@ -152,6 +172,80 @@ export function OfferInbox({ familyId }: { familyId: string }) {
       mutatingRef.current = false;
       setMutation(undefined);
     }
+  };
+
+  const submitCounterOffer = async (item: ChildOfferInboxItem) => {
+    if (
+      mutatingRef.current ||
+      !counterOfferForm ||
+      counterOfferForm.offerId !== item.offer.id
+    ) {
+      return;
+    }
+    const rewardTitle = counterOfferForm.rewardTitle.trim();
+    if (!rewardTitle) {
+      setCounterOfferTitleError('Enter a reward title.');
+      return;
+    }
+
+    mutatingRef.current = true;
+    const key =
+      counterOfferIdempotencyKeys.current.get(item.offer.id) ??
+      `counter-${newIdempotencyKey()}`;
+    counterOfferIdempotencyKeys.current.set(item.offer.id, key);
+    setMutation({ offerId: item.offer.id, action: 'counter' });
+    setActionError(undefined);
+    setResultMessage(undefined);
+    setCounterOfferTitleError(undefined);
+    try {
+      await counterOffer({
+        offerId: item.offer.id,
+        currentRevisionId: item.offer.currentRevisionId,
+        reward: {
+          title: rewardTitle,
+          type: counterOfferForm.rewardType,
+          ...(counterOfferForm.rewardDescription.trim()
+            ? { description: counterOfferForm.rewardDescription.trim() }
+            : {}),
+        },
+        ...(counterOfferForm.note.trim()
+          ? { note: counterOfferForm.note.trim() }
+          : {}),
+        idempotencyKey: key,
+      });
+      counterOfferIdempotencyKeys.current.delete(item.offer.id);
+      setCounterOfferForm(undefined);
+      setResultMessage('Waiting for parent');
+      setState((current) =>
+        current.status === 'ready'
+          ? {
+              status: 'ready',
+              items: current.items.filter(
+                ({ offer }) => offer.id !== item.offer.id,
+              ),
+            }
+          : current,
+      );
+    } catch (error) {
+      setActionError(getCounterOfferErrorMessage(error));
+    } finally {
+      mutatingRef.current = false;
+      setMutation(undefined);
+    }
+  };
+
+  const openCounterOfferForm = (item: ChildOfferInboxItem) => {
+    setActionError(undefined);
+    setResultMessage(undefined);
+    setCounterOfferTitleError(undefined);
+    setRejectionConfirmationOfferId(undefined);
+    setCounterOfferForm({
+      offerId: item.offer.id,
+      rewardTitle: item.revision.reward.title,
+      rewardType: item.revision.reward.type,
+      rewardDescription: item.revision.reward.description ?? '',
+      note: '',
+    });
   };
 
   return (
@@ -330,6 +424,97 @@ export function OfferInbox({ familyId }: { familyId: string }) {
                     variant="secondary"
                   />
                 </View>
+              ) : counterOfferForm?.offerId === offer.id ? (
+                <View className="gap-3 rounded-2xl border border-border bg-surface-warm p-4">
+                  <Text
+                    allowFontScaling={false}
+                    accessibilityRole="header"
+                    className="font-semibold text-text"
+                    style={dynamicType.body}
+                  >
+                    Counter the reward
+                  </Text>
+                  <TextField
+                    editable={mutation === undefined}
+                    error={counterOfferTitleError}
+                    label="Counteroffer reward title"
+                    onChangeText={(rewardTitle) => {
+                      setCounterOfferTitleError(undefined);
+                      setCounterOfferForm((current) =>
+                        current ? { ...current, rewardTitle } : current,
+                      );
+                    }}
+                    value={counterOfferForm.rewardTitle}
+                  />
+                  <Text
+                    allowFontScaling={false}
+                    className="font-semibold text-text"
+                    style={dynamicType.body}
+                  >
+                    Counteroffer reward type
+                  </Text>
+                  <View className="gap-2">
+                    {rewardTypes.map((rewardType) => (
+                      <Button
+                        key={rewardType}
+                        label={`${counterOfferForm.rewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
+                        disabled={mutation !== undefined}
+                        onPress={() =>
+                          setCounterOfferForm((current) =>
+                            current ? { ...current, rewardType } : current,
+                          )
+                        }
+                        variant={
+                          counterOfferForm.rewardType === rewardType
+                            ? 'primary'
+                            : 'secondary'
+                        }
+                      />
+                    ))}
+                  </View>
+                  <TextField
+                    editable={mutation === undefined}
+                    label="Counteroffer reward description (optional)"
+                    multiline
+                    onChangeText={(rewardDescription) =>
+                      setCounterOfferForm((current) =>
+                        current ? { ...current, rewardDescription } : current,
+                      )
+                    }
+                    value={counterOfferForm.rewardDescription}
+                  />
+                  <TextField
+                    editable={mutation === undefined}
+                    label="Counteroffer note (optional)"
+                    multiline
+                    onChangeText={(note) =>
+                      setCounterOfferForm((current) =>
+                        current ? { ...current, note } : current,
+                      )
+                    }
+                    value={counterOfferForm.note}
+                  />
+                  <Button
+                    label="Send counteroffer"
+                    loading={
+                      mutation?.offerId === offer.id &&
+                      mutation.action === 'counter'
+                    }
+                    disabled={
+                      mutation !== undefined && mutation.offerId !== offer.id
+                    }
+                    onPress={() => void submitCounterOffer({ offer, revision })}
+                  />
+                  <Button
+                    label="Cancel counteroffer"
+                    disabled={mutation !== undefined}
+                    onPress={() => {
+                      setCounterOfferForm(undefined);
+                      setCounterOfferTitleError(undefined);
+                    }}
+                    variant="secondary"
+                  />
+                </View>
               ) : (
                 <View className="gap-3">
                   <Button
@@ -344,10 +529,18 @@ export function OfferInbox({ familyId }: { familyId: string }) {
                     onPress={() => void acceptCurrentOffer({ offer, revision })}
                   />
                   <Button
+                    label="Counter reward"
+                    disabled={mutation !== undefined}
+                    onPress={() => openCounterOfferForm({ offer, revision })}
+                    variant="secondary"
+                  />
+                  <Button
                     label="Reject offer"
                     disabled={mutation !== undefined}
                     onPress={() => {
                       setActionError(undefined);
+                      setResultMessage(undefined);
+                      setCounterOfferForm(undefined);
                       setRejectionConfirmationOfferId(offer.id);
                     }}
                     variant="secondary"

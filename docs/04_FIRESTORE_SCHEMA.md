@@ -162,6 +162,8 @@ The revision array of tasks is acceptable because a revision is a small immutabl
 
 The authenticated, idempotent `createOfferDraft` command creates the `DRAFT` Offer, immutable complete revision 1, and completed server-only idempotency record atomically with deterministic Offer and revision IDs. The selected Parent and Child must both have active memberships in the supplied Family. Optional task and reward descriptions are omitted when absent.
 
+The Child branch of the authenticated, idempotent `counterOffer` command requires the Offer's active Child participant, the exact current Parent-proposed revision, `AWAITING_CHILD`, and a future deadline according to server time. It creates the next deterministic immutable revision, derives the Child author fields server-side, copies tasks and deadline exactly, stores only the new reward terms and optional note from the client, moves the Offer to `AWAITING_PARENT`, writes one `OFFER_COUNTERED` activity event, and completes server-only idempotency state in one transaction.
+
 ## 7. Contracts
 
 `/contracts/{contractId}`

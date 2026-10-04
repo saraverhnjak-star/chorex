@@ -3,6 +3,8 @@ import {
   acceptOfferOutputSchema,
   contractSchema,
   contractTaskSchema,
+  counterOfferInputSchema,
+  counterOfferOutputSchema,
   rejectOfferInputSchema,
   rejectOfferOutputSchema,
 } from '@chorex/domain';
@@ -91,6 +93,66 @@ it('validates strict rejectOffer input and rejected output', () => {
       },
     }).offer.status,
   ).toBe('REJECTED');
+});
+
+it('validates reward-only counterOffer input and its current Child revision', () => {
+  const input = {
+    offerId: 'offer-1',
+    currentRevisionId: 'revision-1',
+    reward: {
+      title: 'Extra screen time',
+      type: 'PRIVILEGE' as const,
+    },
+    note: 'Could we make it an hour?',
+    idempotencyKey: 'counter-offer-001',
+  };
+  expect(counterOfferInputSchema.safeParse(input).success).toBe(true);
+  expect(
+    counterOfferInputSchema.safeParse({
+      ...input,
+      tasks: [{ title: 'Different task', targetCount: 1 }],
+    }).success,
+  ).toBe(false);
+  expect(
+    counterOfferInputSchema.safeParse({
+      ...input,
+      deadlineAt: '2026-10-06T10:00:00.000Z',
+    }).success,
+  ).toBe(false);
+
+  const output = {
+    offer: {
+      id: 'offer-1',
+      familyId: 'family-1',
+      parentUid: 'parent-1',
+      childUid: 'child-1',
+      status: 'AWAITING_PARENT' as const,
+      currentRevisionId: 'revision-2',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    revision: {
+      id: 'revision-2',
+      offerId: 'offer-1',
+      revisionNumber: 2,
+      proposedByUid: 'child-1',
+      proposedByRole: 'CHILD' as const,
+      tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
+      reward: input.reward,
+      deadlineAt: '2026-10-05T10:00:00.000Z',
+      note: input.note,
+      createdAt: timestamp,
+    },
+  };
+  expect(counterOfferOutputSchema.parse(output).revision.revisionNumber).toBe(
+    2,
+  );
+  expect(
+    counterOfferOutputSchema.safeParse({
+      ...output,
+      offer: { ...output.offer, currentRevisionId: 'revision-3' },
+    }).success,
+  ).toBe(false);
 });
 
 it('requires output tasks to belong to the accepted Contract', () => {

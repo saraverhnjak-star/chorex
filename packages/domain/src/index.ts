@@ -69,6 +69,8 @@ export {
 export {
   createOfferDraftInputSchema,
   createOfferDraftOutputSchema,
+  counterOfferInputSchema,
+  counterOfferOutputSchema,
   childOfferInboxItemSchema,
   offerCommandErrorCodes,
   offerRevisionSchema,
@@ -85,6 +87,9 @@ export {
   type CreateOfferDraftInput,
   type CreateOfferDraftInputValue,
   type CreateOfferDraftOutput,
+  type CounterOfferInput,
+  type CounterOfferInputValue,
+  type CounterOfferOutput,
   type ChildOfferInboxItem,
   type Offer,
   type OfferCommandErrorCode,

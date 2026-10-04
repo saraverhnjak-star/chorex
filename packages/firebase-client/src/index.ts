@@ -30,6 +30,8 @@ import {
   acceptOfferOutputSchema,
   childFamilyMembershipSchema,
   childOfferInboxItemSchema,
+  counterOfferInputSchema,
+  counterOfferOutputSchema,
   createChildInputSchema,
   createChildOutputSchema,
   createFamilyInputSchema,
@@ -55,6 +57,8 @@ import {
   type AcceptOfferOutput,
   type ChildFamilyMembership,
   type ChildOfferInboxItem,
+  type CounterOfferInputValue,
+  type CounterOfferOutput,
   type CreateChildInputValue,
   type CreateChildOutput,
   type CreateFamilyInputValue,
@@ -83,7 +87,12 @@ import {
   type FirebaseEmulatorInput,
 } from '@chorex/config';
 
-export type { AcceptOfferOutput, ChildOfferInboxItem, RejectOfferOutput };
+export type {
+  AcceptOfferOutput,
+  ChildOfferInboxItem,
+  CounterOfferOutput,
+  RejectOfferOutput,
+};
 
 interface DevelopmentFirebase {
   app: ReturnType<typeof getApp>;
@@ -900,6 +909,25 @@ export async function rejectOffer(
     );
     const result = await callable(parsedInput.data);
     return rejectOfferOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translateFamilyError(error);
+  }
+}
+
+export async function counterOffer(
+  rawInput: CounterOfferInputValue,
+): Promise<CounterOfferOutput> {
+  const parsedInput = counterOfferInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new FamilyClientError(familyClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'counterOffer',
+    );
+    const result = await callable(parsedInput.data);
+    return counterOfferOutputSchema.parse(result.data);
   } catch (error) {
     throw translateFamilyError(error);
   }

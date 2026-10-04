@@ -22,6 +22,7 @@
     "emulators:verify:publish-offer": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-publish-offer.mjs\"",
     "emulators:verify:accept-offer": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-accept-offer.mjs\"",
     "emulators:verify:reject-offer": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-reject-offer.mjs\"",
+    "emulators:verify:counter-offer": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-counter-offer.mjs\"",
     "emulators:verify:child-offer-inbox": "firebase emulators:exec --project dev --only firestore \"node firebase/verify-child-offer-inbox.mjs\"",
     "emulators:verify:create-pairing-session": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-pairing-session.mjs\"",
     "emulators:verify:redeem-pairing-session": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-redeem-pairing-session.mjs\"",
