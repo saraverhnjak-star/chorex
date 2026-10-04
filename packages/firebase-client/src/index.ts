@@ -30,10 +30,13 @@ import {
   createChildOutputSchema,
   createFamilyInputSchema,
   createFamilyOutputSchema,
+  createOfferDraftInputSchema,
+  createOfferDraftOutputSchema,
   createPairingSessionInputSchema,
   createPairingSessionOutputSchema,
   familySchema,
   familyCommandErrorCodes,
+  offerCommandErrorCodes,
   pairingCommandErrorCodes,
   parentFamilyMembershipSchema,
   persistedChildProfileSchema,
@@ -45,10 +48,13 @@ import {
   type CreateChildOutput,
   type CreateFamilyInputValue,
   type CreateFamilyOutput,
+  type CreateOfferDraftInputValue,
+  type CreateOfferDraftOutput,
   type CreatePairingSessionInputValue,
   type CreatePairingSessionOutput,
   type Family,
   type FamilyCommandErrorCode,
+  type OfferCommandErrorCode,
   type ParentFamilyMembership,
   type PairingCommandErrorCode,
   type PersistedChildProfile,
@@ -112,6 +118,7 @@ export class AuthClientError extends Error {
 
 export const familyClientErrorCodes = {
   ...familyCommandErrorCodes,
+  ...offerCommandErrorCodes,
   ...pairingCommandErrorCodes,
   multipleFamiliesUnsupported: 'MULTIPLE_FAMILIES_UNSUPPORTED',
   networkUnavailable: 'NETWORK_UNAVAILABLE',
@@ -340,7 +347,11 @@ export async function signOutCurrentUser(): Promise<void> {
 
 function readStableFamilyErrorCode(
   error: unknown,
-): FamilyCommandErrorCode | PairingCommandErrorCode | undefined {
+):
+  | FamilyCommandErrorCode
+  | OfferCommandErrorCode
+  | PairingCommandErrorCode
+  | undefined {
   if (typeof error !== 'object' || error === null || !('details' in error)) {
     return undefined;
   }
@@ -351,6 +362,7 @@ function readStableFamilyErrorCode(
   const code = details.code;
   return [
     ...Object.values(familyCommandErrorCodes),
+    ...Object.values(offerCommandErrorCodes),
     ...Object.values(pairingCommandErrorCodes),
   ].find((value) => value === code);
 }
@@ -671,6 +683,25 @@ export async function createChild(
     );
     const result = await callable(parsedInput.data);
     return createChildOutputSchema.parse(result.data);
+  } catch (error) {
+    throw translateFamilyError(error);
+  }
+}
+
+export async function createOfferDraft(
+  rawInput: CreateOfferDraftInputValue,
+): Promise<CreateOfferDraftOutput> {
+  const parsedInput = createOfferDraftInputSchema.safeParse(rawInput);
+  if (!parsedInput.success) {
+    throw new FamilyClientError(familyClientErrorCodes.invalidInput);
+  }
+  try {
+    const callable = httpsCallable<typeof parsedInput.data, unknown>(
+      getInitializedFunctions(),
+      'createOfferDraft',
+    );
+    const result = await callable(parsedInput.data);
+    return createOfferDraftOutputSchema.parse(result.data);
   } catch (error) {
     throw translateFamilyError(error);
   }

@@ -1704,6 +1704,18 @@ ADR-037's server-managed `/users/{uid}.familyIds` persistence projection applies
 
 ---
 
+# ADR-042 — Initial Offer Draft Owns Immutable Revision 1
+
+**Status:** Accepted
+
+## Decision
+
+`createOfferDraft` is an authenticated, idempotent Parent command. It atomically creates one `DRAFT` Offer, its immutable complete revision 1, and a completed server-only idempotency record using deterministic IDs. The server derives the Parent identity and role and requires both the Parent and selected Child to have active memberships in the supplied Family.
+
+The creating Parent may read the draft and its revision. A Child cannot read an Offer or revision while its Offer remains `DRAFT`; publishing and later negotiation visibility are separate state transitions. All Offer, revision, and idempotency writes remain server-only.
+
+---
+
 # Remaining Open Decisions Before or During Early Implementation
 
 The following items remain intentionally unlocked and can be decided closer to their implementation.

@@ -42,6 +42,7 @@ jest.mock('@chorex/firebase-client', () => ({
   }),
   createChild: jest.fn(),
   createFamily: jest.fn(),
+  createOfferDraft: jest.fn(),
   createPairingSession: jest.fn().mockResolvedValue({
     sessionId: 'pairing-session-id',
     token: 'AbCdEfGhIjKlMnOpQrStUw',
@@ -94,4 +95,5 @@ it('renders the parent screen through the public shared UI package', async () =>
     }),
   );
   expect(screen.getByText('Add a child')).toBeOnTheScreen();
+  expect(screen.getByText('Create an offer draft')).toBeOnTheScreen();
 });

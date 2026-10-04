@@ -3,8 +3,11 @@ import {
   createChildOutputSchema,
   createFamilyInputSchema,
   createFamilyOutputSchema,
+  createOfferDraftInputSchema,
+  createOfferDraftOutputSchema,
   createPairingSessionInputSchema,
   createPairingSessionOutputSchema,
+  offerValidationBounds,
   persistedParentProfileSchema,
 } from '@chorex/domain';
 
@@ -151,5 +154,109 @@ describe('pairing session schemas', () => {
     });
     expect(first.token).toHaveLength(22);
     expect(replay.token).toBeUndefined();
+  });
+});
+
+describe('Offer draft schemas', () => {
+  const deadlineAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const validInput = {
+    familyId: 'family-id',
+    childUid: 'child-id',
+    tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
+    reward: { title: 'Cinema', type: 'EXPERIENCE' as const },
+    deadlineAt,
+    idempotencyKey: 'offer-draft-001',
+  };
+
+  it('normalizes supported terms and omits absent optional fields', () => {
+    expect(
+      createOfferDraftInputSchema.parse({
+        ...validInput,
+        tasks: [{ title: '  Load the dishwasher  ', targetCount: 2 }],
+        reward: {
+          title: '  Cinema  ',
+          description: '  Choose the film  ',
+          type: 'EXPERIENCE',
+        },
+      }),
+    ).toEqual({
+      ...validInput,
+      reward: {
+        title: 'Cinema',
+        description: 'Choose the film',
+        type: 'EXPERIENCE',
+      },
+    });
+  });
+
+  it('rejects authoritative fields, abusive bounds, and past deadlines', () => {
+    expect(
+      createOfferDraftInputSchema.safeParse({
+        ...validInput,
+        parentUid: 'client-controlled',
+      }).success,
+    ).toBe(false);
+    expect(
+      createOfferDraftInputSchema.safeParse({
+        ...validInput,
+        tasks: Array.from(
+          { length: offerValidationBounds.taskCountMax + 1 },
+          (_, index) => ({ title: `Task ${index}`, targetCount: 1 }),
+        ),
+      }).success,
+    ).toBe(false);
+    expect(
+      createOfferDraftInputSchema.safeParse({
+        ...validInput,
+        deadlineAt: '2020-01-01T00:00:00.000Z',
+      }).success,
+    ).toBe(false);
+    expect(
+      createOfferDraftInputSchema.safeParse({
+        ...validInput,
+        tasks: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      createOfferDraftInputSchema.safeParse({
+        ...validInput,
+        tasks: [
+          {
+            title: 'Load the dishwasher',
+            targetCount: offerValidationBounds.targetCountMax + 1,
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('parses a canonical draft and immutable initial revision', () => {
+    const output = createOfferDraftOutputSchema.parse({
+      offer: {
+        id: 'offer-id',
+        familyId: 'family-id',
+        parentUid: 'parent-id',
+        childUid: 'child-id',
+        status: 'DRAFT',
+        currentRevisionId: 'revision-id',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      revision: {
+        id: 'revision-id',
+        offerId: 'offer-id',
+        revisionNumber: 1,
+        proposedByUid: 'parent-id',
+        proposedByRole: 'PARENT',
+        tasks: validInput.tasks,
+        reward: validInput.reward,
+        deadlineAt,
+        createdAt: timestamp,
+      },
+    });
+
+    expect(output.offer.status).toBe('DRAFT');
+    expect(output.revision.revisionNumber).toBe(1);
+    expect(output.revision.reward.description).toBeUndefined();
   });
 });

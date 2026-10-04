@@ -128,7 +128,7 @@ The authenticated, idempotent `createChild` callable requires the actor's active
   "parentUid": "parentUid",
   "childUid": "childUid",
   "participantUids": ["parentUid", "childUid"],
-  "status": "AWAITING_CHILD",
+  "status": "DRAFT",
   "currentRevisionId": "revisionId",
   "createdAt": "serverTimestamp",
   "updatedAt": "serverTimestamp"
@@ -159,6 +159,8 @@ Revision:
 ```
 
 The revision array of tasks is acceptable because a revision is a small immutable snapshot, not a high-write object.
+
+The authenticated, idempotent `createOfferDraft` command creates the `DRAFT` Offer, immutable complete revision 1, and completed server-only idempotency record atomically with deterministic Offer and revision IDs. The selected Parent and Child must both have active memberships in the supplied Family. Optional task and reward descriptions are omitted when absent.
 
 ## 7. Contracts
 

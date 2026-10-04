@@ -29,6 +29,7 @@ import { getAuthErrorMessage } from '../../src/auth/messages';
 import { useParentSession } from '../../src/auth/session';
 import { getFamilyErrorMessage } from '../../src/family/messages';
 import { getNotificationErrorMessage } from '../../src/notifications/messages';
+import { OfferDraftComposer } from '../../src/offers/OfferDraftComposer';
 
 type FamilyState =
   | { status: 'loading' }
@@ -537,6 +538,11 @@ export default function AuthenticatedHomeScreen() {
                 onPress={handleChildSubmit(onCreateChild)}
               />
             </View>
+
+            <OfferDraftComposer
+              activeChildren={familyState.home.children}
+              familyId={familyState.home.family.id}
+            />
           </View>
         ) : null}
 

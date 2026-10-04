@@ -11,6 +11,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.status == 'ACTIVE';
     }
 
+    function isActiveParent(familyId) {
+      return isActiveFamilyMember(familyId)
+        && get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role == 'PARENT';
+    }
+
     match /users/{uid} {
       allow get: if isSignedIn() && request.auth.uid == uid;
       allow list, write: if false;
@@ -71,6 +76,46 @@ service cloud.firestore {
       match /members/{uid} {
         allow get, list: if isActiveFamilyMember(familyId);
         allow write: if false;
+      }
+    }
+
+    match /offers/{offerId} {
+      function canReadOffer() {
+        return (resource.data.parentUid == request.auth.uid
+            && isActiveParent(resource.data.familyId))
+          || (isActiveFamilyMember(resource.data.familyId)
+            && resource.data.status in [
+              'AWAITING_CHILD',
+              'AWAITING_PARENT',
+              'ACCEPTED',
+              'REJECTED',
+              'EXPIRED'
+            ]);
+      }
+
+      allow get: if canReadOffer();
+      allow list, write: if false;
+
+      match /revisions/{revisionId} {
+        function offer() {
+          return get(/databases/$(database)/documents/offers/$(offerId));
+        }
+
+        function canReadOfferRevision() {
+          return (offer().data.parentUid == request.auth.uid
+              && isActiveParent(offer().data.familyId))
+            || (isActiveFamilyMember(offer().data.familyId)
+              && offer().data.status in [
+                'AWAITING_CHILD',
+                'AWAITING_PARENT',
+                'ACCEPTED',
+                'REJECTED',
+                'EXPIRED'
+              ]);
+        }
+
+        allow get: if canReadOfferRevision();
+        allow list, write: if false;
       }
     }
 

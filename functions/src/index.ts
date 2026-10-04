@@ -7,10 +7,15 @@ import { warn } from 'firebase-functions/logger';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import {
   familyCommandErrorCodes,
+  offerCommandErrorCodes,
   pairingCommandErrorCodes,
 } from '@chorex/domain';
 import { CreateChildCommandError, executeCreateChild } from './createChild';
 import { CreateFamilyCommandError, executeCreateFamily } from './createFamily';
+import {
+  CreateOfferDraftCommandError,
+  executeCreateOfferDraft,
+} from './createOfferDraft';
 import {
   CreatePairingSessionCommandError,
   executeCreatePairingSession,
@@ -32,6 +37,7 @@ function callableError(
   error:
     | CreateFamilyCommandError
     | CreateChildCommandError
+    | CreateOfferDraftCommandError
     | CreatePairingSessionCommandError
     | RedeemPairingSessionCommandError,
 ): HttpsError {
@@ -94,6 +100,28 @@ export const createChild = onCall(async (request) => {
     );
   } catch (error) {
     if (error instanceof CreateChildCommandError) throw callableError(error);
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const createOfferDraft = onCall(async (request) => {
+  if (!request.auth) {
+    const error = new CreateOfferDraftCommandError(
+      offerCommandErrorCodes.authRequired,
+    );
+    throw callableError(error);
+  }
+
+  try {
+    return await executeCreateOfferDraft(
+      firestore,
+      request.auth.uid,
+      request.data,
+    );
+  } catch (error) {
+    if (error instanceof CreateOfferDraftCommandError) {
+      throw callableError(error);
+    }
     throw new HttpsError('internal', 'INTERNAL');
   }
 });

@@ -158,7 +158,11 @@ Example policy intent:
   read: active members of same family
   write: server only
 
-/offers, contracts, rewards, auctions, activityEvents
+/offers and /offers/{offerId}/revisions
+  read: the creating active Parent while DRAFT; later-state visibility follows the authorized negotiation command
+  write: server only
+
+/contracts, rewards, auctions, activityEvents
   read: only active family members for the referenced family
   write: server only
 
