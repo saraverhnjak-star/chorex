@@ -3,6 +3,7 @@ import { ParentNegotiationInbox } from '../src/offers/ParentNegotiationInbox';
 
 const mockAccept = jest.fn();
 const mockCounter = jest.fn();
+const mockReject = jest.fn();
 const mockUnsubscribe = jest.fn();
 let emitItems: ((items: readonly unknown[]) => void) | undefined;
 let emitError: ((error: unknown) => void) | undefined;
@@ -21,6 +22,7 @@ const mockSubscribe = jest.fn(
 jest.mock('@chorex/firebase-client', () => ({
   acceptOffer: (input: unknown) => mockAccept(input),
   counterOffer: (input: unknown) => mockCounter(input),
+  rejectOffer: (input: unknown) => mockReject(input),
   isFamilyClientError: () => false,
   familyClientErrorCodes: {},
   isOfferInboxClientError: () => false,
@@ -293,4 +295,101 @@ it('blocks invalid terms and discards an editor when the current revision change
   expect(screen.getByLabelText('Task 1 target count')).toHaveProp('value', '2');
   fireEvent.press(screen.getByRole('button', { name: 'Cancel counteroffer' }));
   expect(screen.queryByText('Edit counteroffer terms')).toBeNull();
+});
+
+it('requires deliberate rejection, waits for backend success, and relies on realtime removal', async () => {
+  mockReject.mockReset();
+  let resolveRequest: (() => void) | undefined;
+  mockReject.mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        resolveRequest = resolve;
+      }),
+  );
+  render(
+    <ParentNegotiationInbox
+      activeChildren={children}
+      authUid="parent-1"
+      familyId="family-1"
+    />,
+  );
+  act(() => emitItems?.([item]));
+  fireEvent.press(screen.getByRole('button', { name: 'Reject counteroffer' }));
+  expect(mockReject).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'Rejecting this counteroffer ends this Offer negotiation. The terms will remain in its history.',
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Keep negotiating' }));
+  expect(
+    screen.queryByRole('button', { name: 'Confirm reject counteroffer' }),
+  ).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Reject counteroffer' }));
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Confirm reject counteroffer' }),
+  );
+  expect(mockReject).toHaveBeenCalledTimes(1);
+  expect(mockReject).toHaveBeenCalledWith(
+    expect.objectContaining({
+      offerId: 'offer-1',
+      currentRevisionId: 'revision-2',
+    }),
+  );
+  expect(screen.queryByText('Counteroffer rejected')).toBeNull();
+  expect(
+    screen.getByRole('button', { name: 'Confirm reject counteroffer' }),
+  ).toBeDisabled();
+  await act(async () => resolveRequest?.());
+  expect(screen.getByText('Counteroffer rejected')).toBeOnTheScreen();
+  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  act(() => emitItems?.([]));
+  expect(screen.queryByText('Mia')).toBeNull();
+  expect(screen.getByText('Counteroffer rejected')).toBeOnTheScreen();
+});
+
+it('retains the same rejection key after a failed request and invalidates stale confirmations', async () => {
+  mockReject
+    .mockReset()
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({});
+  render(
+    <ParentNegotiationInbox
+      activeChildren={children}
+      authUid="parent-1"
+      familyId="family-1"
+    />,
+  );
+  act(() => emitItems?.([item]));
+  fireEvent.press(screen.getByRole('button', { name: 'Reject counteroffer' }));
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm reject counteroffer' }),
+    ),
+  );
+  expect(
+    screen.getByText('This offer could not be rejected. Try again.'),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText('Counteroffer rejected')).toBeNull();
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm reject counteroffer' }),
+    ),
+  );
+  expect(mockReject.mock.calls[1][0]).toEqual(mockReject.mock.calls[0][0]);
+  fireEvent.press(screen.getByRole('button', { name: 'Reject counteroffer' }));
+  act(() =>
+    emitItems?.([
+      {
+        ...item,
+        offer: { ...item.offer, currentRevisionId: 'revision-4' },
+        revision: { ...item.revision, id: 'revision-4', revisionNumber: 4 },
+      },
+    ]),
+  );
+  expect(
+    screen.queryByRole('button', { name: 'Confirm reject counteroffer' }),
+  ).toBeNull();
+  expect(
+    screen.getByRole('button', { name: 'Reject counteroffer' }),
+  ).toBeOnTheScreen();
+  expect(mockReject).toHaveBeenCalledTimes(2);
 });

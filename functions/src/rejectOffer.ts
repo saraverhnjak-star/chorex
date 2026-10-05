@@ -98,15 +98,18 @@ function requireMatchingRequest(
   }
 }
 
-function requireActiveChildMembership(data: DocumentData | undefined): void {
+function requireActiveMembership(
+  data: DocumentData | undefined,
+): 'PARENT' | 'CHILD' {
   if (!data || data.status !== 'ACTIVE') {
     throw new RejectOfferCommandError(
       offerCommandErrorCodes.familyMembershipRequired,
     );
   }
-  if (data.role !== 'CHILD') {
+  if (data.role !== 'CHILD' && data.role !== 'PARENT') {
     throw new RejectOfferCommandError(offerCommandErrorCodes.wrongActorRole);
   }
+  return data.role;
 }
 
 function parseTimestamp(value: unknown): string {
@@ -184,8 +187,19 @@ export async function executeRejectOffer(
       transaction.get(membershipReference),
       transaction.get(revisionReference),
     ]);
-    requireActiveChildMembership(membershipSnapshot.data());
-    if (offer.childUid !== actorUid) {
+    const actorRole = requireActiveMembership(membershipSnapshot.data());
+    // Preserve the existing wrong-role result for Parents acting on a Child turn.
+    if (
+      actorRole === 'PARENT' &&
+      offer.status === 'AWAITING_CHILD' &&
+      offer.currentRevisionId === input.currentRevisionId &&
+      !completedRecord
+    ) {
+      throw new RejectOfferCommandError(offerCommandErrorCodes.wrongActorRole);
+    }
+    if (
+      (actorRole === 'PARENT' ? offer.parentUid : offer.childUid) !== actorUid
+    ) {
       throw new RejectOfferCommandError(offerCommandErrorCodes.forbidden);
     }
 
@@ -199,7 +213,10 @@ export async function executeRejectOffer(
       return;
     }
 
-    if (offer.status !== 'AWAITING_CHILD') {
+    if (
+      offer.status !==
+      (actorRole === 'PARENT' ? 'AWAITING_PARENT' : 'AWAITING_CHILD')
+    ) {
       throw new RejectOfferCommandError(offerCommandErrorCodes.invalidState);
     }
     if (offer.currentRevisionId !== input.currentRevisionId) {
@@ -210,12 +227,25 @@ export async function executeRejectOffer(
       throw new RejectOfferCommandError(offerCommandErrorCodes.staleRevision);
     }
     if (
-      revision.proposedByRole !== 'PARENT' ||
-      revision.proposedByUid !== offer.parentUid
+      revision.proposedByRole !==
+        (actorRole === 'PARENT' ? 'CHILD' : 'PARENT') ||
+      revision.proposedByUid !==
+        (actorRole === 'PARENT' ? offer.childUid : offer.parentUid)
     ) {
       throw new RejectOfferCommandError(offerCommandErrorCodes.invalidState);
     }
 
+    if (actorRole === 'PARENT') {
+      const childSnapshot = await transaction.get(
+        firestore.doc(`families/${offer.familyId}/members/${offer.childUid}`),
+      );
+      const child = childSnapshot.data();
+      if (!child || child.status !== 'ACTIVE' || child.role !== 'CHILD') {
+        throw new RejectOfferCommandError(
+          offerCommandErrorCodes.familyMembershipRequired,
+        );
+      }
+    }
     const rejectedAt = Timestamp.now();
     const activityReference = firestore.collection('activityEvents').doc();
     transaction.update(offerReference, {
@@ -225,7 +255,7 @@ export async function executeRejectOffer(
     transaction.create(activityReference, {
       familyId: offer.familyId,
       actorUid,
-      actorType: 'CHILD',
+      actorType: actorRole,
       type: 'OFFER_REJECTED',
       entityType: 'OFFER',
       entityId: input.offerId,

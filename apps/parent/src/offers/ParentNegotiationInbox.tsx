@@ -4,6 +4,7 @@ import type { ChildFamilyMembership, CounterOfferInput } from '@chorex/domain';
 import {
   acceptOffer,
   counterOffer,
+  rejectOffer,
   subscribeToCurrentParentNegotiationInbox,
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
@@ -16,6 +17,7 @@ import {
 import {
   getAcceptOfferErrorMessage,
   getCounterOfferErrorMessage,
+  getRejectOfferErrorMessage,
   getParentNegotiationInboxErrorMessage,
 } from './messages';
 
@@ -55,6 +57,7 @@ export function ParentNegotiationInbox({
     status: 'loading',
   });
 
+  const [rejectionConfirmation, setRejectionConfirmation] = useState<string>();
   const [editing, setEditing] = useState<string>();
   const [confirmation, setConfirmation] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -89,6 +92,34 @@ export function ParentNegotiationInbox({
     } catch (error) {
       if (scope.current === subscriptionKey)
         setActionError(getAcceptOfferErrorMessage(error));
+    } finally {
+      mutating.current = false;
+      setBusy(false);
+    }
+  };
+
+  const rejectCounteroffer = async (item: ParentNegotiationInboxItem) => {
+    if (mutating.current) return;
+    mutating.current = true;
+    setBusy(true);
+    setActionError(undefined);
+    setMessage(undefined);
+    const identity = `${subscriptionKey}:reject:${item.offer.id}:${item.revision.id}`;
+    const key = keys.current.get(identity) ?? `reject-${newIdempotencyKey()}`;
+    keys.current.set(identity, key);
+    try {
+      await rejectOffer({
+        offerId: item.offer.id,
+        currentRevisionId: item.revision.id,
+        idempotencyKey: key,
+      });
+      if (scope.current === subscriptionKey) {
+        setMessage('Counteroffer rejected');
+        setRejectionConfirmation(undefined);
+      }
+    } catch (error) {
+      if (scope.current === subscriptionKey)
+        setActionError(getRejectOfferErrorMessage(error));
     } finally {
       mutating.current = false;
       setBusy(false);
@@ -329,7 +360,31 @@ export function ParentNegotiationInbox({
                 >
                   Deadline: {formatDeadline(revision.deadlineAt)}
                 </Text>
-                {editing === identity ? (
+                {rejectionConfirmation === identity ? (
+                  <View className="gap-3">
+                    <Text
+                      allowFontScaling={false}
+                      accessibilityRole="alert"
+                      accessibilityLiveRegion="assertive"
+                      className="text-text"
+                      style={dynamicType.body}
+                    >
+                      Rejecting this counteroffer ends this Offer negotiation.
+                      The terms will remain in its history.
+                    </Text>
+                    <Button
+                      label="Confirm reject counteroffer"
+                      loading={busy}
+                      onPress={() => void rejectCounteroffer(item)}
+                    />
+                    <Button
+                      label="Keep negotiating"
+                      variant="secondary"
+                      disabled={busy}
+                      onPress={() => setRejectionConfirmation(undefined)}
+                    />
+                  </View>
+                ) : editing === identity ? (
                   <ParentCounterofferForm
                     key={identity}
                     revision={revision}
@@ -370,7 +425,9 @@ export function ParentNegotiationInbox({
                     }}
                   />
                 )}
-                {editing !== identity && confirmation !== identity ? (
+                {rejectionConfirmation !== identity &&
+                editing !== identity &&
+                confirmation !== identity ? (
                   <Button
                     label="Counteroffer"
                     variant="secondary"
@@ -378,6 +435,22 @@ export function ParentNegotiationInbox({
                     onPress={() => {
                       setEditing(identity);
                       setConfirmation(undefined);
+                      setActionError(undefined);
+                      setMessage(undefined);
+                    }}
+                  />
+                ) : null}
+                {rejectionConfirmation !== identity &&
+                editing !== identity &&
+                confirmation !== identity ? (
+                  <Button
+                    label="Reject counteroffer"
+                    variant="secondary"
+                    disabled={busy}
+                    onPress={() => {
+                      setRejectionConfirmation(identity);
+                      setConfirmation(undefined);
+                      setEditing(undefined);
                       setActionError(undefined);
                       setMessage(undefined);
                     }}

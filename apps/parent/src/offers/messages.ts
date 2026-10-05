@@ -70,3 +70,25 @@ export function getCounterOfferErrorMessage(error: unknown): string {
       return 'This counteroffer could not be sent. Try again.';
   }
 }
+
+export function getRejectOfferErrorMessage(error: unknown): string {
+  if (!isFamilyClientError(error)) {
+    return 'This offer could not be rejected. Try again.';
+  }
+  switch (error.code) {
+    case familyClientErrorCodes.authRequired:
+      return 'Your Parent session has ended. Sign in again.';
+    case familyClientErrorCodes.invalidState:
+      return 'This offer is no longer waiting for your response.';
+    case familyClientErrorCodes.staleRevision:
+      return 'This offer changed. Refresh it before rejecting.';
+    case familyClientErrorCodes.networkUnavailable:
+      return 'The local offer service is unavailable. Check your connection and try again.';
+    case familyClientErrorCodes.forbidden:
+    case familyClientErrorCodes.familyMembershipRequired:
+    case familyClientErrorCodes.wrongActorRole:
+      return 'You cannot reject this offer.';
+    default:
+      return 'This offer could not be rejected. Try again.';
+  }
+}

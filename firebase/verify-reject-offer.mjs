@@ -386,6 +386,311 @@ try {
     'Rejection did not create exactly one activity event',
   );
 
+  async function childCounter(key) {
+    const source = await createDraft(
+      parent,
+      familyId,
+      child.localId,
+      `${key}-draft`,
+    );
+    await publish(parent, source, `${key}-publish`);
+    const counter = await callFunction(
+      'counterOffer',
+      {
+        offerId: source.offer.id,
+        currentRevisionId: source.revision.id,
+        reward: { title: 'Games', type: 'PRIVILEGE' },
+        idempotencyKey: `${key}-counter`,
+      },
+      child.idToken,
+    );
+    return {
+      source,
+      counter,
+      input: {
+        offerId: source.offer.id,
+        currentRevisionId: counter.revision.id,
+        idempotencyKey: `${key}-reject`,
+      },
+    };
+  }
+  const parentCase = await childCounter('parent-main');
+  const parentInput = parentCase.input;
+  const parentOfferPath = `offers/${parentInput.offerId}`;
+  const parentRevisionPath = `${parentOfferPath}/revisions/${parentInput.currentRevisionId}`;
+  const parentMemberPath = `families/${familyId}/members/${parent.localId}`;
+  const childMemberPath = `families/${familyId}/members/${child.localId}`;
+  const historyBefore = normalized(
+    (await allAdmin(`${parentOfferPath}/revisions`)).docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    })),
+  );
+  await expectCallableError('AUTH_REQUIRED', () =>
+    callFunction('rejectOffer', parentInput),
+  );
+  await expectCallableError('INVALID_INPUT', () =>
+    callFunction(
+      'rejectOffer',
+      { ...parentInput, actorType: 'PARENT' },
+      parent.idToken,
+    ),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('rejectOffer', parentInput, otherParent.idToken),
+  );
+  await withAdmin((db) =>
+    setDoc(doc(db, `families/${familyId}/members/${otherParent.localId}`), {
+      role: 'PARENT',
+      status: 'ACTIVE',
+    }),
+  );
+  await expectCallableError('FORBIDDEN', () =>
+    callFunction('rejectOffer', parentInput, otherParent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentMemberPath), { status: 'DISABLED' }),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('rejectOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentMemberPath), { status: 'ACTIVE', role: 'INVALID' }),
+  );
+  await expectCallableError('WRONG_ACTOR_ROLE', () =>
+    callFunction('rejectOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentMemberPath), { role: 'PARENT' }),
+  );
+  await expectCallableError('INVALID_STATE', () =>
+    callFunction('rejectOffer', parentInput, child.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, childMemberPath), { status: 'DISABLED' }),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('rejectOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, childMemberPath), { status: 'ACTIVE' }),
+  );
+  for (const status of [
+    'DRAFT',
+    'ACCEPTED',
+    'REJECTED',
+    'CANCELLED',
+    'EXPIRED',
+  ]) {
+    await withAdmin((db) => updateDoc(doc(db, parentOfferPath), { status }));
+    await expectCallableError('INVALID_STATE', () =>
+      callFunction('rejectOffer', parentInput, parent.idToken),
+    );
+  }
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentOfferPath), { status: 'AWAITING_CHILD' }),
+  );
+  await expectCallableError('WRONG_ACTOR_ROLE', () =>
+    callFunction('rejectOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentOfferPath), { status: 'AWAITING_PARENT' }),
+  );
+  await expectCallableError('STALE_REVISION', () =>
+    callFunction(
+      'rejectOffer',
+      { ...parentInput, currentRevisionId: parentCase.source.revision.id },
+      parent.idToken,
+    ),
+  );
+  await expectCallableError('STALE_REVISION', () =>
+    callFunction(
+      'rejectOffer',
+      { ...parentInput, currentRevisionId: 'missing-revision' },
+      parent.idToken,
+    ),
+  );
+  for (const patch of [
+    { proposedByRole: 'PARENT' },
+    { proposedByUid: sibling.localId },
+  ]) {
+    await withAdmin((db) => updateDoc(doc(db, parentRevisionPath), patch));
+    await expectCallableError('INVALID_STATE', () =>
+      callFunction('rejectOffer', parentInput, parent.idToken),
+    );
+    await withAdmin((db) =>
+      updateDoc(doc(db, parentRevisionPath), {
+        proposedByRole: 'CHILD',
+        proposedByUid: child.localId,
+      }),
+    );
+  }
+  const parentResults = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      callFunction('rejectOffer', parentInput, parent.idToken),
+    ),
+  );
+  assert(
+    parentResults.every(
+      (r) =>
+        JSON.stringify(r) === JSON.stringify(parentResults[0]) &&
+        r.offer.status === 'REJECTED' &&
+        r.offer.currentRevisionId === parentInput.currentRevisionId,
+    ),
+    'Parent retries did not return one canonical REJECTED Offer',
+  );
+  assert(
+    JSON.stringify(
+      await callFunction('rejectOffer', parentInput, parent.idToken),
+    ) === JSON.stringify(parentResults[0]),
+    'Parent retry changed result',
+  );
+  await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
+    callFunction(
+      'rejectOffer',
+      { ...parentInput, currentRevisionId: parentCase.source.revision.id },
+      parent.idToken,
+    ),
+  );
+  await expectCallableError('INVALID_STATE', () =>
+    callFunction(
+      'rejectOffer',
+      { ...parentInput, idempotencyKey: 'parent-later-reject' },
+      parent.idToken,
+    ),
+  );
+  await expectCallableError('INVALID_STATE', () =>
+    callFunction(
+      'acceptOffer',
+      { ...parentInput, idempotencyKey: 'parent-after-rejection-accept' },
+      parent.idToken,
+    ),
+  );
+  const historyAfter = normalized(
+    (await allAdmin(`${parentOfferPath}/revisions`)).docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    })),
+  );
+  assert(
+    JSON.stringify(historyAfter) === JSON.stringify(historyBefore),
+    'Parent rejection rewrote or deleted history',
+  );
+  await withAdmin(async (db) => {
+    const events = await getDocs(
+      query(
+        collection(db, 'activityEvents'),
+        where('entityId', '==', parentInput.offerId),
+        where('type', '==', 'OFFER_REJECTED'),
+      ),
+    );
+    assert(
+      events.size === 1 &&
+        events.docs[0].data().actorType === 'PARENT' &&
+        events.docs[0].data().actorUid === parent.localId &&
+        events.docs[0].data().revisionId === parentInput.currentRevisionId,
+      'Parent rejection event or actor incorrect',
+    );
+  });
+  assert(
+    !(await allAdmin('contracts')).docs.some(
+      (d) => d.data().source?.offerId === parentInput.offerId,
+    ),
+    'Parent rejection created Contract',
+  );
+  assert((await allAdmin('rewards')).empty, 'Parent rejection created Reward');
+
+  for (const competitor of ['acceptOffer', 'counterOffer']) {
+    const race = await childCounter(`parent-race-${competitor}`);
+    const revisionsBefore = await allAdmin(
+      `offers/${race.input.offerId}/revisions`,
+    );
+    const competingInput = {
+      ...race.input,
+      idempotencyKey: `parent-race-${competitor}-other`,
+      ...(competitor === 'counterOffer'
+        ? {
+            tasks: race.counter.revision.tasks,
+            deadlineAt: race.counter.revision.deadlineAt,
+            reward: { title: 'Other reward', type: 'CUSTOM' },
+          }
+        : {}),
+    };
+    const results = await Promise.allSettled([
+      callFunction('rejectOffer', race.input, parent.idToken),
+      callFunction(competitor, competingInput, parent.idToken),
+    ]);
+    assert(
+      results.filter((r) => r.status === 'fulfilled').length === 1,
+      `Parent reject/${competitor} race had multiple winners`,
+    );
+    assert(
+      results.some(
+        (r) =>
+          r.status === 'rejected' &&
+          r.reason.callable?.details?.code === 'INVALID_STATE',
+      ),
+      `Parent reject/${competitor} loser returned wrong error`,
+    );
+    const offer = (await readAdmin(`offers/${race.input.offerId}`)).data();
+    assert(
+      [
+        'REJECTED',
+        competitor === 'acceptOffer' ? 'ACCEPTED' : 'AWAITING_CHILD',
+      ].includes(offer.status),
+      'Parent race produced illegal state',
+    );
+    const contracts = (await allAdmin('contracts')).docs.filter(
+      (d) => d.data().source?.offerId === race.input.offerId,
+    );
+    assert(
+      contracts.length === (offer.status === 'ACCEPTED' ? 1 : 0),
+      'Parent rejection race created inconsistent Contract',
+    );
+    const revisionsAfter = await allAdmin(
+      `offers/${race.input.offerId}/revisions`,
+    );
+    assert(
+      revisionsAfter.size === (offer.status === 'AWAITING_CHILD' ? 3 : 2),
+      'Parent race branched revision history',
+    );
+    for (const before of revisionsBefore.docs) {
+      assert(
+        JSON.stringify(
+          normalized((await readAdmin(before.ref.path)).data()),
+        ) === JSON.stringify(normalized(before.data())),
+        'Parent race mutated earlier revision',
+      );
+    }
+    await withAdmin(async (db) => {
+      const events = await getDocs(
+        query(
+          collection(db, 'activityEvents'),
+          where('entityId', '==', race.input.offerId),
+        ),
+      );
+      const rejectionEvents = events.docs.filter(
+        (d) => d.data().type === 'OFFER_REJECTED',
+      );
+      assert(
+        rejectionEvents.length === (offer.status === 'REJECTED' ? 1 : 0),
+        'Parent race duplicated rejection event',
+      );
+    });
+    if (offer.status === 'REJECTED') {
+      await expectCallableError('INVALID_STATE', () =>
+        callFunction(competitor, competingInput, parent.idToken),
+      );
+      assert(
+        !(await allAdmin('contracts')).docs.some(
+          (d) => d.data().source?.offerId === race.input.offerId,
+        ),
+        'Contract appeared after rejection won',
+      );
+    }
+    assert((await allAdmin('rewards')).empty, 'Parent race created Reward');
+  }
+
   const raceDraft = await createDraft(
     parent,
     familyId,
@@ -459,7 +764,7 @@ try {
   }
 
   console.info(
-    'PASS: rejectOffer authorization, idempotency, accept/reject race, immutable revision, record absence, activity, and rules',
+    'PASS: rejectOffer Child/Parent authorization, idempotency, reject/accept/counter races, immutable history, no Contract/Reward from rejection, actor roles, and rules',
   );
 } finally {
   try {
