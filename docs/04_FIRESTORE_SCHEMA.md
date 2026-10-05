@@ -164,6 +164,8 @@ The authenticated, idempotent `createOfferDraft` command creates the `DRAFT` Off
 
 The Child branch of the authenticated, idempotent `counterOffer` command requires the Offer's active Child participant, the exact current Parent-proposed revision, `AWAITING_CHILD`, and a future deadline according to server time. It creates the next deterministic immutable revision, derives the Child author fields server-side, copies tasks and deadline exactly, stores only the new reward terms and optional note from the client, moves the Offer to `AWAITING_PARENT`, writes one `OFFER_COUNTERED` activity event, and completes server-only idempotency state in one transaction.
 
+The Child inbox subscribes to `AWAITING_CHILD` Offers by `familyId`, the signed-in Child in `participantUids`, and descending `updatedAt`. The Parent negotiation inbox subscribes to `AWAITING_PARENT` Offers by `familyId`, the signed-in creating `parentUid`, that same UID in `participantUids`, and descending `updatedAt`. Each client snapshot loads only the revision named by `currentRevisionId`; missing or malformed current revisions fail the whole snapshot instead of retaining stale terms. Clients discard revision loads completed for an older Offer snapshot.
+
 ## 7. Contracts
 
 `/contracts/{contractId}`
@@ -371,6 +373,7 @@ Exact indexes should be generated from real queries, but plan for:
 
 ```text
 offers:    familyId + participantUids(array-contains) + status + updatedAt desc
+offers:    familyId + parentUid + participantUids(array-contains) + status + updatedAt desc
 contracts: familyId + childUid + status + updatedAt desc
 contracts: familyId + parentUid + status + updatedAt desc
 rewards:   familyId + parentUid + status + earnedAt desc

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import {
   acceptOffer,
   counterOffer,
-  readCurrentChildOfferInbox,
   rejectOffer,
+  subscribeToCurrentChildOfferInbox,
   type ChildOfferInboxItem,
 } from '@chorex/firebase-client';
 import { rewardTypeSchema, type RewardType } from '@chorex/domain';
@@ -23,9 +23,13 @@ import {
 } from './messages';
 
 type OfferInboxState =
-  | { status: 'loading' }
-  | { status: 'ready'; items: readonly ChildOfferInboxItem[] }
-  | { status: 'error'; message: string };
+  | { subscriptionKey: string; status: 'loading' }
+  | {
+      subscriptionKey: string;
+      status: 'ready';
+      items: readonly ChildOfferInboxItem[];
+    }
+  | { subscriptionKey: string; status: 'error'; message: string };
 
 function formatDeadline(deadlineAt: string): string {
   return new Date(deadlineAt).toLocaleString();
@@ -48,9 +52,20 @@ interface CounterOfferFormState {
 
 const rewardTypes = rewardTypeSchema.options;
 
-export function OfferInbox({ familyId }: { familyId: string }) {
+export function OfferInbox({
+  authUid,
+  familyId,
+}: {
+  authUid: string;
+  familyId: string;
+}) {
   const dynamicType = useDynamicTypeStyles();
-  const [state, setState] = useState<OfferInboxState>({ status: 'loading' });
+  const [subscriptionAttempt, setSubscriptionAttempt] = useState(0);
+  const subscriptionKey = `${authUid}:${familyId}:${subscriptionAttempt}`;
+  const [state, setState] = useState<OfferInboxState>({
+    subscriptionKey,
+    status: 'loading',
+  });
   const [mutation, setMutation] = useState<MutationState>();
   const [actionError, setActionError] = useState<string>();
   const [resultMessage, setResultMessage] = useState<string>();
@@ -65,40 +80,51 @@ export function OfferInbox({ familyId }: { familyId: string }) {
   const rejectIdempotencyKeys = useRef(new Map<string, string>());
   const counterOfferIdempotencyKeys = useRef(new Map<string, string>());
 
-  const loadOffers = useCallback(async () => {
-    try {
-      const items = await readCurrentChildOfferInbox(familyId);
-      setState({ status: 'ready', items });
-    } catch (error) {
-      setState({ status: 'error', message: getOfferInboxErrorMessage(error) });
-    }
-  }, [familyId]);
-
   useEffect(() => {
     let active = true;
-    void readCurrentChildOfferInbox(familyId)
-      .then((items) => {
-        if (active) setState({ status: 'ready', items });
-      })
-      .catch((error: unknown) => {
-        if (active) {
+    let unsubscribe: (() => void) | undefined;
+
+    try {
+      unsubscribe = subscribeToCurrentChildOfferInbox(
+        familyId,
+        (items) => {
+          if (active) {
+            setState({ subscriptionKey, status: 'ready', items });
+          }
+        },
+        (error) =>
+          active &&
           setState({
+            subscriptionKey,
             status: 'error',
             message: getOfferInboxErrorMessage(error),
-          });
+          }),
+      );
+    } catch (error) {
+      const message = getOfferInboxErrorMessage(error);
+      queueMicrotask(() => {
+        if (active) {
+          setState({ subscriptionKey, status: 'error', message });
         }
       });
+    }
+
     return () => {
       active = false;
+      unsubscribe?.();
     };
-  }, [familyId]);
+  }, [familyId, subscriptionKey]);
 
-  const refreshOffers = () => {
+  const displayedState: OfferInboxState =
+    state.subscriptionKey === subscriptionKey
+      ? state
+      : { subscriptionKey, status: 'loading' };
+
+  const retrySubscription = () => {
     setActionError(undefined);
     setRejectionConfirmationOfferId(undefined);
     setCounterOfferForm(undefined);
-    setState({ status: 'loading' });
-    void loadOffers();
+    setSubscriptionAttempt((attempt) => attempt + 1);
   };
 
   const acceptCurrentOffer = async (item: ChildOfferInboxItem) => {
@@ -120,8 +146,10 @@ export function OfferInbox({ familyId }: { familyId: string }) {
       acceptIdempotencyKeys.current.delete(item.offer.id);
       setResultMessage('Contract is active.');
       setState((current) =>
+        current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
           ? {
+              subscriptionKey,
               status: 'ready',
               items: current.items.filter(
                 ({ offer }) => offer.id !== item.offer.id,
@@ -157,8 +185,10 @@ export function OfferInbox({ familyId }: { familyId: string }) {
       setRejectionConfirmationOfferId(undefined);
       setResultMessage('Offer rejected.');
       setState((current) =>
+        current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
           ? {
+              subscriptionKey,
               status: 'ready',
               items: current.items.filter(
                 ({ offer }) => offer.id !== item.offer.id,
@@ -217,8 +247,10 @@ export function OfferInbox({ familyId }: { familyId: string }) {
       setCounterOfferForm(undefined);
       setResultMessage('Waiting for parent');
       setState((current) =>
+        current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
           ? {
+              subscriptionKey,
               status: 'ready',
               items: current.items.filter(
                 ({ offer }) => offer.id !== item.offer.id,
@@ -281,7 +313,7 @@ export function OfferInbox({ familyId }: { familyId: string }) {
 
       <FormMessage message={actionError} />
 
-      {state.status === 'loading' ? (
+      {displayedState.status === 'loading' ? (
         <View className="items-center py-6">
           <ActivityIndicator
             accessibilityLabel="Loading offers"
@@ -297,15 +329,16 @@ export function OfferInbox({ familyId }: { familyId: string }) {
         </View>
       ) : null}
 
-      {state.status === 'error' ? (
+      {displayedState.status === 'error' ? (
         <View className="gap-3">
-          <FormMessage message={state.message} />
-          <Button label="Try offers again" onPress={refreshOffers} />
+          <FormMessage message={displayedState.message} />
+          <Button label="Try offers again" onPress={retrySubscription} />
         </View>
       ) : null}
 
-      {state.status === 'ready' && state.items.length === 0 ? (
-        <View className="gap-3">
+      {displayedState.status === 'ready' &&
+      displayedState.items.length === 0 ? (
+        <View>
           <Text
             allowFontScaling={false}
             className="text-text-muted"
@@ -313,17 +346,12 @@ export function OfferInbox({ familyId }: { familyId: string }) {
           >
             No offers are waiting for you.
           </Text>
-          <Button
-            label="Refresh offers"
-            onPress={refreshOffers}
-            variant="secondary"
-          />
         </View>
       ) : null}
 
-      {state.status === 'ready' && state.items.length > 0 ? (
+      {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
         <View className="gap-4">
-          {state.items.map(({ offer, revision }) => (
+          {displayedState.items.map(({ offer, revision }) => (
             <View
               className="gap-3 rounded-2xl border border-border bg-background p-4"
               key={offer.id}
@@ -549,12 +577,6 @@ export function OfferInbox({ familyId }: { familyId: string }) {
               )}
             </View>
           ))}
-
-          <Button
-            label="Refresh offers"
-            onPress={refreshOffers}
-            variant="secondary"
-          />
         </View>
       ) : null}
     </View>

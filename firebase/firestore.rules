@@ -99,7 +99,10 @@ service cloud.firestore {
 
       allow get: if canReadOffer();
       allow list: if canReadOffer()
-        && resource.data.status == 'AWAITING_CHILD';
+        && (resource.data.status == 'AWAITING_CHILD'
+          || (resource.data.status == 'AWAITING_PARENT'
+            && resource.data.parentUid == request.auth.uid
+            && isActiveParent(resource.data.familyId)));
       allow write: if false;
 
       match /revisions/{revisionId} {

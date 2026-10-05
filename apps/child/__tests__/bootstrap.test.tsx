@@ -42,7 +42,7 @@ const mockReadCurrentChildFamily = jest.fn().mockResolvedValue({
     joinedAt: '2026-10-03T12:34:56.789Z',
   },
 });
-const mockReadCurrentChildOfferInbox = jest.fn().mockResolvedValue([
+const childOfferInboxItems = [
   {
     offer: {
       id: 'offer-test-id',
@@ -70,7 +70,18 @@ const mockReadCurrentChildOfferInbox = jest.fn().mockResolvedValue([
       createdAt: '2026-10-03T12:34:56.789Z',
     },
   },
-]);
+];
+const mockChildOfferUnsubscribe = jest.fn();
+const mockSubscribeToCurrentChildOfferInbox = jest.fn(
+  (
+    _familyId: string,
+    onItems: (items: typeof childOfferInboxItems) => void,
+    _onError: (error: unknown) => void,
+  ) => {
+    onItems(childOfferInboxItems);
+    return mockChildOfferUnsubscribe;
+  },
+);
 const mockAcceptOffer = jest.fn().mockResolvedValue({
   offer: {
     id: 'offer-test-id',
@@ -160,12 +171,15 @@ jest.mock('@chorex/firebase-client', () => ({
     mockRedeemPairingSession(...args),
   readCurrentChildFamily: (...args: unknown[]) =>
     mockReadCurrentChildFamily(...args),
-  readCurrentChildOfferInbox: (...args: unknown[]) =>
-    mockReadCurrentChildOfferInbox(...args),
   rejectOffer: (...args: unknown[]) => mockRejectOffer(...args),
   signInWithChildCustomToken: (...args: unknown[]) =>
     mockSignInWithChildCustomToken(...args),
   signOutCurrentUser: jest.fn(),
+  subscribeToCurrentChildOfferInbox: (
+    familyId: string,
+    onItems: (items: typeof childOfferInboxItems) => void,
+    onError: (error: unknown) => void,
+  ) => mockSubscribeToCurrentChildOfferInbox(familyId, onItems, onError),
 }));
 
 jest.mock('@chorex/notifications', () => ({
@@ -288,5 +302,10 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     idempotencyKey: expect.stringMatching(/^counter-/),
   });
   expect(mockReadCurrentChildFamily).toHaveBeenCalledTimes(3);
-  expect(mockReadCurrentChildOfferInbox).toHaveBeenCalledWith('family-test-id');
+  expect(mockSubscribeToCurrentChildOfferInbox).toHaveBeenCalledWith(
+    'family-test-id',
+    expect.any(Function),
+    expect.any(Function),
+  );
+  expect(mockChildOfferUnsubscribe).toHaveBeenCalledTimes(2);
 });

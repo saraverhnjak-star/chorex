@@ -30,6 +30,7 @@ import { useParentSession } from '../../src/auth/session';
 import { getFamilyErrorMessage } from '../../src/family/messages';
 import { getNotificationErrorMessage } from '../../src/notifications/messages';
 import { OfferDraftComposer } from '../../src/offers/OfferDraftComposer';
+import { ParentNegotiationInbox } from '../../src/offers/ParentNegotiationInbox';
 
 type FamilyState =
   | { status: 'loading' }
@@ -538,6 +539,12 @@ export default function AuthenticatedHomeScreen() {
                 onPress={handleChildSubmit(onCreateChild)}
               />
             </View>
+
+            <ParentNegotiationInbox
+              activeChildren={familyState.home.children}
+              authUid={user.uid}
+              familyId={familyState.home.family.id}
+            />
 
             <OfferDraftComposer
               activeChildren={familyState.home.children}

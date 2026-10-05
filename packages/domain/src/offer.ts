@@ -153,6 +153,34 @@ export const childOfferInboxItemSchema = z
     }
   });
 
+const parentNegotiationOfferSchema = offerSchema.extend({
+  status: z.literal('AWAITING_PARENT'),
+  currentRevisionId: boundedIdSchema,
+});
+
+const childProposedRevisionSchema = offerRevisionSchema.extend({
+  proposedByRole: z.literal('CHILD'),
+});
+
+export const parentNegotiationInboxItemSchema = z
+  .strictObject({
+    offer: parentNegotiationOfferSchema,
+    revision: childProposedRevisionSchema,
+  })
+  .superRefine(({ offer, revision }, context) => {
+    if (
+      revision.id !== offer.currentRevisionId ||
+      revision.offerId !== offer.id ||
+      revision.proposedByUid !== offer.childUid
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Revision must be the current Child counteroffer revision.',
+        path: ['revision', 'id'],
+      });
+    }
+  });
+
 export const publishOfferOutputSchema = z.strictObject({
   offer: publishedOfferSchema,
 });
@@ -246,5 +274,8 @@ export type CounterOfferInput = z.output<typeof counterOfferInputSchema>;
 export type CounterOfferInputValue = z.input<typeof counterOfferInputSchema>;
 export type CounterOfferOutput = z.output<typeof counterOfferOutputSchema>;
 export type ChildOfferInboxItem = z.output<typeof childOfferInboxItemSchema>;
+export type ParentNegotiationInboxItem = z.output<
+  typeof parentNegotiationInboxItemSchema
+>;
 export type OfferCommandErrorCode =
   (typeof offerCommandErrorCodes)[keyof typeof offerCommandErrorCodes];

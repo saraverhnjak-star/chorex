@@ -42,6 +42,46 @@ const mockPublishOffer = jest.fn().mockResolvedValue({
     updatedAt: '2026-10-03T12:35:56.789Z',
   },
 });
+const parentNegotiationItems = [
+  {
+    offer: {
+      id: 'counter-offer-test-id',
+      familyId: 'family-test-id',
+      parentUid: 'parent-test-uid',
+      childUid: 'child-test-uid',
+      status: 'AWAITING_PARENT' as const,
+      currentRevisionId: 'counter-revision-test-id',
+      createdAt: '2026-10-03T12:34:56.789Z',
+      updatedAt: '2026-10-03T12:36:56.789Z',
+    },
+    revision: {
+      id: 'counter-revision-test-id',
+      offerId: 'counter-offer-test-id',
+      revisionNumber: 2,
+      proposedByUid: 'child-test-uid',
+      proposedByRole: 'CHILD' as const,
+      tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
+      reward: {
+        title: 'One hour of games',
+        type: 'PRIVILEGE' as const,
+      },
+      deadlineAt: '2026-10-10T18:00:00.000Z',
+      note: 'This feels fair.',
+      createdAt: '2026-10-03T12:36:56.789Z',
+    },
+  },
+];
+const mockParentNegotiationUnsubscribe = jest.fn();
+const mockSubscribeToCurrentParentNegotiationInbox = jest.fn(
+  (
+    _familyId: string,
+    onItems: (items: typeof parentNegotiationItems) => void,
+    _onError: (error: unknown) => void,
+  ) => {
+    onItems(parentNegotiationItems);
+    return mockParentNegotiationUnsubscribe;
+  },
+);
 
 jest.mock('@chorex/firebase-client', () => ({
   readCurrentParentFamily: jest.fn().mockResolvedValue({
@@ -81,6 +121,11 @@ jest.mock('@chorex/firebase-client', () => ({
   createFamily: jest.fn(),
   createOfferDraft: (...args: unknown[]) => mockCreateOfferDraft(...args),
   publishOffer: (...args: unknown[]) => mockPublishOffer(...args),
+  subscribeToCurrentParentNegotiationInbox: (
+    familyId: string,
+    onItems: (items: typeof parentNegotiationItems) => void,
+    onError: (error: unknown) => void,
+  ) => mockSubscribeToCurrentParentNegotiationInbox(familyId, onItems, onError),
   createPairingSession: jest.fn().mockResolvedValue({
     sessionId: 'pairing-session-id',
     token: 'AbCdEfGhIjKlMnOpQrStUw',
@@ -121,7 +166,7 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(
     screen.getByText('Welcome, Alex. Family setup is complete.'),
   ).toBeOnTheScreen();
-  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  expect(screen.getAllByText('Mia')).toHaveLength(2);
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('PARENT');
   fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
@@ -134,6 +179,10 @@ it('renders the parent screen through the public shared UI package', async () =>
   );
   expect(screen.getByText('Add a child')).toBeOnTheScreen();
   expect(screen.getByText('Create an offer draft')).toBeOnTheScreen();
+  expect(screen.getByText('Counteroffers')).toBeOnTheScreen();
+  expect(screen.getByText('Status: Awaiting parent')).toBeOnTheScreen();
+  expect(screen.getByText('One hour of games · PRIVILEGE')).toBeOnTheScreen();
+  expect(screen.getByText('This feels fair.')).toBeOnTheScreen();
 });
 
 it('publishes the saved Offer draft and shows the published result', async () => {

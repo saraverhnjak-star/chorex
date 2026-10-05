@@ -159,7 +159,8 @@ Example policy intent:
   write: server only
 
 /offers and /offers/{offerId}/revisions
-  read: the creating active Parent while DRAFT; later-state visibility follows the authorized negotiation command
+  get: the creating active Parent while DRAFT; later states only for active participants
+  list: active participants may query AWAITING_CHILD; AWAITING_PARENT queries additionally require the active creating Parent and parentUid constraint
   write: server only
 
 /contracts and /contracts/{contractId}/tasks

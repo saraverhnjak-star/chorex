@@ -175,7 +175,10 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
-              <OfferInbox familyId={familyState.home.family.id} />
+              <OfferInbox
+                authUid={session.user.uid}
+                familyId={familyState.home.family.id}
+              />
 
               <View className="gap-3 rounded-3xl border border-border bg-surface-warm p-5">
                 <Text
