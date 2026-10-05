@@ -1,8 +1,16 @@
 import { SubmitForReviewAction } from './SubmitForReviewAction';
 import { TaskCompletionAction } from './TaskCompletionAction';
 import { Text, View } from 'react-native';
-import { useContractDetail } from '@chorex/firebase-client';
-import { FormMessage, TaskProgress, useDynamicTypeStyles } from '@chorex/ui';
+import {
+  useContractDetail,
+  useCurrentContractReview,
+} from '@chorex/firebase-client';
+import {
+  FormMessage,
+  ReviewFeedback,
+  TaskProgress,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 
 export function ContractDetail({
   contractId,
@@ -15,6 +23,12 @@ export function ContractDetail({
 }) {
   const state = useContractDetail(contractId, authUid);
   const styles = useDynamicTypeStyles();
+  const feedback = useCurrentContractReview(
+    state.status === 'ready' && state.contract.status === 'CHANGES_REQUESTED'
+      ? state.contract
+      : undefined,
+    authUid,
+  );
   if (state.status === 'loading')
     return (
       <Text
@@ -52,6 +66,14 @@ export function ContractDetail({
   const { contract, tasks, fromCache } = state;
   return (
     <View className="gap-4">
+      {contract.status === 'CHANGES_REQUESTED' ? (
+        <ReviewFeedback
+          loading={feedback.status === 'loading'}
+          error={feedback.status === 'error'}
+          note={feedback.status === 'ready' ? feedback.review?.note : undefined}
+          fromCache={feedback.status === 'ready' && feedback.fromCache}
+        />
+      ) : null}
       {contract.status === 'APPROVED' ? (
         <Text
           allowFontScaling={false}

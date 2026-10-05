@@ -176,3 +176,42 @@ test('approval intent targets authoritative Child with minimal Contract routing 
     undefined,
   );
 });
+
+test('changes-requested intent resolves Child with generic copy and no private feedback', () => {
+  const {
+    changesRequestedNotificationIntent,
+  } = require('../lib/negotiationNotifications.js');
+  const event = {
+    type: 'CONTRACT_CHANGES_REQUESTED',
+    entityType: 'CONTRACT',
+    entityId: 'contract',
+    familyId: 'family',
+    actorType: 'PARENT',
+    actorUid: 'parent',
+    note: 'Private feedback',
+    recipientUid: 'attacker',
+  };
+  const intent = changesRequestedNotificationIntent(event, {
+    ...offer,
+    status: 'CHANGES_REQUESTED',
+  });
+  assert.equal(intent.recipientUid, 'child');
+  assert.equal(intent.body, 'A change was requested before approval.');
+  assert.deepEqual(intent.data, {
+    type: 'CONTRACT_CHANGES_REQUESTED',
+    entityType: 'CONTRACT',
+    entityId: 'contract',
+    familyId: 'family',
+  });
+  assert.equal(JSON.stringify(intent).includes('Private'), false);
+  for (const patch of [
+    { actorUid: 'other' },
+    { actorType: 'CHILD' },
+    { familyId: 'wrong' },
+    { entityType: 'OFFER' },
+  ])
+    assert.equal(
+      changesRequestedNotificationIntent({ ...event, ...patch }, offer),
+      undefined,
+    );
+});

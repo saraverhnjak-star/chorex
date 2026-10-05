@@ -70,3 +70,5 @@ No request-changes command, approval notes, Review history UI, fulfillment/cance
 - Apps: Parent queue/detail/confirmation composition, Child approved-state copy and notification routing to existing detail.
 - Tests: existing backend Contract/notification and Parent/Child UI/adapter suites; new `firebase/verify-contract-approval.mjs` hooked into existing submission verification; root focused emulator script.
 - Firestore Rules and indexes: unchanged.
+
+Subsequent slice: [Parent request-changes acceptance](PHASE_4_REQUEST_CHANGES_ACCEPTANCE.md) adds the second decision through the shared review transaction, preserves approval behavior, and introduces bounded current-round Review reads for feedback. Approval regressions still pass. Correction/resubmission and OPEN-009 remain unresolved.

@@ -1,4 +1,8 @@
 import {
+  executeRequestContractChanges,
+  RequestContractChangesCommandError,
+} from './requestContractChanges';
+import {
   executeApproveContract,
   ApproveContractCommandError,
 } from './approveContract';
@@ -57,6 +61,7 @@ const pairingRateLimitHmacSecret = defineSecret(
 
 function callableError(
   error:
+    | RequestContractChangesCommandError
     | ApproveContractCommandError
     | SubmitContractForReviewCommandError
     | RecordTaskCompletionCommandError
@@ -373,6 +378,20 @@ export const approveContract = onCall(async (request) => {
     );
   } catch (error) {
     if (error instanceof ApproveContractCommandError)
+      throw callableError(error);
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const requestContractChanges = onCall(async (request) => {
+  try {
+    return await executeRequestContractChanges(
+      firestore,
+      request.auth?.uid,
+      request.data,
+    );
+  } catch (error) {
+    if (error instanceof RequestContractChangesCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
   }

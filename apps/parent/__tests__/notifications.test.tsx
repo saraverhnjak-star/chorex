@@ -137,3 +137,23 @@ it('approval notification opens the existing stable Contract detail route', () =
     }),
   ).toBe('/contracts/contract-1');
 });
+
+it('changes-requested notification routes to Contract detail with no feedback payload', () => {
+  expect(
+    negotiationNotificationRoute({
+      type: 'CONTRACT_CHANGES_REQUESTED',
+      entityType: 'CONTRACT',
+      entityId: 'contract-1',
+      familyId: 'family-1',
+    }),
+  ).toBe('/contracts/contract-1');
+  expect(
+    negotiationNotificationRoute({
+      type: 'CONTRACT_CHANGES_REQUESTED',
+      entityType: 'CONTRACT',
+      entityId: 'contract-1',
+      familyId: 'family-1',
+      note: 'Private feedback',
+    }),
+  ).toBeUndefined();
+});

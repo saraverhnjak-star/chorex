@@ -78,3 +78,41 @@ export type ApproveContractInputValue = z.input<
 export type ApproveContractOutput = z.output<
   typeof approveContractOutputSchema
 >;
+
+export const reviewFeedbackSchema = taskTermsSchema.shape.description.unwrap();
+export const requestContractChangesInputSchema = z.strictObject({
+  contractId: documentId,
+  idempotencyKey: idempotencyKeySchema,
+  note: reviewFeedbackSchema,
+});
+export const requestContractChangesOutputSchema = z
+  .strictObject({
+    contract: contractSchema.extend({ status: z.literal('CHANGES_REQUESTED') }),
+    review: contractReviewSchema.extend({
+      decision: z.literal('REQUEST_CHANGES'),
+      note: reviewFeedbackSchema,
+    }),
+  })
+  .superRefine(({ contract, review }, ctx) => {
+    if (
+      review.contractId !== contract.id ||
+      review.familyId !== contract.familyId ||
+      review.reviewerUid !== contract.parentUid ||
+      review.cycle !== contract.reviewCycle ||
+      review.createdAt !== contract.updatedAt
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['review'],
+        message: 'Review must identify the committed Contract and round.',
+      });
+  });
+export type RequestContractChangesInput = z.output<
+  typeof requestContractChangesInputSchema
+>;
+export type RequestContractChangesInputValue = z.input<
+  typeof requestContractChangesInputSchema
+>;
+export type RequestContractChangesOutput = z.output<
+  typeof requestContractChangesOutputSchema
+>;

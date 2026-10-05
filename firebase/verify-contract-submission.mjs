@@ -295,7 +295,11 @@ export async function verifyContractSubmission(ctx) {
   console.info(
     'PASS: submitContractForReview full accepted/completed flow, authorization, strict input, bilateral realtime, immutable terms/counts/history, unchanged cycle, canonical retries, concurrent submissions/final completion, denied direct writes, no Review/Reward/push',
   );
-  if (process.env.CHOREX_VERIFY_APPROVAL === '1') {
+  if (process.env.CHOREX_VERIFY_REQUEST_CHANGES === '1') {
+    const { verifyContractChanges } =
+      await import('./verify-contract-changes.mjs');
+    await verifyContractChanges(ctx);
+  } else if (process.env.CHOREX_VERIFY_APPROVAL === '1') {
     const { verifyContractApproval } =
       await import('./verify-contract-approval.mjs');
     await verifyContractApproval(ctx);

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { Contract, ContractTask } from '@chorex/domain';
+import type { Contract, ContractTask, ContractReview } from '@chorex/domain';
 import {
   observeContract,
+  observeCurrentContractReview,
   observeTasks,
   observeActiveContracts,
   observeReadyForReviewContracts,
@@ -164,5 +165,77 @@ function useContractsInState(
       stop?.();
     };
   }, [familyId, authUid, key, status]);
+  return result?.key === key ? result.state : { status: 'loading' };
+}
+
+export type CurrentContractReviewState =
+  | { status: 'idle' | 'loading' }
+  | { status: 'error'; error: ContractReadError }
+  | { status: 'ready'; review: ContractReview | null; fromCache: boolean };
+export function useCurrentContractReview(
+  contract: Contract | undefined,
+  authUid: string | undefined,
+): CurrentContractReviewState {
+  const id = contract?.id,
+    familyId = contract?.familyId,
+    cycle = contract?.reviewCycle,
+    parentUid = contract?.parentUid,
+    childUid = contract?.childUid,
+    status = contract?.status;
+  const key = JSON.stringify([
+    id,
+    familyId,
+    cycle,
+    parentUid,
+    childUid,
+    status,
+    authUid,
+  ]);
+  const [result, setResult] = useState<{
+    key: string;
+    state: CurrentContractReviewState;
+  }>();
+  useEffect(() => {
+    let active = true;
+    let failed = false;
+    let stop: (() => void) | undefined;
+    const emit = (state: CurrentContractReviewState) => {
+      if (active) setResult({ key, state });
+    };
+    const fail = (error: ContractReadError) => {
+      failed = true;
+      emit({ status: 'error', error });
+      stop?.();
+    };
+    if (!contract) emit({ status: 'idle' });
+    else if (!authUid) fail(new ContractReadError('AUTH_REQUIRED'));
+    else
+      try {
+        stop = observeCurrentContractReview(
+          contract,
+          (snapshot) => {
+            if (!failed)
+              emit({
+                status: 'ready',
+                review: snapshot.data,
+                fromCache: snapshot.fromCache,
+              });
+          },
+          fail,
+        );
+        if (failed) stop();
+      } catch (error) {
+        fail(
+          error instanceof ContractReadError
+            ? error
+            : new ContractReadError('READ_FAILED'),
+        );
+      }
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, [contract, authUid, key]);
+  if (!contract) return { status: 'idle' };
   return result?.key === key ? result.state : { status: 'loading' };
 }

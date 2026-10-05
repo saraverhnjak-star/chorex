@@ -140,3 +140,12 @@ export {
   type ApproveContractInputValue,
   type ApproveContractOutput,
 } from './review';
+
+export {
+  reviewFeedbackSchema,
+  requestContractChangesInputSchema,
+  requestContractChangesOutputSchema,
+  type RequestContractChangesInput,
+  type RequestContractChangesInputValue,
+  type RequestContractChangesOutput,
+} from './review';

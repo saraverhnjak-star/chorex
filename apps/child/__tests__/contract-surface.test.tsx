@@ -12,6 +12,9 @@ const mockSessionUser = { uid: 'child-1' };
 jest.mock('../src/auth/session', () => ({
   useChildSession: () => ({ user: mockSessionUser }),
 }));
+const mockReviewStop = jest.fn();
+let mockReview: (value: unknown) => void;
+let mockReviewError: (error: unknown) => void;
 const mockContractStop = jest.fn();
 const mockTasksStop = jest.fn();
 const mockListStop = jest.fn();
@@ -29,6 +32,15 @@ jest.mock('@chorex/firebase-client', () => {
   );
   return {
     ...hooks,
+    observeCurrentContractReview: (
+      _contract: unknown,
+      callback: typeof mockReview,
+      onError: typeof mockReviewError,
+    ) => {
+      mockReview = callback;
+      mockReviewError = onError;
+      return mockReviewStop;
+    },
     submitContractForReview: (input: unknown) => mockSubmit(input),
     recordTaskCompletion: (input: unknown) => mockComplete(input),
     isContractClientError: (error: unknown) => mockIsContractClientError(error),
@@ -541,4 +553,50 @@ it('realtime approval communicates an earned, pending reward without execution a
   expect(
     screen.queryByRole('button', { name: 'Mark one done' }),
   ).not.toBeOnTheScreen();
+});
+
+it('realtime requested changes displays authoritative cached feedback and no correction/resubmission actions', () => {
+  const view = render(<ContractDetail {...props} />);
+  emitReady();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'CHANGES_REQUESTED' },
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(screen.getByText('Loading feedback…')).toBeOnTheScreen();
+  act(() =>
+    mockReview({ data: { note: 'Please check the result.' }, fromCache: true }),
+  );
+  expect(screen.getByText('Please check the result.')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Showing saved feedback. Updates may be pending.'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('Changes were requested. The reward has not been earned.'),
+  ).toBeOnTheScreen();
+  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  const oldReview = mockReview;
+  view.rerender(<ContractDetail {...props} contractId="another" />);
+  expect(mockReviewStop).toHaveBeenCalled();
+  act(() => oldReview({ data: { note: 'Stale feedback' }, fromCache: false }));
+  expect(screen.queryByText('Stale feedback')).not.toBeOnTheScreen();
+});
+it('feedback listener errors preserve visible Contract state without inventing feedback', () => {
+  render(<ContractDetail {...props} />);
+  emitReady();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'CHANGES_REQUESTED' },
+      fromCache: false,
+    }),
+  );
+  act(() => mockReviewError(new Error('denied')));
+  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Feedback could not be loaded. Reopen this Contract to try again.',
+    ),
+  ).toBeOnTheScreen();
 });

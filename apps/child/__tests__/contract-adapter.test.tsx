@@ -1,4 +1,6 @@
 import {
+  requestContractChanges,
+  observeCurrentContractReview,
   approveContract,
   observeReadyForReviewContracts,
   submitContractForReview,
@@ -32,6 +34,7 @@ jest.mock('@react-native-firebase/firestore', () => ({
   doc: (_db: unknown, ...path: string[]) => path.join('/'),
   where: (...args: unknown[]) => ({ where: args }),
   orderBy: (...args: unknown[]) => ({ orderBy: args }),
+  limit: (count: number) => ({ limit: count }),
   query: (path: string, ...constraints: unknown[]) => ({ path, constraints }),
   onSnapshot: (
     ref: unknown,
@@ -358,6 +361,121 @@ it('review queue retains scoped queries, cache metadata and cleanup', () => {
     data: [expect.objectContaining({ status: 'READY_FOR_REVIEW' })],
     fromCache: true,
   });
+  stop();
+  expect(mockStop).toHaveBeenCalled();
+});
+
+it('request changes adapter validates normalized feedback, linked receipt and stable conflict/error codes', async () => {
+  const input = {
+    contractId: 'contract-1',
+    idempotencyKey: 'changes-client-001',
+    note: ' Feedback ',
+  };
+  const { participantUids: _participants, ...canonical } = contractData;
+  const result = {
+    contract: {
+      ...canonical,
+      id: 'contract-1',
+      deadlineAt: iso,
+      createdAt: iso,
+      updatedAt: iso,
+      status: 'CHANGES_REQUESTED',
+    },
+    review: {
+      id: 'review-1',
+      familyId: 'family-1',
+      contractId: 'contract-1',
+      cycle: 0,
+      reviewerUid: 'parent-1',
+      decision: 'REQUEST_CHANGES',
+      note: 'Feedback',
+      createdAt: iso,
+    },
+  };
+  mockCallable.mockResolvedValueOnce({ data: result });
+  await expect(requestContractChanges(input)).resolves.toEqual(result);
+  expect(mockCallable).toHaveBeenLastCalledWith({ ...input, note: 'Feedback' });
+  expect(mockHttpsCallable).toHaveBeenLastCalledWith(
+    expect.anything(),
+    'requestContractChanges',
+  );
+  for (const note of ['', '  '])
+    await expect(
+      requestContractChanges({ ...input, note }),
+    ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+  mockCallable.mockRejectedValueOnce({
+    details: { code: 'IDEMPOTENCY_CONFLICT' },
+  });
+  await expect(requestContractChanges(input)).rejects.toMatchObject({
+    code: 'IDEMPOTENCY_CONFLICT',
+  });
+  mockCallable.mockRejectedValueOnce({ code: 'functions/unavailable' });
+  await expect(requestContractChanges(input)).rejects.toMatchObject({
+    code: 'NETWORK_UNAVAILABLE',
+  });
+  mockCallable.mockResolvedValueOnce({
+    data: { ...result, review: { ...result.review, cycle: 1 } },
+  });
+  await expect(requestContractChanges(input)).rejects.toMatchObject({
+    code: 'UNKNOWN_CONTRACT_FAILURE',
+  });
+});
+it('current review query scopes family/Contract/round, bounds records and validates immutable feedback', () => {
+  const { participantUids: _participants, ...data } = contractData;
+  const contract = {
+    ...data,
+    id: 'contract-1',
+    deadlineAt: iso,
+    createdAt: iso,
+    updatedAt: iso,
+    status: 'CHANGES_REQUESTED',
+  } as never;
+  const callback = jest.fn(),
+    error = jest.fn();
+  const stop = observeCurrentContractReview(contract, callback, error);
+  expect(mockListen.mock.calls[0][0]).toEqual({
+    path: 'contracts/contract-1/reviews',
+    constraints: [
+      { where: ['familyId', '==', 'family-1'] },
+      { where: ['contractId', '==', 'contract-1'] },
+      { where: ['cycle', '==', 0] },
+      { limit: 2 },
+    ],
+  });
+  const review = {
+    familyId: 'family-1',
+    contractId: 'contract-1',
+    cycle: 0,
+    reviewerUid: 'parent-1',
+    decision: 'REQUEST_CHANGES',
+    note: 'Feedback',
+    createdAt: timestamp,
+  };
+  const item = { id: 'review-1', data: () => review };
+  mockSnapshot({ docs: [item], metadata: { fromCache: true } });
+  expect(callback).toHaveBeenLastCalledWith({
+    data: { ...review, id: 'review-1', createdAt: iso },
+    fromCache: true,
+  });
+  mockSnapshot({ docs: [item, item], metadata: { fromCache: false } });
+  expect(error).toHaveBeenLastCalledWith(
+    expect.objectContaining({ code: 'MALFORMED_DATA' }),
+  );
+  for (const patch of [
+    { familyId: 'wrong' },
+    { cycle: 2 },
+    { reviewerUid: 'other' },
+    { note: '' },
+    { decision: 'APPROVE' },
+  ]) {
+    mockSnapshot({
+      docs: [{ ...item, data: () => ({ ...review, ...patch }) }],
+      metadata: { fromCache: false },
+    });
+    expect(error).toHaveBeenLastCalledWith(
+      expect.objectContaining({ code: 'MALFORMED_DATA' }),
+    );
+  }
   stop();
   expect(mockStop).toHaveBeenCalled();
 });

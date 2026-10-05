@@ -1,4 +1,6 @@
 import {
+  contractReviewSchema,
+  type ContractReview,
   contractSchema,
   contractTaskSchema,
   type Contract,
@@ -111,6 +113,37 @@ export function deserializeTasks(
         return task;
       })
       .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  } catch {
+    throw new ContractReadError('MALFORMED_DATA');
+  }
+}
+
+export function deserializeContractReview(
+  id: string,
+  data: Record<string, unknown>,
+  contract: Contract,
+): ContractReview {
+  try {
+    const review = contractReviewSchema.parse({
+      id,
+      familyId: data.familyId,
+      contractId: data.contractId,
+      cycle: data.cycle,
+      reviewerUid: data.reviewerUid,
+      decision: data.decision,
+      ...(data.note === undefined ? {} : { note: data.note }),
+      createdAt: iso(data.createdAt),
+    });
+    if (
+      review.familyId !== contract.familyId ||
+      review.contractId !== contract.id ||
+      review.cycle !== contract.reviewCycle ||
+      review.reviewerUid !== contract.parentUid ||
+      (contract.status === 'CHANGES_REQUESTED' &&
+        (review.decision !== 'REQUEST_CHANGES' || !review.note))
+    )
+      throw new ContractReadError('MALFORMED_DATA');
+    return review;
   } catch {
     throw new ContractReadError('MALFORMED_DATA');
   }

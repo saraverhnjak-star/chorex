@@ -151,7 +151,9 @@ export function negotiationNotificationRoute(
 ): '/' | `/contracts/${string}` | undefined {
   const parsed = negotiationNotificationDataSchema.safeParse(data);
   if (!parsed.success) return;
-  return parsed.data.type === 'CONTRACT_APPROVED'
+  return ['CONTRACT_APPROVED', 'CONTRACT_CHANGES_REQUESTED'].includes(
+    parsed.data.type,
+  )
     ? `/contracts/${encodeURIComponent(parsed.data.entityId)}`
     : '/';
 }

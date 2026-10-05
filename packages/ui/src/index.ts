@@ -11,3 +11,5 @@ export {
   type AmberAuroraPalette,
 } from './theme';
 export { TaskProgress } from './TaskProgress';
+
+export { ReviewFeedback } from './ReviewFeedback';

@@ -313,7 +313,15 @@ orderBy earnedAt desc
 
 Atomically it creates `/contracts/{contractId}/reviews/review_{sha256(contractId + ":" + reviewCycle)}` with APPROVE/current cycle/reviewer/server timestamp; updates only Contract status, approvedAt and updatedAt; creates `/rewards/reward_{sha256(contractId)}` with the shape above and frozen Contract rewardTerms; creates one Parent CONTRACT_APPROVED activity event with Contract, review and Reward IDs; and completes actor/command/key-scoped idempotency state storing the canonical `{ contract, review, reward }` receipt. No fulfillment fields are present. Same-key receipts are historical responses, including after later Reward changes, and do not replace realtime state.
 
-Direct client writes remain denied. This slice reads only Contract/task state, so it does not introduce client review/Reward reads or broader Rules. The Ready-for-Review list reuses the existing family/participant/status/createdAt index and native metadata-aware listeners.
+Direct client writes remain denied. Approval itself reads only Contract/task state. The subsequent request-changes feedback read is scoped to the current review round below; no Reward reads are introduced. The Ready-for-Review list reuses the existing family/participant/status/createdAt index and native metadata-aware listeners.
+
+### Request-changes persistence and feedback reads
+
+`requestContractChanges({ contractId, idempotencyKey, note })` shares the approval transaction, active Parent authorization and `review_{sha256(contractId + ":" + reviewCycle)}` slot. Note uses the existing required trimmed description validation (1–500 characters); normalized Contract ID/note form the idempotency payload hash. Conflicting note reuse cannot edit a prior Review.
+
+It atomically creates the current-cycle REQUEST_CHANGES review with feedback/native createdAt, updates only Contract status CHANGES_REQUESTED and updatedAt, writes one Parent CONTRACT_CHANGES_REQUESTED event with Contract/review IDs (no feedback content), and completes idempotency state with canonical `{ contract, review }`. It creates no Reward and preserves execution/negotiation history and frozen terms. Approval versus request changes has one transactional winner.
+
+The minimum client feedback query is the Contract's reviews subcollection constrained by familyId, contractId and authoritative current cycle, limited to 2 to detect corrupt duplicate decisions. Rules permit current-round get/bounded list only to active members who are named Contract participants, with matching stored family/Contract/cycle. Older-cycle or unbounded/history reads and every client write remain denied. Adapters reject malformed/mismatched or duplicate current reviews; listeners include native cache metadata and clean up on identity/scope/round changes. There is no alternate note storage or full review-history screen.
 
 ## 11. Auctions
 

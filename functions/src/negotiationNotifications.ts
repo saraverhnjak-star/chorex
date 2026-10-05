@@ -1,4 +1,4 @@
-import { contractReviewId, contractRewardId } from './approveContract';
+import { contractReviewId, contractRewardId } from './parentReviewDecision';
 import { randomUUID } from 'node:crypto';
 import {
   negotiationNotificationDataSchema,
@@ -119,6 +119,35 @@ export function approvalNotificationIntent(
   };
 }
 
+export function changesRequestedNotificationIntent(
+  event: DocumentData,
+  contract: DocumentData,
+): NotificationIntent | undefined {
+  if (
+    event.type !== 'CONTRACT_CHANGES_REQUESTED' ||
+    event.entityType !== 'CONTRACT' ||
+    event.familyId !== contract.familyId ||
+    event.actorType !== 'PARENT' ||
+    event.actorUid !== contract.parentUid ||
+    typeof contract.childUid !== 'string'
+  )
+    return;
+  const data = negotiationNotificationDataSchema.safeParse({
+    type: event.type,
+    entityType: 'CONTRACT',
+    entityId: event.entityId,
+    familyId: contract.familyId,
+  });
+  if (!data.success) return;
+  return {
+    recipientUid: contract.childUid,
+    recipientRole: 'CHILD',
+    title: 'Changes requested',
+    body: 'A change was requested before approval.',
+    data: data.data,
+  };
+}
+
 export async function sendExpoMessages(
   messages: readonly ExpoMessage[],
 ): Promise<readonly ExpoTicket[]> {
@@ -175,6 +204,7 @@ export async function dispatchNegotiationNotification(
         'OFFER_COUNTERED',
         'OFFER_ACCEPTED',
         'CONTRACT_APPROVED',
+        'CONTRACT_CHANGES_REQUESTED',
       ].includes(event.type)
     )
       return;
@@ -193,7 +223,42 @@ export async function dispatchNegotiationNotification(
     }
     let resolved: NotificationIntent | undefined;
     let familyId: string;
-    if (event.type === 'CONTRACT_APPROVED') {
+    if (event.type === 'CONTRACT_CHANGES_REQUESTED') {
+      if (
+        typeof event.entityId !== 'string' ||
+        !event.entityId ||
+        event.entityId.includes('/') ||
+        typeof event.reviewId !== 'string' ||
+        event.reviewId.includes('/')
+      )
+        return;
+      const [contractSnapshot, reviewSnapshot] = await Promise.all([
+        tx.get(firestore.doc(`contracts/${event.entityId}`)),
+        tx.get(
+          firestore.doc(
+            `contracts/${event.entityId}/reviews/${event.reviewId}`,
+          ),
+        ),
+      ]);
+      const contract = contractSnapshot.data(),
+        review = reviewSnapshot.data();
+      if (
+        !contract ||
+        !review ||
+        review.decision !== 'REQUEST_CHANGES' ||
+        !Number.isInteger(review.cycle) ||
+        review.cycle < 0 ||
+        event.reviewId !== contractReviewId(event.entityId, review.cycle) ||
+        review.familyId !== contract.familyId ||
+        review.contractId !== event.entityId ||
+        review.reviewerUid !== contract.parentUid
+      )
+        return;
+      // Immutable review validates a historical committed event after a later round opens.
+      resolved = changesRequestedNotificationIntent(event, contract);
+      if (!resolved) return;
+      familyId = contract.familyId;
+    } else if (event.type === 'CONTRACT_APPROVED') {
       if (
         typeof event.entityId !== 'string' ||
         !event.entityId ||

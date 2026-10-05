@@ -1,13 +1,48 @@
+import { Controller, useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  requestContractChangesInputSchema,
+  reviewFeedbackSchema,
+} from '@chorex/domain';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { Contract } from '@chorex/domain';
 import {
   approveContract,
+  requestContractChanges,
   isContractClientError,
 } from '@chorex/firebase-client';
-import { Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
+import {
+  Button,
+  FormMessage,
+  TextField,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 
-function errorMessage(error: unknown): string {
+function errorMessage(error: unknown, requestingChanges = false): string {
+  if (requestingChanges) {
+    if (isContractClientError(error)) {
+      switch (error.code) {
+        case 'AUTH_REQUIRED':
+          return 'Sign in again before requesting changes.';
+        case 'FORBIDDEN':
+        case 'FAMILY_MEMBERSHIP_REQUIRED':
+        case 'WRONG_ACTOR_ROLE':
+          return 'Your account cannot request changes on this Contract.';
+        case 'INVALID_STATE':
+          return 'This Contract is no longer waiting for review.';
+        case 'INVALID_INPUT':
+          return 'Enter valid feedback before requesting changes.';
+        case 'CONTRACT_NOT_FOUND':
+          return 'This Contract is no longer available.';
+        case 'IDEMPOTENCY_CONFLICT':
+          return 'This request could not be confirmed. Reopen the Contract before trying again.';
+        case 'NETWORK_UNAVAILABLE':
+          return 'Connect to the internet and try again to confirm the same request.';
+      }
+    }
+    return 'We could not confirm the request. Try again to confirm the same action.';
+  }
   if (isContractClientError(error)) {
     switch (error.code) {
       case 'AUTH_REQUIRED':
@@ -39,10 +74,63 @@ export function ApproveContractAction({
   const key = useRef<string | undefined>(undefined),
     inFlight = useRef(false),
     active = useRef(true);
-  const [confirming, setConfirming] = useState(false),
+  const [confirming, setConfirming] = useState<'APPROVE' | 'REQUEST_CHANGES'>(),
     [pending, setPending] = useState(false),
-    [confirmed, setConfirmed] = useState(false),
+    [confirmed, setConfirmed] = useState<'APPROVE' | 'REQUEST_CHANGES'>(),
     [error, setError] = useState<string>();
+  const changesKey = useRef<string | undefined>(undefined);
+  const changesPayload = useRef<
+    { note: string; idempotencyKey: string } | undefined
+  >(undefined);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<{ note: string }>({
+    resolver: zodResolver(
+      requestContractChangesInputSchema.pick({ note: true }),
+    ),
+    defaultValues: { note: '' },
+  });
+  const note = useWatch({ control, name: 'note' });
+  const validNote = reviewFeedbackSchema.safeParse(note).success;
+  const newKey = () =>
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  const requestChanges = async (value: { note: string }) => {
+    if (
+      inFlight.current ||
+      confirmed ||
+      contract.status !== 'READY_FOR_REVIEW' ||
+      contract.parentUid !== authUid
+    )
+      return;
+    inFlight.current = true;
+    setPending(true);
+    setError(undefined);
+    // Changing feedback is a new action; an unchanged normalized retry retains its key.
+    if (changesPayload.current?.note !== value.note) {
+      changesKey.current = newKey();
+      changesPayload.current = {
+        note: value.note,
+        idempotencyKey: changesKey.current,
+      };
+    }
+    try {
+      await requestContractChanges({
+        contractId: contract.id,
+        ...changesPayload.current!,
+      });
+      if (active.current) {
+        setConfirmed('REQUEST_CHANGES');
+        setConfirming(undefined);
+      }
+    } catch (failure) {
+      if (active.current) setError(errorMessage(failure, true));
+    } finally {
+      inFlight.current = false;
+      if (active.current) setPending(false);
+    }
+  };
   useEffect(() => {
     active.current = true;
     return () => {
@@ -67,8 +155,8 @@ export function ApproveContractAction({
         idempotencyKey: key.current,
       });
       if (active.current) {
-        setConfirmed(true);
-        setConfirming(false);
+        setConfirmed('APPROVE');
+        setConfirming(undefined);
       }
     } catch (failure) {
       if (active.current) setError(errorMessage(failure));
@@ -79,7 +167,9 @@ export function ApproveContractAction({
   };
   if (
     contract.parentUid !== authUid ||
-    !['READY_FOR_REVIEW', 'APPROVED'].includes(contract.status)
+    !['READY_FOR_REVIEW', 'APPROVED', 'CHANGES_REQUESTED'].includes(
+      contract.status,
+    )
   )
     return null;
   return (
@@ -91,10 +181,13 @@ export function ApproveContractAction({
           className="text-text"
           style={styles.body}
         >
-          Approved — reward earned
+          {confirmed === 'APPROVE'
+            ? 'Approved — reward earned'
+            : 'Changes requested'}
         </Text>
       ) : null}
-      {contract.status === 'APPROVED' ? (
+      {contract.status === 'CHANGES_REQUESTED' ? null : contract.status ===
+        'APPROVED' ? (
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
@@ -116,7 +209,52 @@ export function ApproveContractAction({
       ) : (
         <>
           <FormMessage message={error} />
-          {confirming ? (
+          {confirming === 'REQUEST_CHANGES' ? (
+            <>
+              <Text
+                allowFontScaling={false}
+                accessibilityRole="header"
+                className="font-semibold text-text"
+                style={styles.body}
+              >
+                Request changes to this agreement?
+              </Text>
+              <Text
+                allowFontScaling={false}
+                className="text-text-muted"
+                style={styles.body}
+              >
+                Explain what needs attention. Your feedback will be saved and
+                shared with your Child. This does not earn the reward.
+              </Text>
+              <Controller
+                control={control}
+                name="note"
+                render={({ field }) => (
+                  <TextField
+                    label="Feedback"
+                    multiline
+                    editable={!pending}
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    error={errors.note?.message}
+                  />
+                )}
+              />
+              <Button
+                label="Confirm request changes"
+                loading={pending}
+                disabled={!validNote || pending}
+                onPress={() => void handleSubmit(requestChanges)()}
+              />
+              <Button
+                label="Keep reviewing"
+                disabled={pending}
+                onPress={() => setConfirming(undefined)}
+              />
+            </>
+          ) : confirming ? (
             <>
               <Text
                 allowFontScaling={false}
@@ -143,11 +281,24 @@ export function ApproveContractAction({
               <Button
                 label="Keep reviewing"
                 disabled={pending}
-                onPress={() => setConfirming(false)}
+                onPress={() => setConfirming(undefined)}
               />
             </>
           ) : (
-            <Button label="Approve" onPress={() => setConfirming(true)} />
+            <View className="gap-2">
+              <Button
+                label="Approve"
+                onPress={() => setConfirming('APPROVE')}
+              />
+              <Button
+                label="Request changes"
+                variant="secondary"
+                onPress={() => {
+                  setError(undefined);
+                  setConfirming('REQUEST_CHANGES');
+                }}
+              />
+            </View>
           )}
         </>
       )}

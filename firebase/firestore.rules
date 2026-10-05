@@ -142,6 +142,24 @@ service cloud.firestore {
       allow get, list: if canReadContract();
       allow write: if false;
 
+      match /reviews/{reviewId} {
+        function contract() {
+          return get(/databases/$(database)/documents/contracts/$(contractId));
+        }
+        function canReadCurrentReview() {
+          return isSignedIn()
+            && request.auth.uid in contract().data.participantUids
+            && isActiveFamilyMember(contract().data.familyId)
+            && resource.data.familyId == contract().data.familyId
+            && resource.data.contractId == contractId
+            && resource.data.cycle == contract().data.reviewCycle;
+        }
+        allow get: if canReadCurrentReview();
+        allow list: if canReadCurrentReview()
+          && request.query.limit != null && request.query.limit <= 2;
+        allow write: if false;
+      }
+
       match /tasks/{taskId} {
         function contract() {
           return get(/databases/$(database)/documents/contracts/$(contractId));

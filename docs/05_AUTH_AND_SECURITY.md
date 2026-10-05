@@ -167,6 +167,11 @@ Example policy intent:
   read: only active Parent/Child participants named by the Contract
   write: server only
 
+/contracts/{contractId}/reviews
+  current-round get/bounded list: active Contract participants, matching family/Contract/cycle
+  unbounded/history reads: denied in this slice
+  write: server only
+
 /rewards, auctions, activityEvents
   read: only active family members for the referenced family
   write: server only

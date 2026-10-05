@@ -99,7 +99,7 @@ Note: because authoritative progress writes are Cloud Functions, do not pretend 
 
 ## Phase 4 - Review and reward fulfillment
 
-The first review mutation is Parent approval with a minimal Ready-for-Review list. ADR-043 resolves OPEN-012 using zero-based review rounds; approval preserves the cycle and atomically creates one pending earned Reward. See [approval acceptance evidence](PHASE_4_APPROVAL_ACCEPTANCE.md). Request changes, correction/resubmission and fulfillment remain future slices; OPEN-009 is unresolved.
+The first review mutation is Parent approval with a minimal Ready-for-Review list. ADR-043 resolves OPEN-012 using zero-based review rounds; approval preserves the cycle and atomically creates one pending earned Reward. See [approval acceptance evidence](PHASE_4_APPROVAL_ACCEPTANCE.md). Request changes is implemented as a bounded immutable decision/transition with current-round feedback reads; see [request-changes acceptance evidence](PHASE_4_REQUEST_CHANGES_ACCEPTANCE.md). Correction/resubmission and fulfillment remain future slices; OPEN-009 is unresolved.
 
 Build:
 

@@ -6,6 +6,7 @@ import {
   ReadyForReviewContracts,
 } from '../src/contracts/ActiveContracts';
 
+const mockRequestChanges = jest.fn();
 const mockApprove = jest.fn();
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
@@ -13,6 +14,9 @@ const mockSessionUser = { uid: 'parent-1' };
 jest.mock('../src/auth/session', () => ({
   useParentSession: () => ({ user: mockSessionUser }),
 }));
+const mockReviewStop = jest.fn();
+let mockReview: (value: unknown) => void;
+let mockReviewError: (error: unknown) => void;
 const mockContractStop = jest.fn();
 const mockTasksStop = jest.fn();
 const mockListStop = jest.fn();
@@ -30,6 +34,16 @@ jest.mock('@chorex/firebase-client', () => {
   );
   return {
     ...hooks,
+    observeCurrentContractReview: (
+      _contract: unknown,
+      callback: typeof mockReview,
+      onError: typeof mockReviewError,
+    ) => {
+      mockReview = callback;
+      mockReviewError = onError;
+      return mockReviewStop;
+    },
+    requestContractChanges: (input: unknown) => mockRequestChanges(input),
     approveContract: (...args: unknown[]) => mockApprove(...args),
     isContractClientError: (error: unknown) =>
       !!error && typeof error === 'object' && 'code' in error,
@@ -359,4 +373,130 @@ it('Ready-for-Review list opens stable IDs and realtime removal does not claim a
   act(() => mockList({ data: [], fromCache: false }));
   expect(screen.getByText('No Contracts awaiting review.')).toBeOnTheScreen();
   expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
+});
+
+it('request changes requires feedback, allows cancelling, prevents pending duplicates and waits for response/realtime', async () => {
+  let resolve!: (value: unknown) => void;
+  mockRequestChanges.mockImplementationOnce(
+    () =>
+      new Promise((r) => {
+        resolve = r;
+      }),
+  );
+  render(<ContractDetail {...props} />);
+  emitReview();
+  expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
+  expect(
+    screen.getByRole('header', { name: 'Request changes to this agreement?' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'Confirm request changes' }),
+  ).toBeDisabled();
+  fireEvent.changeText(screen.getByLabelText('Feedback'), '   ');
+  expect(
+    screen.getByRole('button', { name: 'Confirm request changes' }),
+  ).toBeDisabled();
+  fireEvent.press(screen.getByRole('button', { name: 'Keep reviewing' }));
+  expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
+  fireEvent.changeText(
+    screen.getByLabelText('Feedback'),
+    ' Please check again. ',
+  );
+  await act(async () => {
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm request changes' }),
+    );
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm request changes' }),
+    );
+  });
+  expect(mockRequestChanges).toHaveBeenCalledTimes(1);
+  expect(mockRequestChanges).toHaveBeenCalledWith(
+    expect.objectContaining({
+      contractId: 'contract-1',
+      note: 'Please check again.',
+    }),
+  );
+  expect(
+    screen.getByRole('button', { name: 'Confirm request changes' }),
+  ).toBeDisabled();
+  expect(screen.getByLabelText('Feedback')).toHaveProp('editable', false);
+  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
+  await act(async () => resolve({}));
+  expect(screen.getByText('Changes requested')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Waiting for updated Contract status…'),
+  ).toBeOnTheScreen();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'CHANGES_REQUESTED' },
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Approve' }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Request changes' }),
+  ).not.toBeOnTheScreen();
+  act(() =>
+    mockReview({ data: { note: 'Please check again.' }, fromCache: false }),
+  );
+  expect(screen.getByText('Please check again.')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Changes were requested. The reward has not been earned.'),
+  ).toBeOnTheScreen();
+});
+it('request changes failure keeps READY_FOR_REVIEW and unchanged normalized feedback retries retain the key', async () => {
+  mockRequestChanges
+    .mockRejectedValueOnce(new Error('timeout'))
+    .mockResolvedValueOnce({});
+  render(<ContractDetail {...props} />);
+  emitReview();
+  fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
+  fireEvent.changeText(screen.getByLabelText('Feedback'), ' Check this. ');
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm request changes' }),
+    ),
+  );
+  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'We could not confirm the request. Try again to confirm the same action.',
+    ),
+  ).toBeOnTheScreen();
+  const input = mockRequestChanges.mock.calls[0][0];
+  fireEvent.changeText(screen.getByLabelText('Feedback'), 'Check this.');
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm request changes' }),
+    ),
+  );
+  expect(mockRequestChanges.mock.calls[1][0]).toEqual(input);
+});
+
+it('Parent current-feedback listener failure does not show stale feedback or review actions', () => {
+  render(<ContractDetail {...props} />);
+  emitReview();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'CHANGES_REQUESTED' },
+      fromCache: false,
+    }),
+  );
+  act(() => mockReviewError(new Error('denied')));
+  expect(
+    screen.getByText(
+      'Feedback could not be loaded. Reopen this Contract to try again.',
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Approve' }),
+  ).not.toBeOnTheScreen();
 });

@@ -3,6 +3,7 @@ import {
   deserializeContract,
   deserializeTasks,
   translateContractReadError,
+  deserializeContractReview,
   type ReadSnapshot,
 } from './contractReadModel';
 import { getApp } from '@react-native-firebase/app';
@@ -23,6 +24,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -39,6 +41,11 @@ import {
   httpsCallable,
 } from '@react-native-firebase/functions';
 import {
+  requestContractChangesInputSchema,
+  requestContractChangesOutputSchema,
+  type RequestContractChangesInputValue,
+  type RequestContractChangesOutput,
+  type ContractReview,
   approveContractInputSchema,
   approveContractOutputSchema,
   type ApproveContractInputValue,
@@ -1214,6 +1221,8 @@ export {
   useContractDetail,
   useActiveContracts,
   useReadyForReviewContracts,
+  useCurrentContractReview,
+  type CurrentContractReviewState,
   type ContractDetailState,
   type ActiveContractsState,
 } from './contractHooks';
@@ -1329,5 +1338,66 @@ export async function approveContract(
     return output;
   } catch (error) {
     throw translateContractCommandError(error);
+  }
+}
+
+export async function requestContractChanges(
+  rawInput: RequestContractChangesInputValue,
+): Promise<RequestContractChangesOutput> {
+  if (!getInitializedAuth().currentUser)
+    throw new ContractClientError(contractClientErrorCodes.authRequired);
+  const parsed = requestContractChangesInputSchema.safeParse(rawInput);
+  if (!parsed.success)
+    throw new ContractClientError(contractClientErrorCodes.invalidInput);
+  try {
+    const callable = httpsCallable<typeof parsed.data, unknown>(
+      getInitializedFunctions(),
+      'requestContractChanges',
+    );
+    const response = await callable(parsed.data);
+    const output = requestContractChangesOutputSchema.parse(response.data);
+    if (output.contract.id !== parsed.data.contractId)
+      throw new ContractClientError(contractClientErrorCodes.unknown);
+    return output;
+  } catch (error) {
+    throw translateContractCommandError(error);
+  }
+}
+export function observeCurrentContractReview(
+  contract: Contract,
+  callback: (snapshot: ReadSnapshot<ContractReview | null>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(contract.id);
+  if (uid !== contract.parentUid && uid !== contract.childUid)
+    throw new ContractReadError('FORBIDDEN');
+  const reviewQuery = query(
+    collection(getInitializedFirestore(), 'contracts', contract.id, 'reviews'),
+    where('familyId', '==', contract.familyId),
+    where('contractId', '==', contract.id),
+    where('cycle', '==', contract.reviewCycle),
+    limit(2),
+  );
+  try {
+    return onSnapshot(
+      reviewQuery,
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          if (snapshot.docs.length > 1)
+            throw new ContractReadError('MALFORMED_DATA');
+          const item = snapshot.docs[0];
+          const review = item
+            ? deserializeContractReview(item.id, item.data(), contract)
+            : null;
+          callback({ data: review, fromCache: snapshot.metadata.fromCache });
+        } catch (error) {
+          onError(translateContractReadError(error));
+        }
+      },
+      (error) => onError(translateContractReadError(error)),
+    );
+  } catch (error) {
+    throw translateContractReadError(error);
   }
 }
