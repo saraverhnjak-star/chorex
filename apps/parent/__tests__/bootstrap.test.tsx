@@ -83,7 +83,14 @@ const mockSubscribeToCurrentParentNegotiationInbox = jest.fn(
   },
 );
 
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+
 jest.mock('@chorex/firebase-client', () => ({
+  useActiveContracts: () => ({
+    status: 'ready',
+    contracts: [],
+    fromCache: false,
+  }),
   readCurrentParentFamily: jest.fn().mockResolvedValue({
     profile: {
       uid: 'parent-test-uid',

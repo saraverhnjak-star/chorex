@@ -112,3 +112,20 @@ export {
   negotiationNotificationDataSchema,
   type NegotiationNotificationData,
 } from './notification';
+
+export {
+  submitContractForReviewInputSchema,
+  submitContractForReviewOutputSchema,
+  type SubmitContractForReviewInput,
+  type SubmitContractForReviewInputValue,
+  type SubmitContractForReviewOutput,
+  taskCompletionSchema,
+  recordTaskCompletionInputSchema,
+  recordTaskCompletionOutputSchema,
+  contractCommandErrorCodes,
+  type ContractCommandErrorCode,
+  type TaskCompletion,
+  type RecordTaskCompletionInput,
+  type RecordTaskCompletionInputValue,
+  type RecordTaskCompletionOutput,
+} from './completion';

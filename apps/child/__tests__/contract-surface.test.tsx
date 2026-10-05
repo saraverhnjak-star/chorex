@@ -1,0 +1,518 @@
+import ContractScreen from '../app/contracts/[contractId]';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { ContractDetail } from '../src/contracts/ContractDetail';
+import { ActiveContracts } from '../src/contracts/ActiveContracts';
+
+const mockComplete = jest.fn();
+const mockSubmit = jest.fn();
+const mockIsContractClientError = jest.fn((_error: unknown) => false);
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockSessionUser = { uid: 'child-1' };
+jest.mock('../src/auth/session', () => ({
+  useChildSession: () => ({ user: mockSessionUser }),
+}));
+const mockContractStop = jest.fn();
+const mockTasksStop = jest.fn();
+const mockListStop = jest.fn();
+let mockContract: (value: unknown) => void;
+let mockTasks: (value: unknown) => void;
+let mockError: (error: unknown) => void;
+let mockList: (value: unknown) => void;
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useLocalSearchParams: () => ({ contractId: 'contract-1' }),
+}));
+jest.mock('@chorex/firebase-client', () => {
+  const hooks = jest.requireActual(
+    '../../../packages/firebase-client/src/contractHooks',
+  );
+  return {
+    ...hooks,
+    submitContractForReview: (input: unknown) => mockSubmit(input),
+    recordTaskCompletion: (input: unknown) => mockComplete(input),
+    isContractClientError: (error: unknown) => mockIsContractClientError(error),
+    contractClientErrorCodes: {
+      authRequired: 'AUTH_REQUIRED',
+      forbidden: 'FORBIDDEN',
+      familyMembershipRequired: 'FAMILY_MEMBERSHIP_REQUIRED',
+      wrongActorRole: 'WRONG_ACTOR_ROLE',
+      invalidState: 'INVALID_STATE',
+      taskAlreadyComplete: 'TASK_ALREADY_COMPLETE',
+      tasksIncomplete: 'TASKS_INCOMPLETE',
+      contractNotFound: 'CONTRACT_NOT_FOUND',
+      taskNotFound: 'TASK_NOT_FOUND',
+      networkUnavailable: 'NETWORK_UNAVAILABLE',
+      idempotencyConflict: 'IDEMPOTENCY_CONFLICT',
+      invalidInput: 'INVALID_INPUT',
+    },
+    observeContract: (
+      _id: string,
+      callback: typeof mockContract,
+      onError: typeof mockError,
+    ) => {
+      mockContract = callback;
+      mockError = onError;
+      return mockContractStop;
+    },
+    observeTasks: (_id: string, callback: typeof mockTasks) => {
+      mockTasks = callback;
+      return mockTasksStop;
+    },
+    observeActiveContracts: (_familyId: string, callback: typeof mockList) => {
+      mockList = callback;
+      return mockListStop;
+    },
+  };
+});
+const contract = {
+  id: 'contract-1',
+  familyId: 'family-1',
+  parentUid: 'parent-1',
+  childUid: 'child-1',
+  source: { type: 'OFFER', offerId: 'offer-1', revisionId: 'revision-2' },
+  rewardTerms: {
+    title: 'Cinema',
+    type: 'EXPERIENCE',
+    description: 'Choose a movie',
+  },
+  deadlineAt: '2026-10-10T18:00:00.000Z',
+  status: 'ACTIVE',
+  reviewCycle: 0,
+  createdAt: '2026-10-05T12:00:00.000Z',
+  updatedAt: '2026-10-05T12:00:00.000Z',
+} as const;
+const task = {
+  id: 'task-1',
+  familyId: 'family-1',
+  contractId: 'contract-1',
+  assigneeUid: 'child-1',
+  title: 'Dishwasher',
+  description: 'After dinner',
+  completedCount: 0,
+  targetCount: 3,
+  createdAt: contract.createdAt,
+  updatedAt: contract.updatedAt,
+} as const;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockComplete.mockReset();
+  mockSubmit.mockReset();
+  mockIsContractClientError.mockReturnValue(false);
+});
+const props = { contractId: 'contract-1', authUid: 'child-1' };
+function emitReady(fromCache = false) {
+  act(() => {
+    mockContract({ data: contract, fromCache });
+    mockTasks({ data: [task], fromCache });
+  });
+}
+it('renders frozen terms, persisted progress and locale deadline', () => {
+  const view = render(<ContractDetail {...props} />);
+  expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
+  emitReady();
+  expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Dishwasher. After dinner. 0 of 3. Not started.'),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(screen.getByText('Promised reward')).toBeOnTheScreen();
+  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
+  expect(screen.getByText('Choose a movie')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText(
+      `Deadline: ${new Date(contract.deadlineAt).toLocaleString()}`,
+    ),
+  ).toBeOnTheScreen();
+
+  expect(
+    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+  ).toBeOnTheScreen();
+  act(() =>
+    mockTasks({ data: [{ ...task, completedCount: 2 }], fromCache: false }),
+  );
+  expect(screen.getByText('2 / 3 · In progress')).toBeOnTheScreen();
+  act(() =>
+    mockTasks({ data: [{ ...task, completedCount: 3 }], fromCache: false }),
+  );
+  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Mark one done: Dishwasher' }),
+  ).toBeNull();
+  view.unmount();
+  expect(mockContractStop).toHaveBeenCalled();
+  expect(mockTasksStop).toHaveBeenCalled();
+});
+it('distinguishes cached terms, uncached missing data, empty tasks and permission errors', () => {
+  render(<ContractDetail {...props} />);
+  emitReady(true);
+  expect(
+    screen.getByText('Showing saved data. Updates may be pending.'),
+  ).toBeOnTheScreen();
+  act(() => mockTasks({ data: [], fromCache: true }));
+  expect(screen.getByText('No tasks are available.')).toBeOnTheScreen();
+  act(() => mockContract({ data: null, fromCache: true }));
+  expect(
+    screen.getByText(
+      'No cached Contract is available yet. Connect to the internet to load it.',
+    ),
+  ).toBeOnTheScreen();
+  act(() => mockContract({ data: null, fromCache: false }));
+  expect(screen.getByText('Contract not found.')).toBeOnTheScreen();
+  act(() => mockError(new Error('permission-denied')));
+  expect(
+    screen.getByText(
+      'This Contract could not be loaded or is unavailable to your account.',
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText('Cinema · EXPERIENCE')).toBeNull();
+});
+it('clears old reads on ID/auth changes and ignores callbacks after cleanup', () => {
+  const view = render(<ContractDetail {...props} />);
+  emitReady();
+  const oldContract = mockContract;
+  const oldTasks = mockTasks;
+  view.rerender(<ContractDetail contractId="contract-2" authUid="new-user" />);
+  expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
+  act(() => {
+    oldContract({ data: contract, fromCache: false });
+    oldTasks({ data: [task], fromCache: false });
+  });
+  expect(screen.queryByText('Cinema · EXPERIENCE')).toBeNull();
+});
+it('rejects cross-family tasks instead of rendering mixed snapshots', () => {
+  render(<ContractDetail {...props} />);
+  act(() => {
+    mockContract({ data: contract, fromCache: false });
+    mockTasks({
+      data: [{ ...task, familyId: 'other-family' }],
+      fromCache: false,
+    });
+  });
+  expect(
+    screen.getByText(
+      'This Contract could not be loaded or is unavailable to your account.',
+    ),
+  ).toBeOnTheScreen();
+});
+it('exposes multiple Contracts in realtime and navigates by stable Contract ID', () => {
+  const view = render(
+    <ActiveContracts familyId="family-1" authUid="child-1" />,
+  );
+  expect(screen.getByText('Loading Contracts…')).toBeOnTheScreen();
+  act(() => mockList({ data: [], fromCache: false }));
+  expect(screen.getByText('No active Contracts yet.')).toBeOnTheScreen();
+  act(() =>
+    mockList({
+      data: [
+        contract,
+        {
+          ...contract,
+          id: 'contract-2',
+          rewardTerms: { ...contract.rewardTerms, title: 'Museum' },
+        },
+      ],
+      fromCache: false,
+    }),
+  );
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Open Contract: Cinema' }),
+  );
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/contracts/[contractId]',
+    params: { contractId: 'contract-1' },
+  });
+  expect(
+    screen.getByRole('button', { name: 'Open Contract: Museum' }),
+  ).toBeOnTheScreen();
+  view.unmount();
+  expect(mockListStop).toHaveBeenCalled();
+});
+
+it('opens the stable-ID detail route with a heading and accessible home navigation', async () => {
+  render(<ContractScreen />);
+  await act(async () => {});
+  expect(screen.getByRole('header', { name: 'Contract' })).toBeOnTheScreen();
+  emitReady();
+  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Back to home' }));
+  expect(mockReplace).toHaveBeenCalledWith('/');
+});
+
+it('prevents rapid taps and waits for realtime counts after backend confirmation', async () => {
+  let resolve: (value: unknown) => void = () => {};
+  mockComplete.mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  render(<ContractDetail {...props} />);
+  emitReady();
+  const button = screen.getByRole('button', {
+    name: 'Mark one done: Dishwasher',
+  });
+  fireEvent.press(button);
+  fireEvent.press(button);
+  expect(mockComplete).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+  ).toBeDisabled();
+  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  const firstInput = mockComplete.mock.calls[0][0];
+  expect(firstInput).toEqual({
+    contractId: 'contract-1',
+    taskId: 'task-1',
+    idempotencyKey: expect.any(String),
+  });
+  await act(async () => resolve({ task: { ...task, completedCount: 1 } }));
+  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Completion recorded. Waiting for updated progress…'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+  ).toBeDisabled();
+  act(() =>
+    mockTasks({ data: [{ ...task, completedCount: 1 }], fromCache: false }),
+  );
+  expect(screen.getByText('1 / 3 · In progress')).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+  ).toBeEnabled();
+  mockComplete.mockResolvedValueOnce({ task: { ...task, completedCount: 2 } });
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+    ),
+  );
+  expect(mockComplete.mock.calls[1][0].idempotencyKey).not.toBe(
+    firstInput.idempotencyKey,
+  );
+});
+it('offline/backend failure leaves cached counts unchanged and explicit retry reuses the same key', async () => {
+  mockIsContractClientError.mockReturnValue(true);
+  mockComplete
+    .mockRejectedValueOnce({ code: 'NETWORK_UNAVAILABLE' })
+    .mockResolvedValueOnce({ task: { ...task, completedCount: 1 } });
+  render(<ContractDetail {...props} />);
+  emitReady(true);
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+    ),
+  );
+  expect(
+    screen.getByText(
+      'Unable to confirm completion. Check your connection and try again. Your displayed progress has not been changed locally.',
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(
+    screen.queryByText('Completion recorded. Waiting for updated progress…'),
+  ).toBeNull();
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+    ),
+  );
+  expect(mockComplete.mock.calls[1][0]).toEqual(mockComplete.mock.calls[0][0]);
+  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+});
+it('one-time tasks expose Mark done and non-ACTIVE/other actor surfaces remain read-only', () => {
+  render(<ContractDetail {...props} />);
+  act(() => {
+    mockContract({ data: contract, fromCache: false });
+    mockTasks({ data: [{ ...task, targetCount: 1 }], fromCache: false });
+  });
+  expect(
+    screen.getByRole('button', { name: 'Mark done: Dishwasher' }),
+  ).toBeOnTheScreen();
+  act(() =>
+    mockTasks({
+      data: [{ ...task, targetCount: 1, completedCount: 1 }],
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('1 / 1 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Mark done: Dishwasher' }),
+  ).toBeNull();
+  expect(
+    screen.getByRole('button', { name: 'Submit for review' }),
+  ).toBeEnabled();
+  act(() => {
+    mockTasks({ data: [task], fromCache: false });
+    mockContract({
+      data: { ...contract, status: 'CHANGES_REQUESTED' },
+      fromCache: false,
+    });
+  });
+  expect(screen.queryAllByRole('button')).toHaveLength(0);
+});
+
+it.each([
+  ['AUTH_REQUIRED', 'Your Child session has ended. Pair this device again.'],
+  ['FORBIDDEN', 'You cannot record progress on this task.'],
+  ['WRONG_ACTOR_ROLE', 'You cannot record progress on this task.'],
+  ['FAMILY_MEMBERSHIP_REQUIRED', 'You cannot record progress on this task.'],
+  [
+    'INVALID_STATE',
+    'This Contract is no longer active. Progress updates are unavailable.',
+  ],
+  [
+    'TASK_ALREADY_COMPLETE',
+    'This task is already complete. Its progress will update automatically.',
+  ],
+  ['CONTRACT_NOT_FOUND', 'This Contract or task is no longer available.'],
+  ['TASK_NOT_FOUND', 'This Contract or task is no longer available.'],
+  [
+    'IDEMPOTENCY_CONFLICT',
+    'This retry does not match the original action. Reopen the Contract before trying again.',
+  ],
+])(
+  'maps %s without changing authoritative counts or displaying backend exceptions',
+  async (code, message) => {
+    mockIsContractClientError.mockReturnValue(true);
+    mockComplete.mockRejectedValueOnce({
+      code,
+      message: 'private backend exception',
+    });
+    render(<ContractDetail {...props} />);
+    emitReady();
+    await act(async () =>
+      fireEvent.press(
+        screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+      ),
+    );
+    expect(screen.getByText(message)).toBeOnTheScreen();
+    expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+    expect(screen.queryByText('private backend exception')).toBeNull();
+  },
+);
+
+function completeTasks() {
+  emitReady();
+  act(() =>
+    mockTasks({ data: [{ ...task, completedCount: 3 }], fromCache: false }),
+  );
+}
+it('submission requires nonempty complete tasks and deliberate confirmation, with cancellation', () => {
+  render(<ContractDetail {...props} />);
+  emitReady();
+  expect(
+    screen.queryByRole('button', { name: 'Submit for review' }),
+  ).toBeNull();
+  expect(
+    screen.getByText('Complete all tasks before submitting for review.'),
+  ).toBeOnTheScreen();
+  act(() => mockTasks({ data: [], fromCache: false }));
+  expect(
+    screen.queryByRole('button', { name: 'Submit for review' }),
+  ).toBeNull();
+  completeTasks();
+  fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
+  expect(
+    screen.getByRole('header', { name: 'Send this Contract for review?' }),
+  ).toBeOnTheScreen();
+  expect(mockSubmit).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole('button', { name: 'Keep checking' }));
+  expect(
+    screen.getByRole('button', { name: 'Submit for review' }),
+  ).toBeOnTheScreen();
+});
+it('submission pending prevents duplicate taps; backend receipt does not optimistically alter status; realtime removes actions', async () => {
+  let resolve: (value: unknown) => void = () => {};
+  mockSubmit.mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  render(<ContractDetail {...props} />);
+  completeTasks();
+  fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
+  const button = screen.getByRole('button', { name: 'Confirm submission' });
+  fireEvent.press(button);
+  fireEvent.press(button);
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(button).toBeDisabled();
+  expect(screen.queryByText('Sent for review')).toBeNull();
+  expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+  await act(async () =>
+    resolve({ contract: { ...contract, status: 'READY_FOR_REVIEW' } }),
+  );
+  expect(screen.getByText('Sent for review')).toBeOnTheScreen();
+  expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Waiting for updated Contract status…'),
+  ).toBeOnTheScreen();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'READY_FOR_REVIEW' },
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Your Parent now needs to review this agreement.'),
+  ).toBeOnTheScreen();
+  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+});
+it.each([
+  [
+    'NETWORK_UNAVAILABLE',
+    'Unable to confirm submission. Check your connection and try again. Your Contract status has not been changed locally.',
+  ],
+  ['TASKS_INCOMPLETE', 'Complete all tasks before submitting for review.'],
+  [
+    'INVALID_STATE',
+    'This Contract is no longer active. Its status will update automatically.',
+  ],
+  ['FORBIDDEN', 'You cannot submit this Contract.'],
+  [
+    'UNKNOWN_CONTRACT_FAILURE',
+    'We could not confirm submission. Try again to confirm the same action.',
+  ],
+])(
+  'submission %s leaves status unchanged and preserves retry identity',
+  async (code, message) => {
+    mockIsContractClientError.mockReturnValue(true);
+    mockSubmit.mockRejectedValueOnce({ code }).mockResolvedValueOnce({
+      contract: { ...contract, status: 'READY_FOR_REVIEW' },
+    });
+    render(<ContractDetail {...props} />);
+    completeTasks();
+    fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
+    await act(async () =>
+      fireEvent.press(
+        screen.getByRole('button', { name: 'Confirm submission' }),
+      ),
+    );
+    expect(screen.getByText(message)).toBeOnTheScreen();
+    expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+    expect(screen.queryByText('Sent for review')).toBeNull();
+    await act(async () =>
+      fireEvent.press(
+        screen.getByRole('button', { name: 'Confirm submission' }),
+      ),
+    );
+    expect(mockSubmit.mock.calls[1][0]).toEqual(mockSubmit.mock.calls[0][0]);
+  },
+);
+it('READY_FOR_REVIEW received externally hides all progress/submission actions', () => {
+  render(<ContractDetail {...props} />);
+  emitReady();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'READY_FOR_REVIEW' },
+      fromCache: false,
+    }),
+  );
+  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(
+    screen.getByText('Your Parent now needs to review this agreement.'),
+  ).toBeOnTheScreen();
+});

@@ -22,17 +22,17 @@ Either waiting state may also -> CANCELLED / EXPIRED
 
 ### Commands
 
-| Current | Command | Actor | Result |
-| --- | --- | --- | --- |
-| DRAFT | `publishOffer` | Parent | AWAITING_CHILD |
-| AWAITING_CHILD | `counterOffer` | Child | AWAITING_PARENT |
-| AWAITING_PARENT | `counterOffer` | Parent | AWAITING_CHILD |
-| AWAITING_CHILD | `acceptOffer` | Child | ACCEPTED + create Contract |
-| AWAITING_PARENT | `acceptOffer` | Parent | ACCEPTED + create Contract |
-| AWAITING_CHILD | `rejectOffer` | Child | REJECTED |
-| AWAITING_PARENT | `rejectOffer` | Parent | REJECTED |
-| DRAFT/AWAITING_* | `cancelOffer` | Parent | CANCELLED |
-| AWAITING_* | system expiry | System | EXPIRED |
+| Current          | Command        | Actor  | Result                     |
+| ---------------- | -------------- | ------ | -------------------------- |
+| DRAFT            | `publishOffer` | Parent | AWAITING_CHILD             |
+| AWAITING_CHILD   | `counterOffer` | Child  | AWAITING_PARENT            |
+| AWAITING_PARENT  | `counterOffer` | Parent | AWAITING_CHILD             |
+| AWAITING_CHILD   | `acceptOffer`  | Child  | ACCEPTED + create Contract |
+| AWAITING_PARENT  | `acceptOffer`  | Parent | ACCEPTED + create Contract |
+| AWAITING_CHILD   | `rejectOffer`  | Child  | REJECTED                   |
+| AWAITING_PARENT  | `rejectOffer`  | Parent | REJECTED                   |
+| DRAFT/AWAITING_* | `cancelOffer`  | Parent | CANCELLED                  |
+| AWAITING_*       | system expiry  | System | EXPIRED                    |
 
 ### Invariants
 
@@ -65,6 +65,12 @@ APPROVED      CHANGES_REQUESTED
 
 Expiry and cancellation transitions are intentionally not fully specified yet (see `DECISIONS.md`, OPEN-011). Do not implement automatic expiry or general cancellation semantics until that policy is explicitly decided.
 ```
+
+`recordTaskCompletion` is an authenticated, idempotent Child command valid only in `ACTIVE`. It records one immutable completion and increments the assigned task's counter by one, without changing Contract status or review cycle. Full tasks return `TASK_ALREADY_COMPLETE`; every other Contract state rejects new progress with `INVALID_STATE`. Committed retries return their original receipt after current membership/ownership checks. This command does not enforce a deadline cutoff or resolve OPEN-009/010/011. Child progress displays update only from committed realtime task snapshots.
+
+`submitContractForReview` requires the Contract's authenticated active Child participant and exactly `ACTIVE` for a new action. One transaction reads every persisted scoped ContractTask, validates family/Contract/assignee and bounded counters, requires a nonempty task collection with each `completedCount === targetCount`, and moves the Contract to `READY_FOR_REVIEW`. Incomplete tasks return `TASKS_INCOMPLETE`; invalid counters or zero tasks return `INVALID_STATE`. It updates only Contract status/updatedAt, creates one `CONTRACT_SUBMITTED` Child activity event, and completes idempotency state. Same-key retries return the original canonical receipt after current authorization checks; different-key competitors serialize on the Contract and the loser returns `INVALID_STATE`. Completion races are checked against transactional task reads.
+
+Submission preserves frozen terms, task counts/history and `reviewCycle`, creates no Review or Reward, and imposes no deadline cutoff. OPEN-009/010/011/012 remain unresolved. The Child confirms submission deliberately, waits for backend confirmation and uses realtime Contract state. Parent detail receives that state without new review actions. Submission push wiring remains for Phase 4.
 
 ### Important semantic distinction
 

@@ -159,7 +159,14 @@ const mockRemoveCurrentDeviceRegistration = jest
   .fn()
   .mockResolvedValue(undefined);
 
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+
 jest.mock('@chorex/firebase-client', () => ({
+  useActiveContracts: () => ({
+    status: 'ready',
+    contracts: [],
+    fromCache: false,
+  }),
   acceptOffer: (...args: unknown[]) => mockAcceptOffer(...args),
   counterOffer: (...args: unknown[]) => mockCounterOffer(...args),
   observeAuthState: jest.fn((listener) => {

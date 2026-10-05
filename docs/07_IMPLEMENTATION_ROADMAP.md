@@ -74,6 +74,8 @@ Repeated accept requests do not create duplicates.
 
 ## Phase 3 - Contract execution and repeated chores
 
+Slice 1 establishes read-only Contract/task detail and realtime active Contract navigation in both apps. See [Slice 1 implementation and verification](PHASE_3_SLICE_1_ACCEPTANCE.md). Slice 2 adds authenticated, transactional Child task completion; see [Slice 2 verification](PHASE_3_SLICE_2_ACCEPTANCE.md). Slice 3 adds authoritative completed-Contract submission; see [Slice 3 verification and Phase 3 gate assessment](PHASE_3_SLICE_3_ACCEPTANCE.md). The final native restart-persistence item is verified in [native acceptance evidence](PHASE_3_NATIVE_PERSISTENCE_ACCEPTANCE.md); the documented Phase 3 gate is satisfied for the existing iOS development-build workflow.
+
 Build:
 
 - contract detail screen in both apps;

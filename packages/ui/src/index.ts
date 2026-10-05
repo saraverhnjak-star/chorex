@@ -10,3 +10,4 @@ export {
   type AmberAuroraColors,
   type AmberAuroraPalette,
 } from './theme';
+export { TaskProgress } from './TaskProgress';

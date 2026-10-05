@@ -19,7 +19,8 @@
     "@react-native-firebase/firestore": "26.4.0",
     "@react-native-firebase/functions": "26.4.0",
     "react": "19.2.3",
-    "react-native": "0.86.3"
+    "react-native": "0.86.3",
+    "@types/react": "19.2.18"
   },
   "peerDependencies": {
     "@react-native-firebase/app": "26.4.0",

@@ -1,3 +1,4 @@
+import { ActiveContracts } from '../src/contracts/ActiveContracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import {
@@ -174,6 +175,11 @@ export default function HomeScreen() {
                   is ready.
                 </Text>
               </View>
+
+              <ActiveContracts
+                familyId={familyState.home.family.id}
+                authUid={session.user.uid}
+              />
 
               <OfferInbox
                 authUid={session.user.uid}

@@ -1,3 +1,4 @@
+import { ActiveContracts } from '../../src/contracts/ActiveContracts';
 import { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -539,6 +540,17 @@ export default function AuthenticatedHomeScreen() {
                 onPress={handleChildSubmit(onCreateChild)}
               />
             </View>
+
+            <ActiveContracts
+              familyId={familyState.home.family.id}
+              authUid={user.uid}
+              childNames={Object.fromEntries(
+                familyState.home.children.map((child) => [
+                  child.uid,
+                  child.displayName,
+                ]),
+              )}
+            />
 
             <ParentNegotiationInbox
               activeChildren={familyState.home.children}

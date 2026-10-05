@@ -218,6 +218,14 @@ The authenticated, idempotent `acceptOffer` command requires the Offer's active 
 
 The authenticated, idempotent `rejectOffer` command retains its Child branch: the Offer's active Child participant rejects the exact current Parent-proposed revision in `AWAITING_CHILD`. Its Parent branch requires `AWAITING_PARENT`, the Offer's active Parent participant, and the exact current revision proposed by the Offer's active Child participant. Both paths use the existing `currentRevisionId` and idempotency key, atomically move the Offer to `REJECTED`, write one `OFFER_REJECTED` event with the authenticated actor UID and role, and complete server-only idempotency state. Same-key retries return the canonical rejected Offer without duplicate events. No revision is rewritten or deleted, and no Contract, Contract task, or Reward is created.
 
+### Submission persistence
+
+`submitContractForReview` accepts only `{ contractId, idempotencyKey }`. The active authenticated Child participant's transaction reads Contract, membership, idempotency and the entire `/contracts/{contractId}/tasks` collection. Every task must match family/Contract/assignee, have valid bounded counters, and meet its target exactly. Empty or invalid task state fails; incomplete tasks return `TASKS_INCOMPLETE`.
+
+The transaction updates only `status: READY_FOR_REVIEW` and native server `updatedAt`, creates deterministic `/activityEvents/activity_{sha256(command:actor:key)}` with `type: CONTRACT_SUBMITTED`, `entityType: CONTRACT`, Contract ID, authenticated Child UID and `actorType: CHILD`, and creates completed `/idempotency/{sha256}` state. That state stores command/actor/family/Contract IDs, payload hash, activity ID, completedAt and the canonical original `{ contract }` response (UTC ISO timestamps). Conflicting input reuse returns `IDEMPOTENCY_CONFLICT`; currently authorized same-key retries return the original response after later state changes.
+
+Accepted terms, task projections/completions and review cycle remain unchanged. Submission creates neither a Review, Reward nor notification effect. Client writes remain denied. See [Slice 3 verification](PHASE_3_SLICE_3_ACCEPTANCE.md).
+
 ## 8. Task completions
 
 `/contracts/{contractId}/tasks/{taskId}/completions/{completionId}`
@@ -233,7 +241,7 @@ The authenticated, idempotent `rejectOffer` command retains its Child branch: th
 }
 ```
 
-`recordTaskCompletion` should use a Firestore transaction to:
+`recordTaskCompletion` uses one Firestore transaction to:
 
 1. read contract and task;
 2. verify actor and legal contract state;
@@ -241,7 +249,16 @@ The authenticated, idempotent `rejectOffer` command retains its Child branch: th
 4. create the completion record;
 5. increment `completedCount`;
 6. update timestamps;
-7. write activity event.
+7. write one `TASK_COMPLETED` activity event with `actorType: CHILD` and authenticated actor UID;
+8. complete actor/command/key-scoped `/idempotency/{sha256}` state.
+
+Its strict input is `{ contractId, taskId, idempotencyKey }`. Membership and family/Child/assignee identity, `ACTIVE` state, target count and next ordinal come from persisted state. IDs are single document IDs; clients cannot provide counters, ordinals, ownership, notes or Contract state. Existing optional domain notes remain unused by this command.
+
+The completion document ID and activity ID derive deterministically from command, actor UID and key. `createdAt` is the server-command occurrence timestamp; the same timestamp becomes the task's `lastCompletedAt` and `updatedAt`. Creation of the completion/activity/idempotency records uses transaction `create`, and the task counter increments by exactly one in that same transaction. Task requirements, Contract terms/status/review cycle and accepted Offer revisions are unchanged.
+
+Completed idempotency state stores the canonical original `{ completion, task }` response as a receipt, including its original counter/timestamps. A same-key retry revalidates membership/ownership and returns that receipt even after later progress; this is not the current task read projection. Conflicting key reuse returns `IDEMPOTENCY_CONFLICT`. Different keys serialize on the task read/write; at the final occurrence only one transaction can commit. Failed actions create no completion/activity/idempotency record. No Reward, review or notification effect is created.
+
+See [Phase 3 Slice 2 verification](PHASE_3_SLICE_2_ACCEPTANCE.md).
 
 ## 9. Reviews
 
@@ -400,7 +417,6 @@ Accept deliberate duplication for:
 - `completedCount` as a transactional projection of completion events.
 
 Avoid copying full user profiles into every document. If a historical display name is required later, add explicit snapshots for that purpose.
-
 
 ## Phase 2 notification effect persistence
 

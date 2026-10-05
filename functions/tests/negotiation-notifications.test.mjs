@@ -59,6 +59,8 @@ test('rejection, invalid ownership, wrong family, and malformed payload have no 
   };
   for (const patch of [
     { type: 'OFFER_REJECTED' },
+    { type: 'TASK_COMPLETED' },
+    { type: 'CONTRACT_SUBMITTED' },
     { actorUid: 'attacker' },
     { familyId: 'wrong' },
     { entityType: 'CONTRACT' },

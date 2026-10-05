@@ -1,3 +1,10 @@
+import {
+  ContractReadError,
+  deserializeContract,
+  deserializeTasks,
+  translateContractReadError,
+  type ReadSnapshot,
+} from './contractReadModel';
 import { getApp } from '@react-native-firebase/app';
 import {
   connectAuthEmulator,
@@ -32,6 +39,16 @@ import {
   httpsCallable,
 } from '@react-native-firebase/functions';
 import {
+  submitContractForReviewInputSchema,
+  submitContractForReviewOutputSchema,
+  type SubmitContractForReviewInputValue,
+  type SubmitContractForReviewOutput,
+  contractCommandErrorCodes,
+  recordTaskCompletionInputSchema,
+  recordTaskCompletionOutputSchema,
+  type ContractCommandErrorCode,
+  type RecordTaskCompletionInputValue,
+  type RecordTaskCompletionOutput,
   acceptOfferInputSchema,
   acceptOfferOutputSchema,
   childFamilyMembershipSchema,
@@ -64,6 +81,8 @@ import {
   type AcceptOfferOutput,
   type ChildFamilyMembership,
   type ChildOfferInboxItem,
+  type Contract,
+  type ContractTask,
   type CounterOfferInputValue,
   type CounterOfferOutput,
   type CreateChildInputValue,
@@ -404,6 +423,15 @@ export async function signOutCurrentUser(): Promise<void> {
   }
 }
 
+function readCallableDetailsCode(error: unknown): unknown {
+  if (typeof error !== 'object' || error === null || !('details' in error))
+    return undefined;
+  const details = error.details;
+  return typeof details === 'object' && details !== null && 'code' in details
+    ? details.code
+    : undefined;
+}
+
 function readStableFamilyErrorCode(
   error: unknown,
 ):
@@ -411,14 +439,7 @@ function readStableFamilyErrorCode(
   | OfferCommandErrorCode
   | PairingCommandErrorCode
   | undefined {
-  if (typeof error !== 'object' || error === null || !('details' in error)) {
-    return undefined;
-  }
-  const details = error.details;
-  if (typeof details !== 'object' || details === null || !('code' in details)) {
-    return undefined;
-  }
-  const code = details.code;
+  const code = readCallableDetailsCode(error);
   return [
     ...Object.values(familyCommandErrorCodes),
     ...Object.values(offerCommandErrorCodes),
@@ -1041,5 +1062,224 @@ export async function redeemPairingSession(
     return redeemPairingSessionOutputSchema.parse(result.data);
   } catch (error) {
     throw translatePairingError(error);
+  }
+}
+
+export {
+  ContractReadError,
+  deserializeContract,
+  deserializeTasks,
+  type ReadSnapshot,
+} from './contractReadModel';
+
+function requireContractReadContext(id: string): string {
+  const user = getInitializedAuth().currentUser;
+  if (!user) throw new ContractReadError('AUTH_REQUIRED');
+  if (!id.trim() || id !== id.trim() || id.length > 128 || id.includes('/'))
+    throw new ContractReadError('INVALID_INPUT');
+  return user.uid;
+}
+
+export function observeContract(
+  contractId: string,
+  callback: (snapshot: ReadSnapshot<Contract | null>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(contractId);
+  try {
+    return onSnapshot(
+      doc(getInitializedFirestore(), 'contracts', contractId),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          const contract = snapshot.exists()
+            ? deserializeContract(snapshot.id, snapshot.data()!)
+            : null;
+          if (
+            contract &&
+            contract.parentUid !== uid &&
+            contract.childUid !== uid
+          )
+            throw new ContractReadError('FORBIDDEN');
+          callback({ data: contract, fromCache: snapshot.metadata.fromCache });
+        } catch (error) {
+          onError(translateContractReadError(error));
+        }
+      },
+      (error) => onError(translateContractReadError(error)),
+    );
+  } catch (error) {
+    throw translateContractReadError(error);
+  }
+}
+
+export function observeTasks(
+  contractId: string,
+  callback: (snapshot: ReadSnapshot<readonly ContractTask[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  requireContractReadContext(contractId);
+  try {
+    return onSnapshot(
+      collection(getInitializedFirestore(), 'contracts', contractId, 'tasks'),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          callback({
+            data: deserializeTasks(
+              contractId,
+              snapshot.docs.map((item) => ({ id: item.id, data: item.data() })),
+            ),
+            fromCache: snapshot.metadata.fromCache,
+          });
+        } catch (error) {
+          onError(translateContractReadError(error));
+        }
+      },
+      (error) => onError(translateContractReadError(error)),
+    );
+  } catch (error) {
+    throw translateContractReadError(error);
+  }
+}
+
+export function observeActiveContracts(
+  familyId: string,
+  callback: (snapshot: ReadSnapshot<readonly Contract[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(familyId);
+  const contractsQuery = query(
+    collection(getInitializedFirestore(), 'contracts'),
+    where('familyId', '==', familyId),
+    where('participantUids', 'array-contains', uid),
+    where('status', '==', 'ACTIVE'),
+    orderBy('createdAt', 'desc'),
+  );
+  try {
+    return onSnapshot(
+      contractsQuery,
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          const contracts = snapshot.docs.map((item) =>
+            deserializeContract(item.id, item.data()),
+          );
+          if (
+            contracts.some(
+              (item) =>
+                item.familyId !== familyId ||
+                item.status !== 'ACTIVE' ||
+                (item.parentUid !== uid && item.childUid !== uid),
+            )
+          )
+            throw new ContractReadError('MALFORMED_DATA');
+          callback({ data: contracts, fromCache: snapshot.metadata.fromCache });
+        } catch (error) {
+          onError(translateContractReadError(error));
+        }
+      },
+      (error) => onError(translateContractReadError(error)),
+    );
+  } catch (error) {
+    throw translateContractReadError(error);
+  }
+}
+
+export {
+  useContractDetail,
+  useActiveContracts,
+  type ContractDetailState,
+  type ActiveContractsState,
+} from './contractHooks';
+
+export const contractClientErrorCodes = {
+  ...contractCommandErrorCodes,
+  networkUnavailable: 'NETWORK_UNAVAILABLE',
+  unknown: 'UNKNOWN_CONTRACT_FAILURE',
+} as const;
+export type ContractClientErrorCode =
+  | ContractCommandErrorCode
+  | typeof contractClientErrorCodes.networkUnavailable
+  | typeof contractClientErrorCodes.unknown;
+export class ContractClientError extends Error {
+  constructor(readonly code: ContractClientErrorCode) {
+    super(code);
+    this.name = 'ContractClientError';
+  }
+}
+export function isContractClientError(
+  error: unknown,
+): error is ContractClientError {
+  return error instanceof ContractClientError;
+}
+export async function recordTaskCompletion(
+  rawInput: RecordTaskCompletionInputValue,
+): Promise<RecordTaskCompletionOutput> {
+  if (!getInitializedAuth().currentUser)
+    throw new ContractClientError(contractClientErrorCodes.authRequired);
+  const parsed = recordTaskCompletionInputSchema.safeParse(rawInput);
+  if (!parsed.success)
+    throw new ContractClientError(contractClientErrorCodes.invalidInput);
+  try {
+    const callable = httpsCallable<typeof parsed.data, unknown>(
+      getInitializedFunctions(),
+      'recordTaskCompletion',
+    );
+    const result = await callable(parsed.data);
+    const output = recordTaskCompletionOutputSchema.parse(result.data);
+    if (
+      output.task.contractId !== parsed.data.contractId ||
+      output.task.id !== parsed.data.taskId
+    )
+      throw new ContractClientError(contractClientErrorCodes.unknown);
+    return output;
+  } catch (error) {
+    throw translateContractCommandError(error);
+  }
+}
+
+function translateContractCommandError(error: unknown): ContractClientError {
+  if (error instanceof ContractClientError) return error;
+  const stableCode = readCallableDetailsCode(error);
+  if (
+    stableCode &&
+    Object.values(contractCommandErrorCodes).some((code) => code === stableCode)
+  )
+    return new ContractClientError(stableCode as ContractCommandErrorCode);
+  const providerCode = readProviderErrorCode(error);
+  if (providerCode === 'functions/unauthenticated')
+    return new ContractClientError(contractClientErrorCodes.authRequired);
+  if (providerCode === 'functions/permission-denied')
+    return new ContractClientError(contractClientErrorCodes.forbidden);
+  if (
+    providerCode === 'functions/unavailable' ||
+    providerCode === 'functions/deadline-exceeded' ||
+    providerCode === 'auth/network-request-failed'
+  )
+    return new ContractClientError(contractClientErrorCodes.networkUnavailable);
+  return new ContractClientError(contractClientErrorCodes.unknown);
+}
+
+export async function submitContractForReview(
+  rawInput: SubmitContractForReviewInputValue,
+): Promise<SubmitContractForReviewOutput> {
+  if (!getInitializedAuth().currentUser)
+    throw new ContractClientError(contractClientErrorCodes.authRequired);
+  const parsed = submitContractForReviewInputSchema.safeParse(rawInput);
+  if (!parsed.success)
+    throw new ContractClientError(contractClientErrorCodes.invalidInput);
+  try {
+    const callable = httpsCallable<typeof parsed.data, unknown>(
+      getInitializedFunctions(),
+      'submitContractForReview',
+    );
+    const result = await callable(parsed.data);
+    const output = submitContractForReviewOutputSchema.parse(result.data);
+    if (output.contract.id !== parsed.data.contractId)
+      throw new ContractClientError(contractClientErrorCodes.unknown);
+    return output;
+  } catch (error) {
+    throw translateContractCommandError(error);
   }
 }

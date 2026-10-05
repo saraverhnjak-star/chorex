@@ -1,3 +1,7 @@
+import {
+  executeSubmitContractForReview,
+  SubmitContractForReviewCommandError,
+} from './submitContractForReview';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import {
   dispatchNegotiationNotification,
@@ -11,10 +15,15 @@ import { defineSecret } from 'firebase-functions/params';
 import { warn } from 'firebase-functions/logger';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import {
+  contractCommandErrorCodes,
   familyCommandErrorCodes,
   offerCommandErrorCodes,
   pairingCommandErrorCodes,
 } from '@chorex/domain';
+import {
+  executeRecordTaskCompletion,
+  RecordTaskCompletionCommandError,
+} from './recordTaskCompletion';
 import { AcceptOfferCommandError, executeAcceptOffer } from './acceptOffer';
 import { CounterOfferCommandError, executeCounterOffer } from './counterOffer';
 import { CreateChildCommandError, executeCreateChild } from './createChild';
@@ -44,6 +53,8 @@ const pairingRateLimitHmacSecret = defineSecret(
 
 function callableError(
   error:
+    | SubmitContractForReviewCommandError
+    | RecordTaskCompletionCommandError
     | CreateFamilyCommandError
     | CreateChildCommandError
     | CreateOfferDraftCommandError
@@ -64,12 +75,16 @@ function callableError(
     case offerCommandErrorCodes.childMembershipRequired:
       return new HttpsError('permission-denied', error.code, details);
     case familyCommandErrorCodes.idempotencyConflict:
+    case contractCommandErrorCodes.tasksIncomplete:
+    case contractCommandErrorCodes.taskAlreadyComplete:
     case offerCommandErrorCodes.invalidState:
     case offerCommandErrorCodes.staleRevision:
     case offerCommandErrorCodes.deadlinePassed:
       return new HttpsError('failed-precondition', error.code, details);
     case familyCommandErrorCodes.authRequired:
       return new HttpsError('unauthenticated', error.code, details);
+    case contractCommandErrorCodes.contractNotFound:
+    case contractCommandErrorCodes.taskNotFound:
     case pairingCommandErrorCodes.pairingInvalid:
       return new HttpsError('not-found', error.code, details);
     case pairingCommandErrorCodes.pairingExpired:
@@ -309,3 +324,37 @@ export const notifyOfferNegotiation = onDocumentCreated(
     );
   },
 );
+
+export const recordTaskCompletion = onCall(async (request) => {
+  if (!request.auth)
+    throw callableError(
+      new RecordTaskCompletionCommandError(
+        contractCommandErrorCodes.authRequired,
+      ),
+    );
+  try {
+    return await executeRecordTaskCompletion(
+      firestore,
+      request.auth.uid,
+      request.data,
+    );
+  } catch (error) {
+    if (error instanceof RecordTaskCompletionCommandError)
+      throw callableError(error);
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const submitContractForReview = onCall(async (request) => {
+  try {
+    return await executeSubmitContractForReview(
+      firestore,
+      request.auth?.uid,
+      request.data,
+    );
+  } catch (error) {
+    if (error instanceof SubmitContractForReviewCommandError)
+      throw callableError(error);
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
