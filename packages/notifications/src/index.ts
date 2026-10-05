@@ -14,6 +14,7 @@ import {
 import { Platform } from 'react-native';
 import {
   getOrCreateInstallationIdWithDependencies,
+  negotiationNotificationRoute,
   registerCurrentDeviceWithDependencies,
   removeCurrentDeviceRegistrationWithDependencies,
   type AppVariant,
@@ -101,4 +102,43 @@ export function registerCurrentDevice(
 
 export function removeCurrentDeviceRegistration(): Promise<void> {
   return removeCurrentDeviceRegistrationWithDependencies(defaultDependencies);
+}
+
+export function configureForegroundNotifications(): void {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: false,
+      shouldShowList: false,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
+
+// Call only after authentication. Opening loads existing authoritative home/inbox listeners.
+export function listenForNegotiationNotificationResponses(
+  navigate: (route: '/') => void,
+): () => void {
+  let active = true;
+  const handled = new Set<string>();
+  const open = (response: Notifications.NotificationResponse | null) => {
+    if (!active || !response) return;
+    const request = response.notification.request;
+    const route = negotiationNotificationRoute(request.content.data);
+    if (!route || handled.has(request.identifier)) return;
+    handled.add(request.identifier);
+    navigate(route);
+    void Notifications.clearLastNotificationResponseAsync().catch(
+      () => undefined,
+    );
+  };
+  const subscription =
+    Notifications.addNotificationResponseReceivedListener(open);
+  void Notifications.getLastNotificationResponseAsync()
+    .then(open)
+    .catch(() => undefined);
+  return () => {
+    active = false;
+    subscription.remove();
+  };
 }

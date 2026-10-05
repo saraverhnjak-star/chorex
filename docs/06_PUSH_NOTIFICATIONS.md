@@ -54,6 +54,20 @@ Expo Push Service
 
 Do not let clients send notifications directly to other users.
 
+### Implemented Phase 2 dispatcher
+
+`notifyOfferNegotiation` is a Firestore document-created trigger on `/activityEvents/{eventId}`. Only `OFFER_PUBLISHED`, `OFFER_COUNTERED` (both actor directions), and `OFFER_ACCEPTED` (both actor directions) are dispatched. Rejection remains an activity event without a push requirement.
+
+The dispatcher loads the authoritative Offer, the event's immutable revision, and active recipient membership; acceptance additionally verifies the committed Contract source. Historical committed events may be processed after later revisions become current. It never reads terms into copy or payloads, accepts client-selected recipients, or participates in a command transaction. Only the intended participant's `pushEnabled: true` registrations for the correct app variant are targeted, with identical tokens deduplicated.
+
+One server-only `/activityEvents/{eventId}/notificationEffects/expo` record identifies each logical effect. A transaction claims a two-minute lease; concurrent/repeated trigger delivery cannot independently claim the same effect. `COMPLETE` and `SKIPPED` are terminal. Transient failures use event retry/backoff, bounded to three claims; exhaustion records `FAILED`. Effect records contain only operational state, recipient UID, minimal routing metadata and ticket IDs, never push tokens or negotiated content. These are delivery records, not a second domain lifecycle or command idempotency system.
+
+Expo sends are batched at 100. Immediately reported `DeviceNotRegistered` registrations are disabled only if their token has not rotated. `COMPLETE` means tickets accepted or no eligible registrations, not confirmed physical delivery. Expo does not provide an exactly-once send operation: an ambiguous network failure or crash after sending can repeat a physical push, while the committed event still owns one logical effect. Receipt polling/retention and further receipt hardening remain outside this Phase 2 sender slice.
+
+Both apps suppress foreground banners/sounds for this realtime-first workflow. After authentication, notification responses validate shared minimal routing metadata and open the existing home/inbox surface, where Firestore loads authoritative data. Contract payloads identify the committed Contract but also open home until Phase 3 supplies Contract detail screens. No notification handler mutates domain state or requests push permission.
+
+The local Functions emulator substitutes fake Expo tickets; verification makes no real Expo calls. Deterministic transport tests cover payloads, direction, batching and failures.
+
 ## 5. Initial notification matrix
 
 | Event | Recipient | Example |

@@ -1,0 +1,128 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const {
+  negotiationNotificationIntent,
+  sendExpoMessages,
+} = require('../lib/negotiationNotifications.js');
+const { negotiationNotificationDataSchema } = require('@chorex/domain');
+const offer = { familyId: 'family', parentUid: 'parent', childUid: 'child' };
+
+for (const [type, actorType, actorUid, recipientUid, entityType, entityId] of [
+  ['OFFER_PUBLISHED', 'PARENT', 'parent', 'child', 'OFFER', 'offer'],
+  ['OFFER_COUNTERED', 'CHILD', 'child', 'parent', 'OFFER', 'offer'],
+  ['OFFER_COUNTERED', 'PARENT', 'parent', 'child', 'OFFER', 'offer'],
+  ['OFFER_ACCEPTED', 'CHILD', 'child', 'parent', 'CONTRACT', 'contract'],
+  ['OFFER_ACCEPTED', 'PARENT', 'parent', 'child', 'CONTRACT', 'contract'],
+]) {
+  test(`${type} by ${actorType}: authoritative recipient and minimal routing`, () => {
+    const event = {
+      type,
+      actorType,
+      actorUid,
+      entityType: 'OFFER',
+      entityId: 'offer',
+      familyId: 'family',
+      contractId: 'contract',
+      recipientUid: 'attacker',
+      note: 'private note',
+      reward: 'private reward',
+      tasks: 'private tasks',
+    };
+    const intent = negotiationNotificationIntent(event, offer);
+    assert.equal(intent.recipientUid, recipientUid);
+    assert.deepEqual(intent.data, {
+      type,
+      entityType,
+      entityId,
+      familyId: 'family',
+    });
+    assert.equal(JSON.stringify(intent).includes('private'), false);
+    assert.equal(JSON.stringify(intent).includes('attacker'), false);
+    if (type === 'OFFER_PUBLISHED')
+      assert.deepEqual(
+        [intent.title, intent.body],
+        ['New offer', 'You have a new chore offer.'],
+      );
+  });
+}
+
+test('rejection, invalid ownership, wrong family, and malformed payload have no intent', () => {
+  const event = {
+    type: 'OFFER_COUNTERED',
+    actorType: 'PARENT',
+    actorUid: 'parent',
+    entityType: 'OFFER',
+    entityId: 'offer',
+    familyId: 'family',
+  };
+  for (const patch of [
+    { type: 'OFFER_REJECTED' },
+    { actorUid: 'attacker' },
+    { familyId: 'wrong' },
+    { entityType: 'CONTRACT' },
+    { entityId: '' },
+  ])
+    assert.equal(
+      negotiationNotificationIntent({ ...event, ...patch }, offer),
+      undefined,
+    );
+  assert.equal(
+    negotiationNotificationDataSchema.safeParse({
+      type: 'OFFER_ACCEPTED',
+      entityType: 'OFFER',
+      entityId: 'offer',
+      familyId: 'family',
+    }).success,
+    false,
+  );
+});
+
+test('Expo transport batches at 100 and validates tickets without live networking', async () => {
+  const original = globalThis.fetch;
+  const chunks = [];
+  globalThis.fetch = async (_url, options) => {
+    const chunk = JSON.parse(options.body);
+    chunks.push(chunk);
+    return {
+      ok: true,
+      json: async () => ({
+        data: chunk.map(() => ({ status: 'ok', id: 'ticket' })),
+      }),
+    };
+  };
+  try {
+    const message = {
+      to: 'ExponentPushToken[test]',
+      title: 'New offer',
+      body: 'You have a new chore offer.',
+      data: {
+        type: 'OFFER_PUBLISHED',
+        entityType: 'OFFER',
+        entityId: 'offer',
+        familyId: 'family',
+      },
+      sound: 'default',
+      channelId: 'default',
+    };
+    assert.equal(
+      (await sendExpoMessages(Array.from({ length: 201 }, () => message)))
+        .length,
+      201,
+    );
+    assert.deepEqual(
+      chunks.map((chunk) => chunk.length),
+      [100, 100, 1],
+    );
+    globalThis.fetch = async () => ({ ok: false });
+    await assert.rejects(sendExpoMessages([message]), /EXPO_TRANSPORT_FAILED/);
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({ data: [] }),
+    });
+    await assert.rejects(sendExpoMessages([message]), /EXPO_INVALID_RESPONSE/);
+  } finally {
+    globalThis.fetch = original;
+  }
+});

@@ -1,6 +1,11 @@
+import { useEffect } from 'react';
+import {
+  configureForegroundNotifications,
+  listenForNegotiationNotificationResponses,
+} from '@chorex/notifications';
 import '../global.css';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Screen, amberAuroraColors, useDynamicTypeStyles } from '@chorex/ui';
 import { configureFirebase } from '../src/firebase';
 import { ParentSessionProvider, useParentSession } from '../src/auth/session';
@@ -58,6 +63,16 @@ function SessionErrorScreen() {
 
 function ParentNavigator() {
   const session = useParentSession();
+  const router = useRouter();
+  useEffect(() => {
+    configureForegroundNotifications();
+  }, []);
+  useEffect(() => {
+    if (!session.user) return;
+    return listenForNegotiationNotificationResponses((route) =>
+      router.replace(route),
+    );
+  }, [session.user, router]);
 
   if (session.status === 'loading') return <SessionLoadingScreen />;
   if (session.status === 'error') return <SessionErrorScreen />;

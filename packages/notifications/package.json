@@ -26,5 +26,8 @@
     "expo-notifications": "~57.0.21",
     "expo-secure-store": "~57.0.4",
     "react-native": "0.86.3"
+  },
+  "dependencies": {
+    "@chorex/domain": "workspace:*"
   }
 }

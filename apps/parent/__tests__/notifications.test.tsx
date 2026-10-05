@@ -1,5 +1,6 @@
 import {
   getOrCreateInstallationIdWithDependencies,
+  negotiationNotificationRoute,
   registerCurrentDeviceWithDependencies,
   removeCurrentDeviceRegistrationWithDependencies,
   type NotificationRegistrationDependencies,
@@ -94,4 +95,34 @@ it('removes only the signed-in account registration during sign-out cleanup', as
     'parent-uid',
     'installation-id',
   );
+});
+
+it('routes only minimal negotiation metadata to existing Phase 2 home surfaces', () => {
+  for (const type of ['OFFER_PUBLISHED', 'OFFER_COUNTERED', 'OFFER_ACCEPTED']) {
+    expect(
+      negotiationNotificationRoute({
+        type,
+        entityType: type === 'OFFER_ACCEPTED' ? 'CONTRACT' : 'OFFER',
+        entityId: 'entity',
+        familyId: 'family',
+      }),
+    ).toBe('/');
+  }
+  expect(
+    negotiationNotificationRoute({
+      type: 'OFFER_REJECTED',
+      entityType: 'OFFER',
+      entityId: 'entity',
+      familyId: 'family',
+    }),
+  ).toBeUndefined();
+  expect(
+    negotiationNotificationRoute({
+      type: 'OFFER_PUBLISHED',
+      entityType: 'OFFER',
+      entityId: 'entity',
+      familyId: 'family',
+      note: 'private',
+    }),
+  ).toBeUndefined();
 });

@@ -400,3 +400,8 @@ Accept deliberate duplication for:
 - `completedCount` as a transactional projection of completion events.
 
 Avoid copying full user profiles into every document. If a historical display name is required later, add explicit snapshots for that purpose.
+
+
+## Phase 2 notification effect persistence
+
+Each committed negotiation activity event may own `/activityEvents/{eventId}/notificationEffects/expo`. The dispatcher alone writes its delivery lease, attempt count, terminal/retry status, recipient UID, minimal routing metadata, device count and Expo ticket IDs. Clients cannot read or write these records under the existing deny-by-default Rules. Rejection events have no notification effect. This record stores delivery bookkeeping and does not duplicate authoritative Offer/Contract state; see `docs/06_PUSH_NOTIFICATIONS.md` for dispatch and retry semantics.

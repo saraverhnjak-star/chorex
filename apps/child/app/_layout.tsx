@@ -1,12 +1,27 @@
+import { useEffect } from 'react';
+import {
+  configureForegroundNotifications,
+  listenForNegotiationNotificationResponses,
+} from '@chorex/notifications';
 import '../global.css';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Screen, amberAuroraColors, useDynamicTypeStyles } from '@chorex/ui';
 import { configureFirebase } from '../src/firebase';
 import { ChildSessionProvider, useChildSession } from '../src/auth/session';
 
 function ChildNavigator() {
   const session = useChildSession();
+  const router = useRouter();
+  useEffect(() => {
+    configureForegroundNotifications();
+  }, []);
+  useEffect(() => {
+    if (!session.user) return;
+    return listenForNegotiationNotificationResponses((route) =>
+      router.replace(route),
+    );
+  }, [session.user, router]);
   const dynamicType = useDynamicTypeStyles();
 
   if (session.status === 'loading') {

@@ -1,3 +1,8 @@
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import {
+  dispatchNegotiationNotification,
+  sendExpoMessages,
+} from './negotiationNotifications';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -281,5 +286,26 @@ export const redeemPairingSession = onCall(
       }
       throw new HttpsError('internal', 'INTERNAL');
     }
+  },
+);
+
+export const notifyOfferNegotiation = onDocumentCreated(
+  { document: 'activityEvents/{eventId}', retry: true, timeoutSeconds: 60 },
+  async (event) => {
+    // Local verification records fake tickets and never calls the Expo network.
+    const transport = process.env.FIRESTORE_EMULATOR_HOST
+      ? async (
+          messages: readonly import('./negotiationNotifications').ExpoMessage[],
+        ) =>
+          messages.map((_, index) => ({
+            status: 'ok' as const,
+            id: `emulator-${event.params.eventId}-${index}`,
+          }))
+      : sendExpoMessages;
+    await dispatchNegotiationNotification(
+      firestore,
+      event.params.eventId,
+      transport,
+    );
   },
 );

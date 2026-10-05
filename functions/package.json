@@ -10,7 +10,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest --config ../jest.config.cjs --rootDir . --passWithNoTests --runInBand",
+    "test": "pnpm build && node --test tests/*.test.mjs",
     "build": "pnpm --filter @chorex/domain build && tsc"
   },
   "devDependencies": {

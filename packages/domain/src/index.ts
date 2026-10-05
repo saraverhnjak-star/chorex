@@ -107,3 +107,8 @@ export {
   type RewardType,
   type TaskTerms,
 } from './offer';
+
+export {
+  negotiationNotificationDataSchema,
+  type NegotiationNotificationData,
+} from './notification';

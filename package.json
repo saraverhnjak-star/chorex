@@ -27,7 +27,8 @@
     "emulators:verify:realtime-offer-inboxes": "firebase emulators:exec --project dev --only firestore \"node firebase/verify-realtime-offer-inboxes.mjs\"",
     "emulators:verify:create-pairing-session": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-create-pairing-session.mjs\"",
     "emulators:verify:redeem-pairing-session": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-redeem-pairing-session.mjs\"",
-    "emulators:verify:device-registration": "firebase emulators:exec --project dev --only firestore \"node firebase/verify-device-registration.mjs\""
+    "emulators:verify:device-registration": "firebase emulators:exec --project dev --only firestore \"node firebase/verify-device-registration.mjs\"",
+    "emulators:verify:phase2": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"node firebase/verify-phase2.mjs\""
   },
   "devDependencies": {
     "eslint": "9.39.5",

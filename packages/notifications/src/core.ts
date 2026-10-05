@@ -1,3 +1,5 @@
+import { negotiationNotificationDataSchema } from '@chorex/domain';
+
 export const notificationRegistrationErrorCodes = {
   authRequired: 'AUTH_REQUIRED',
   configurationMissing: 'NOTIFICATION_CONFIGURATION_MISSING',
@@ -142,4 +144,10 @@ export function isNotificationRegistrationError(
   error: unknown,
 ): error is NotificationRegistrationError {
   return error instanceof NotificationRegistrationError;
+}
+
+/** Phase 2 has inbox/home surfaces; Contract details remain Phase 3. */
+export function negotiationNotificationRoute(data: unknown): '/' | undefined {
+  const parsed = negotiationNotificationDataSchema.safeParse(data);
+  return parsed.success ? '/' : undefined;
 }
