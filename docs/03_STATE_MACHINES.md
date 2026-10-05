@@ -39,6 +39,8 @@ Either waiting state may also -> CANCELLED / EXPIRED
 - The actor may accept only a revision proposed by the other side.
 - Acceptance references an exact revision ID.
 - Acceptance is idempotent: retries must return the same resulting contract.
+- Parent acceptance requires `AWAITING_PARENT`, the active Parent participant, and a current revision authored by the active Child participant. The accepted deadline must still be in the future according to server time.
+- Both acceptance paths share one atomic Contract-creation transaction: `ACCEPTED` Offer, deterministic `ACTIVE` Contract and tasks, frozen reward/deadline/task terms, initial `reviewCycle: 0`, one activity event recording the accepting actor's role, and completed idempotency state. Acceptance creates no earned Reward. Initial zero does not resolve later review-cycle numbering (OPEN-012).
 - No accepted terms are mutated after contract creation.
 
 ## 2. Contract execution

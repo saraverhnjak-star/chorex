@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import type { ChildFamilyMembership } from '@chorex/domain';
 import {
+  acceptOffer,
   subscribeToCurrentParentNegotiationInbox,
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
@@ -11,7 +12,10 @@ import {
   amberAuroraColors,
   useDynamicTypeStyles,
 } from '@chorex/ui';
-import { getParentNegotiationInboxErrorMessage } from './messages';
+import {
+  getAcceptOfferErrorMessage,
+  getParentNegotiationInboxErrorMessage,
+} from './messages';
 
 type ParentNegotiationInboxState =
   | { subscriptionKey: string; status: 'loading' }
@@ -24,6 +28,10 @@ type ParentNegotiationInboxState =
 
 function formatDeadline(deadlineAt: string): string {
   return new Date(deadlineAt).toLocaleString();
+}
+
+function newIdempotencyKey(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function ParentNegotiationInbox({
@@ -42,6 +50,45 @@ export function ParentNegotiationInbox({
     subscriptionKey,
     status: 'loading',
   });
+
+  const [confirmation, setConfirmation] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string>();
+  const [actionError, setActionError] = useState<string>();
+  const mutating = useRef(false);
+  const keys = useRef(new Map<string, string>());
+  const scope = useRef(subscriptionKey);
+  useEffect(() => {
+    scope.current = subscriptionKey;
+  }, [subscriptionKey]);
+
+  const acceptCounteroffer = async (item: ParentNegotiationInboxItem) => {
+    if (mutating.current) return;
+    mutating.current = true;
+    setBusy(true);
+    setActionError(undefined);
+    setMessage(undefined);
+    const identity = `${subscriptionKey}:${item.offer.id}:${item.revision.id}`;
+    const key = keys.current.get(identity) ?? `accept-${newIdempotencyKey()}`;
+    keys.current.set(identity, key);
+    try {
+      await acceptOffer({
+        offerId: item.offer.id,
+        currentRevisionId: item.revision.id,
+        idempotencyKey: key,
+      });
+      if (scope.current === subscriptionKey) {
+        setMessage('Contract active');
+        setConfirmation(undefined);
+      }
+    } catch (error) {
+      if (scope.current === subscriptionKey)
+        setActionError(getAcceptOfferErrorMessage(error));
+    } finally {
+      mutating.current = false;
+      setBusy(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -103,6 +150,17 @@ export function ParentNegotiationInbox({
         </Text>
       </View>
 
+      {message ? (
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          className="text-text"
+          style={dynamicType.body}
+        >
+          {message}
+        </Text>
+      ) : null}
+      {actionError ? <FormMessage message={actionError} /> : null}
       {displayedState.status === 'loading' ? (
         <View className="items-center py-6">
           <ActivityIndicator
@@ -142,7 +200,9 @@ export function ParentNegotiationInbox({
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
         <View className="gap-4">
-          {displayedState.items.map(({ offer, revision }) => {
+          {displayedState.items.map((item) => {
+            const { offer, revision } = item;
+            const identity = `${subscriptionKey}:${offer.id}:${revision.id}`;
             const childName =
               activeChildren.find((child) => child.uid === offer.childUid)
                 ?.displayName ?? 'Child profile unavailable';
@@ -238,6 +298,39 @@ export function ParentNegotiationInbox({
                 >
                   Deadline: {formatDeadline(revision.deadlineAt)}
                 </Text>
+                {confirmation === identity ? (
+                  <View className="gap-3">
+                    <Text
+                      accessibilityLiveRegion="polite"
+                      className="text-text"
+                      style={dynamicType.body}
+                    >
+                      Accept these tasks, reward and deadline? This creates an
+                      active Contract.
+                    </Text>
+                    <Button
+                      label="Confirm accept counteroffer"
+                      loading={busy}
+                      onPress={() => void acceptCounteroffer(item)}
+                    />
+                    <Button
+                      label="Cancel acceptance"
+                      variant="secondary"
+                      disabled={busy}
+                      onPress={() => setConfirmation(undefined)}
+                    />
+                  </View>
+                ) : (
+                  <Button
+                    label="Accept counteroffer"
+                    disabled={busy}
+                    onPress={() => {
+                      setConfirmation(identity);
+                      setActionError(undefined);
+                      setMessage(undefined);
+                    }}
+                  />
+                )}
               </View>
             );
           })}

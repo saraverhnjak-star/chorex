@@ -357,6 +357,260 @@ try {
     ),
   );
 
+  // Extend the existing acceptance verification with the opposite actor path.
+  const parentDraft = await createDraft(
+    parent,
+    familyId,
+    child.localId,
+    'parent-accept-draft',
+  );
+  await publish(parent, parentDraft, 'parent-accept-publish');
+  const counter = await callFunction(
+    'counterOffer',
+    {
+      offerId: parentDraft.offer.id,
+      currentRevisionId: parentDraft.revision.id,
+      reward: { title: 'Games', type: 'PRIVILEGE' },
+      idempotencyKey: 'parent-accept-counter',
+    },
+    child.idToken,
+  );
+  const parentInput = {
+    offerId: parentDraft.offer.id,
+    currentRevisionId: counter.revision.id,
+    idempotencyKey: 'parent-accept-main',
+  };
+  await expectCallableError('AUTH_REQUIRED', () =>
+    callFunction('acceptOffer', parentInput),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('acceptOffer', parentInput, otherParent.idToken),
+  );
+  await withAdmin((db) =>
+    setDoc(doc(db, `families/${familyId}/members/${otherParent.localId}`), {
+      role: 'PARENT',
+      status: 'ACTIVE',
+    }),
+  );
+  await expectCallableError('FORBIDDEN', () =>
+    callFunction('acceptOffer', parentInput, otherParent.idToken),
+  );
+  await expectCallableError('INVALID_STATE', () =>
+    callFunction('acceptOffer', parentInput, child.idToken),
+  );
+  await expectCallableError('STALE_REVISION', () =>
+    callFunction(
+      'acceptOffer',
+      { ...parentInput, currentRevisionId: parentDraft.revision.id },
+      parent.idToken,
+    ),
+  );
+  const counterPath = `offers/${parentDraft.offer.id}/revisions/${counter.revision.id}`;
+  const counterBefore = (await readAdmin(counterPath)).data();
+  for (const patch of [
+    { proposedByRole: 'PARENT' },
+    { proposedByUid: sibling.localId },
+  ]) {
+    await withAdmin((db) => updateDoc(doc(db, counterPath), patch));
+    await expectCallableError('INVALID_STATE', () =>
+      callFunction('acceptOffer', parentInput, parent.idToken),
+    );
+    await withAdmin((db) =>
+      updateDoc(doc(db, counterPath), {
+        proposedByRole: 'CHILD',
+        proposedByUid: child.localId,
+      }),
+    );
+  }
+  await withAdmin((db) =>
+    updateDoc(doc(db, `families/${familyId}/members/${child.localId}`), {
+      status: 'DISABLED',
+    }),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('acceptOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, `families/${familyId}/members/${child.localId}`), {
+      status: 'ACTIVE',
+    }),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, counterPath), {
+      deadlineAt: Timestamp.fromMillis(Date.now() - 1),
+    }),
+  );
+  await expectCallableError('DEADLINE_PASSED', () =>
+    callFunction('acceptOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, counterPath), { deadlineAt: counterBefore.deadlineAt }),
+  );
+  const parentResults = await Promise.all(
+    Array.from({ length: 4 }, () =>
+      callFunction('acceptOffer', parentInput, parent.idToken),
+    ),
+  );
+  const parentContractId = expectedContractId(
+    parentInput.offerId,
+    parentInput.currentRevisionId,
+  );
+  assert(
+    parentResults.every(
+      (r) =>
+        r.contract.id === parentContractId &&
+        r.contract.status === 'ACTIVE' &&
+        r.contract.reviewCycle === 0,
+    ),
+    'Parent concurrent acceptance failed',
+  );
+  assert(
+    JSON.stringify(
+      await callFunction('acceptOffer', parentInput, parent.idToken),
+    ) === JSON.stringify(parentResults[0]),
+    'Parent retry changed result',
+  );
+  await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
+    callFunction(
+      'acceptOffer',
+      { ...parentInput, currentRevisionId: parentDraft.revision.id },
+      parent.idToken,
+    ),
+  );
+  await expectCallableError('INVALID_STATE', () =>
+    callFunction(
+      'acceptOffer',
+      { ...parentInput, idempotencyKey: 'parent-competing' },
+      parent.idToken,
+    ),
+  );
+  await expectCallableError('INVALID_STATE', () =>
+    callFunction(
+      'counterOffer',
+      {
+        offerId: parentInput.offerId,
+        currentRevisionId: parentInput.currentRevisionId,
+        reward: { title: 'Other', type: 'CUSTOM' },
+        idempotencyKey: 'later-counter',
+      },
+      child.idToken,
+    ),
+  );
+  const parentContract = (
+    await readAdmin(`contracts/${parentContractId}`)
+  ).data();
+  assert(
+    JSON.stringify(normalized(parentContract.rewardTerms)) ===
+      JSON.stringify(normalized(counterBefore.reward)),
+    'Parent reward snapshot changed',
+  );
+  assert(
+    parentContract.deadlineAt.toMillis() ===
+      counterBefore.deadlineAt.toMillis(),
+    'Parent deadline snapshot changed',
+  );
+  assert(
+    JSON.stringify(normalized((await readAdmin(counterPath)).data())) ===
+      JSON.stringify(normalized(counterBefore)),
+    'Parent acceptance mutated revision',
+  );
+  for (const [index, task] of counterBefore.tasks.entries()) {
+    const frozen = (
+      await readAdmin(
+        `contracts/${parentContractId}/tasks/${expectedTaskId(parentContractId, index)}`,
+      )
+    ).data();
+    assert(
+      frozen.title === task.title &&
+        frozen.description === task.description &&
+        frozen.targetCount === task.targetCount &&
+        frozen.completedCount === 0,
+      'Parent task snapshot changed',
+    );
+  }
+  await withAdmin(async (db) => {
+    const events = await getDocs(
+      query(
+        collection(db, 'activityEvents'),
+        where('entityId', '==', parentInput.offerId),
+        where('type', '==', 'OFFER_ACCEPTED'),
+      ),
+    );
+    assert(
+      events.size === 1 &&
+        events.docs[0].data().actorType === 'PARENT' &&
+        events.docs[0].data().actorUid === parent.localId,
+      'Parent acceptance actor/event incorrect',
+    );
+    const allContracts = await getDocs(collection(db, 'contracts'));
+    assert(
+      allContracts.docs.filter(
+        (d) => d.data().source.offerId === parentInput.offerId,
+      ).length === 1,
+      'Duplicate Parent Contract',
+    );
+  });
+
+  const raceDraft = await createDraft(
+    parent,
+    familyId,
+    child.localId,
+    'parent-race-draft',
+  );
+  await publish(parent, raceDraft, 'parent-race-publish');
+  const raceCounter = await callFunction(
+    'counterOffer',
+    {
+      offerId: raceDraft.offer.id,
+      currentRevisionId: raceDraft.revision.id,
+      reward: { title: 'Games', type: 'PRIVILEGE' },
+      idempotencyKey: 'parent-race-counter',
+    },
+    child.idToken,
+  );
+  const raceInput = {
+    offerId: raceDraft.offer.id,
+    currentRevisionId: raceCounter.revision.id,
+  };
+  const race = await Promise.allSettled(
+    ['race-key-one', 'race-key-two'].map((idempotencyKey) =>
+      callFunction(
+        'acceptOffer',
+        { ...raceInput, idempotencyKey },
+        parent.idToken,
+      ),
+    ),
+  );
+  assert(
+    race.filter((r) => r.status === 'fulfilled').length === 1,
+    'Competing acceptance keys did not produce one winner',
+  );
+  assert(
+    race.some(
+      (r) =>
+        r.status === 'rejected' &&
+        r.reason.callable?.details?.code === 'INVALID_STATE',
+    ),
+    'Competing acceptance did not fail with INVALID_STATE',
+  );
+  await withAdmin(async (db) => {
+    const contracts = await getDocs(collection(db, 'contracts'));
+    assert(
+      contracts.docs.filter(
+        (d) => d.data().source.offerId === raceInput.offerId,
+      ).length === 1,
+      'Competing keys duplicated Contract',
+    );
+    const events = await getDocs(
+      query(
+        collection(db, 'activityEvents'),
+        where('entityId', '==', raceInput.offerId),
+        where('type', '==', 'OFFER_ACCEPTED'),
+      ),
+    );
+    assert(events.size === 1, 'Competing keys duplicated acceptance event');
+  });
+
   const revisionPath = `offers/${draft.offer.id}/revisions/${draft.revision.id}`;
   const revisionBefore = (await readAdmin(revisionPath)).data();
   const concurrent = await Promise.all(

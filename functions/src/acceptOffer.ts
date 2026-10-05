@@ -123,15 +123,18 @@ function requireMatchingRequest(
   }
 }
 
-function requireActiveChildMembership(data: DocumentData | undefined): void {
+function requireActiveMembership(
+  data: DocumentData | undefined,
+): 'PARENT' | 'CHILD' {
   if (!data || data.status !== 'ACTIVE') {
     throw new AcceptOfferCommandError(
       offerCommandErrorCodes.familyMembershipRequired,
     );
   }
-  if (data.role !== 'CHILD') {
+  if (data.role !== 'CHILD' && data.role !== 'PARENT') {
     throw new AcceptOfferCommandError(offerCommandErrorCodes.wrongActorRole);
   }
+  return data.role;
 }
 
 function parseTimestamp(value: unknown): string {
@@ -306,8 +309,17 @@ export async function executeAcceptOffer(
         transaction.get(revisionReference),
         transaction.get(contractReference),
       ]);
-    requireActiveChildMembership(membershipSnapshot.data());
-    if (offer.childUid !== actorUid) {
+    const actorRole = requireActiveMembership(membershipSnapshot.data());
+    if (
+      actorRole === 'PARENT' &&
+      offer.status === 'AWAITING_CHILD' &&
+      !completedRecord
+    ) {
+      throw new AcceptOfferCommandError(offerCommandErrorCodes.wrongActorRole);
+    }
+    if (
+      (actorRole === 'CHILD' ? offer.childUid : offer.parentUid) !== actorUid
+    ) {
       throw new AcceptOfferCommandError(offerCommandErrorCodes.forbidden);
     }
     const revision = parseRevision(
@@ -327,17 +339,33 @@ export async function executeAcceptOffer(
       return completedRecord.taskCount;
     }
 
-    if (offer.status !== 'AWAITING_CHILD') {
+    if (
+      offer.status !==
+      (actorRole === 'CHILD' ? 'AWAITING_CHILD' : 'AWAITING_PARENT')
+    ) {
       throw new AcceptOfferCommandError(offerCommandErrorCodes.invalidState);
     }
     if (offer.currentRevisionId !== input.currentRevisionId) {
       throw new AcceptOfferCommandError(offerCommandErrorCodes.staleRevision);
     }
     if (
-      revision.proposedByRole !== 'PARENT' ||
-      revision.proposedByUid !== offer.parentUid
+      revision.proposedByRole !==
+        (actorRole === 'CHILD' ? 'PARENT' : 'CHILD') ||
+      revision.proposedByUid !==
+        (actorRole === 'CHILD' ? offer.parentUid : offer.childUid)
     ) {
       throw new AcceptOfferCommandError(offerCommandErrorCodes.invalidState);
+    }
+    if (actorRole === 'PARENT') {
+      const childMembership = await transaction.get(
+        firestore.doc(`families/${offer.familyId}/members/${offer.childUid}`),
+      );
+      const child = childMembership.data();
+      if (!child || child.status !== 'ACTIVE' || child.role !== 'CHILD') {
+        throw new AcceptOfferCommandError(
+          offerCommandErrorCodes.familyMembershipRequired,
+        );
+      }
     }
     const acceptedAt = Timestamp.now();
     if (Date.parse(revision.deadlineAt) <= acceptedAt.toMillis()) {
@@ -390,7 +418,7 @@ export async function executeAcceptOffer(
     transaction.create(activityReference, {
       familyId: offer.familyId,
       actorUid,
-      actorType: 'CHILD',
+      actorType: actorRole,
       type: 'OFFER_ACCEPTED',
       entityType: 'OFFER',
       entityId: input.offerId,

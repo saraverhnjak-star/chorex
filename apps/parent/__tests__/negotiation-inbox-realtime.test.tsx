@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ParentNegotiationInbox } from '../src/offers/ParentNegotiationInbox';
 
+const mockAccept = jest.fn();
 const mockUnsubscribe = jest.fn();
 let emitItems: ((items: readonly unknown[]) => void) | undefined;
 let emitError: ((error: unknown) => void) | undefined;
@@ -17,6 +18,9 @@ const mockSubscribe = jest.fn(
 );
 
 jest.mock('@chorex/firebase-client', () => ({
+  acceptOffer: (input: unknown) => mockAccept(input),
+  isFamilyClientError: () => false,
+  familyClientErrorCodes: {},
   isOfferInboxClientError: () => false,
   offerInboxClientErrorCodes: {},
   subscribeToCurrentParentNegotiationInbox: (
@@ -126,4 +130,50 @@ it('renders realtime Parent counteroffer changes and cleans up subscriptions', (
 
   view.unmount();
   expect(mockUnsubscribe).toHaveBeenCalledTimes(3);
+});
+
+it('requires confirmation, retains the retry key, and lets realtime remove the accepted item', async () => {
+  mockAccept
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({});
+  render(
+    <ParentNegotiationInbox
+      activeChildren={children}
+      authUid="parent-1"
+      familyId="family-1"
+    />,
+  );
+  act(() => emitItems?.([item]));
+  fireEvent.press(screen.getByRole('button', { name: 'Accept counteroffer' }));
+  expect(mockAccept).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole('button', { name: 'Cancel acceptance' }));
+  expect(
+    screen.queryByRole('button', { name: 'Confirm accept counteroffer' }),
+  ).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Accept counteroffer' }));
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm accept counteroffer' }),
+    ),
+  );
+  expect(
+    screen.getByText('This offer could not be accepted. Try again.'),
+  ).toBeOnTheScreen();
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm accept counteroffer' }),
+    ),
+  );
+  expect(mockAccept.mock.calls[1][0]).toEqual(mockAccept.mock.calls[0][0]);
+  expect(mockAccept).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      offerId: 'offer-1',
+      currentRevisionId: 'revision-2',
+    }),
+  );
+  expect(screen.getByText('Contract active')).toBeOnTheScreen();
+  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  act(() => emitItems?.([]));
+  expect(screen.queryByText('Mia')).toBeNull();
+  expect(screen.getByText('Contract active')).toBeOnTheScreen();
 });
