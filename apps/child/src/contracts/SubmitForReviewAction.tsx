@@ -8,9 +8,11 @@ import { getSubmissionErrorMessage } from './messages';
 export function SubmitForReviewAction({
   contract,
   tasks,
+  feedbackAvailable = false,
 }: {
   contract: Contract;
   tasks: readonly ContractTask[];
+  feedbackAvailable?: boolean;
 }) {
   const styles = useDynamicTypeStyles();
   const key = useRef<string | undefined>(undefined);
@@ -19,10 +21,13 @@ export function SubmitForReviewAction({
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [resubmitted, setResubmitted] = useState(false);
   const [error, setError] = useState<string>();
   const allComplete =
     tasks.length > 0 &&
     tasks.every((task) => task.completedCount === task.targetCount);
+  const resubmitting = contract.status === 'CHANGES_REQUESTED';
+  const canSubmit = resubmitting ? feedbackAvailable : allComplete;
   useEffect(() => {
     active.current = true;
     return () => {
@@ -33,8 +38,8 @@ export function SubmitForReviewAction({
     if (
       inFlight.current ||
       confirmed ||
-      contract.status !== 'ACTIVE' ||
-      !allComplete
+      (contract.status !== 'ACTIVE' && !resubmitting) ||
+      !canSubmit
     )
       return;
     inFlight.current = true;
@@ -48,6 +53,7 @@ export function SubmitForReviewAction({
       });
       if (active.current) {
         setConfirmed(true);
+        setResubmitted(resubmitting);
         setConfirming(false);
       }
     } catch (failure) {
@@ -58,8 +64,13 @@ export function SubmitForReviewAction({
       if (active.current) setPending(false);
     }
   };
-  if (contract.status !== 'ACTIVE' && contract.status !== 'READY_FOR_REVIEW')
+  if (
+    contract.status !== 'ACTIVE' &&
+    contract.status !== 'READY_FOR_REVIEW' &&
+    !resubmitting
+  )
     return null;
+  if (resubmitting && !feedbackAvailable && !confirmed) return null;
   return (
     <View className="gap-2">
       {confirmed ? (
@@ -69,7 +80,7 @@ export function SubmitForReviewAction({
           className="text-text"
           style={styles.body}
         >
-          Sent for review
+          {resubmitted ? 'Sent back for review' : 'Sent for review'}
         </Text>
       ) : null}
       {contract.status === 'READY_FOR_REVIEW' ? (
@@ -93,7 +104,7 @@ export function SubmitForReviewAction({
       ) : (
         <>
           <FormMessage message={error} />
-          {!allComplete ? (
+          {!canSubmit ? (
             <Text
               allowFontScaling={false}
               className="text-text-muted"
@@ -109,18 +120,23 @@ export function SubmitForReviewAction({
                 className="font-semibold text-text"
                 style={styles.body}
               >
-                Send this Contract for review?
+                {resubmitting
+                  ? 'Send this Contract back for review?'
+                  : 'Send this Contract for review?'}
               </Text>
               <Text
                 allowFontScaling={false}
                 className="text-text"
                 style={styles.body}
               >
-                Your Parent will review the completed agreement before approving
-                it.
+                {resubmitting
+                  ? 'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.'
+                  : 'Your Parent will review the completed agreement before approving it.'}
               </Text>
               <Button
-                label="Confirm submission"
+                label={
+                  resubmitting ? 'Confirm resubmission' : 'Confirm submission'
+                }
                 loading={pending}
                 onPress={() => void submit()}
               />
@@ -132,7 +148,7 @@ export function SubmitForReviewAction({
             </>
           ) : (
             <Button
-              label="Submit for review"
+              label={resubmitting ? 'Resubmit for review' : 'Submit for review'}
               onPress={() => setConfirming(true)}
             />
           )}

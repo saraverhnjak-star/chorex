@@ -68,3 +68,5 @@ The same development Firebase routing was used for native verification. Automate
 OPEN-009/010/011/012 remain unresolved. No Parent review queue/actions, Review, review-cycle change, Reward, notification expansion, expiry/cancellation, custom Contract persistence or offline mutation queue was added. Physical-device push delivery, Android-native verification and reinstall/cache eviction are outside this iOS restart check.
 
 Subsequent decision: ADR-043 resolves OPEN-012 with zero-based review rounds. This historical Phase 3 evidence remains unchanged; first submission still preserves the cycle. OPEN-009/010/011 remain unresolved.
+
+Subsequent decision/slice: ADR-044 resolves OPEN-009 with contract-level remediation; [Child resubmission acceptance](PHASE_4_RESUBMISSION_ACCEPTANCE.md) extends the existing submitContractForReview command. Historical verification above remains unchanged. Initial submission still preserves the cycle; corrections preserve task history and successful resubmission alone opens the next round. OPEN-010 and OPEN-011 remain unresolved.

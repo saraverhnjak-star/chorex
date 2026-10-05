@@ -1245,3 +1245,236 @@ test('request changes commit failure rolls back; retries revalidate access and p
   f.documents.get('families/family/members/parent').status = 'DISABLED';
   await changesCode('FAMILY_MEMBERSHIP_REQUIRED', () => requestChanges(f));
 });
+
+async function correctionFixture(cycle = 0) {
+  const f = fixture(1);
+  await executeRecordTaskCompletion(f.firestore, 'child', input);
+  await submit(f);
+  f.contract().reviewCycle = cycle;
+  await require('../lib/requestContractChanges.js').executeRequestContractChanges(
+    f.firestore,
+    'parent',
+    {
+      contractId: 'contract',
+      idempotencyKey: 'request-changes-fixture',
+      note: 'Check the result.',
+    },
+  );
+  return f;
+}
+const resubmitInput = {
+  ...submitInput,
+  idempotencyKey: 'resubmission-key-001',
+};
+for (const cycle of [0, 2])
+  test(`resubmission opens round ${cycle + 1} once and preserves all execution and review history`, async () => {
+    const f = await correctionFixture(cycle);
+    const before = clone([...f.documents]);
+    const result = await submit(f, 'child', resubmitInput);
+    assert.equal(result.contract.status, 'READY_FOR_REVIEW');
+    assert.equal(result.contract.reviewCycle, cycle + 1);
+    for (const [path, data] of before) {
+      if (path === 'contracts/contract') {
+        assert.deepEqual(f.documents.get(path), {
+          ...data,
+          status: 'READY_FOR_REVIEW',
+          reviewCycle: cycle + 1,
+          updatedAt: f.contract().updatedAt,
+        });
+      } else assert.deepEqual(f.documents.get(path), data);
+    }
+    assert.equal(
+      [...f.documents.keys()].filter((p) => p.includes('/reviews/')).length,
+      1,
+    );
+    assert.equal(
+      [...f.documents.keys()].some((p) => p.startsWith('rewards/')),
+      false,
+    );
+    assert.deepEqual(await submit(f, 'child', resubmitInput), result);
+    assert.equal(f.contract().reviewCycle, cycle + 1);
+    const events = f
+      .events()
+      .filter(([, e]) => e.type === 'CONTRACT_SUBMITTED');
+    assert.equal(events.length, 2); // initial submission + resubmission
+    assert.equal(events[1][1].actorType, 'CHILD');
+    assert.equal(events[1][1].actorUid, 'child');
+    assert.equal(events[1][1].reviewCycle, cycle + 1);
+    assert.equal(JSON.stringify(events).includes('Check the result.'), false);
+    await submissionCode('IDEMPOTENCY_CONFLICT', () =>
+      submit(f, 'child', { ...resubmitInput, contractId: 'other' }),
+    );
+    f.contract().status = 'APPROVED';
+    assert.deepEqual(await submit(f, 'child', resubmitInput), result);
+  });
+for (const [label, mutate] of [
+  ['missing', (f, path) => f.documents.delete(path)],
+  [
+    'approval',
+    (f, path) => {
+      f.documents.get(path).decision = 'APPROVE';
+    },
+  ],
+  [
+    'wrong Contract',
+    (f, path) => {
+      f.documents.get(path).contractId = 'other';
+    },
+  ],
+  [
+    'wrong family',
+    (f, path) => {
+      f.documents.get(path).familyId = 'other';
+    },
+  ],
+  [
+    'wrong cycle',
+    (f, path) => {
+      f.documents.get(path).cycle = 2;
+    },
+  ],
+  [
+    'wrong reviewer',
+    (f, path) => {
+      f.documents.get(path).reviewerUid = 'other';
+    },
+  ],
+  [
+    'missing feedback',
+    (f, path) => {
+      delete f.documents.get(path).note;
+    },
+  ],
+  [
+    'malformed timestamp',
+    (f, path) => {
+      f.documents.get(path).createdAt = 'bad';
+    },
+  ],
+  [
+    'next decision exists',
+    (f, path) => {
+      f.documents.set(
+        `contracts/contract/reviews/${require('../lib/parentReviewDecision.js').contractReviewId('contract', 1)}`,
+        f.documents.get(path),
+      );
+    },
+  ],
+  [
+    'unexpected Reward',
+    (f) =>
+      f.documents.set(
+        `rewards/${require('../lib/parentReviewDecision.js').contractRewardId('contract')}`,
+        {},
+      ),
+  ],
+  [
+    'invalid task counter',
+    (f) => {
+      f.task().completedCount = 2;
+    },
+  ],
+])
+  test(`resubmission rejects incoherent ${label} atomically`, async () => {
+    const f = await correctionFixture();
+    const path = [...f.documents.keys()].find((p) => p.includes('/reviews/'));
+    mutate(f, path);
+    const before = clone([...f.documents]);
+    await submissionCode('INVALID_STATE', () =>
+      submit(f, 'child', resubmitInput),
+    );
+    assert.deepEqual([...f.documents], before);
+  });
+for (const [actor, code, change] of [
+  [undefined, 'AUTH_REQUIRED'],
+  ['parent', 'WRONG_ACTOR_ROLE'],
+  ['sibling', 'FORBIDDEN'],
+  ['outside', 'FAMILY_MEMBERSHIP_REQUIRED'],
+  [
+    'child',
+    'FAMILY_MEMBERSHIP_REQUIRED',
+    (f) => {
+      f.documents.get('families/family/members/child').status = 'DISABLED';
+    },
+  ],
+  [
+    'child',
+    'FAMILY_MEMBERSHIP_REQUIRED',
+    (f) => f.documents.delete('families/family/members/child'),
+  ],
+  [
+    'child',
+    'FORBIDDEN',
+    (f) => {
+      f.contract().childUid = 'other';
+    },
+  ],
+  [
+    'child',
+    'FAMILY_MEMBERSHIP_REQUIRED',
+    (f) => {
+      f.contract().familyId = 'other';
+    },
+  ],
+])
+  test(`resubmission enforces ${actor ?? 'unauthenticated'} authorization: ${code}`, async () => {
+    const f = await correctionFixture();
+    change?.(f);
+    const before = clone([...f.documents]);
+    await submissionCode(code, () =>
+      submission.executeSubmitContractForReview(
+        f.firestore,
+        actor,
+        resubmitInput,
+      ),
+    );
+    assert.deepEqual([...f.documents], before);
+  });
+test('competing same/different-key resubmissions open exactly one round and no task mutations', async () => {
+  for (const same of [true, false]) {
+    const f = await correctionFixture(2);
+    const tasks = clone(f.task()),
+      history = clone(f.completions());
+    const result = await Promise.allSettled([
+      submit(f, 'child', resubmitInput),
+      submit(f, 'child', {
+        ...resubmitInput,
+        idempotencyKey: same
+          ? resubmitInput.idempotencyKey
+          : 'competing-resubmit',
+      }),
+    ]);
+    assert.equal(
+      result.filter((r) => r.status === 'fulfilled').length,
+      same ? 2 : 1,
+    );
+    if (same) assert.deepEqual(result[0].value, result[1].value);
+    else
+      assert.equal(
+        result.find((r) => r.status === 'rejected').reason.code,
+        'INVALID_STATE',
+      );
+    assert.equal(f.contract().reviewCycle, 3);
+    assert.equal(
+      f.events().filter(([, e]) => e.type === 'CONTRACT_SUBMITTED').length,
+      2,
+    );
+    assert.deepEqual(f.task(), tasks);
+    assert.deepEqual(f.completions(), history);
+  }
+});
+test('failed resubmission transaction commits no transition/event/receipt', async () => {
+  const f = await correctionFixture();
+  const before = clone([...f.documents]);
+  const run = f.firestore.runTransaction;
+  f.firestore.runTransaction = (op) =>
+    run(async (tx) => {
+      await op(tx);
+      throw new Error('INJECTED_ABORT');
+    });
+  await assert.rejects(
+    () => submit(f, 'child', resubmitInput),
+    /INJECTED_ABORT/,
+  );
+  assert.deepEqual([...f.documents], before);
+});

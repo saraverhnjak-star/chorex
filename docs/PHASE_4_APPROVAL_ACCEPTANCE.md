@@ -72,3 +72,5 @@ No request-changes command, approval notes, Review history UI, fulfillment/cance
 - Firestore Rules and indexes: unchanged.
 
 Subsequent slice: [Parent request-changes acceptance](PHASE_4_REQUEST_CHANGES_ACCEPTANCE.md) adds the second decision through the shared review transaction, preserves approval behavior, and introduces bounded current-round Review reads for feedback. Approval regressions still pass. Correction/resubmission and OPEN-009 remain unresolved.
+
+Subsequent decision/slice: ADR-044 resolves OPEN-009 with contract-level remediation; [Child resubmission acceptance](PHASE_4_RESUBMISSION_ACCEPTANCE.md) extends the existing submitContractForReview command. Historical verification above remains unchanged. Initial submission still preserves the cycle; corrections preserve task history and successful resubmission alone opens the next round. OPEN-010 and OPEN-011 remain unresolved.

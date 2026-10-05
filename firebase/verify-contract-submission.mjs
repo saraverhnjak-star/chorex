@@ -188,17 +188,6 @@ export async function verifyContractSubmission(ctx) {
     assert.equal(events.docs[0].data().entityType, 'CONTRACT');
     assert.equal((await getDocs(collection(db, `${path}/reviews`))).size, 0);
     assert.equal((await getDocs(collection(db, 'rewards'))).size, 0);
-    assert.equal(
-      (
-        await getDocs(
-          collection(
-            db,
-            `activityEvents/${events.docs[0].id}/notificationEffects`,
-          ),
-        )
-      ).size,
-      0,
-    );
     const receipts = await getDocs(
       query(
         collection(db, 'idempotency'),
@@ -293,7 +282,7 @@ export async function verifyContractSubmission(ctx) {
     });
   }
   console.info(
-    'PASS: submitContractForReview full accepted/completed flow, authorization, strict input, bilateral realtime, immutable terms/counts/history, unchanged cycle, canonical retries, concurrent submissions/final completion, denied direct writes, no Review/Reward/push',
+    'PASS: submitContractForReview full accepted/completed flow, authorization, strict input, bilateral realtime, immutable terms/counts/history, unchanged cycle, canonical retries, concurrent submissions/final completion, denied direct writes, no Review/Reward',
   );
   if (process.env.CHOREX_VERIFY_REQUEST_CHANGES === '1') {
     const { verifyContractChanges } =

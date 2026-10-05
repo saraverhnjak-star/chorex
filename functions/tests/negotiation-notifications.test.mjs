@@ -215,3 +215,38 @@ test('changes-requested intent resolves Child with generic copy and no private f
       undefined,
     );
 });
+
+test('submission and resubmission intent resolves active Parent routing without feedback', () => {
+  const {
+    submissionNotificationIntent,
+  } = require('../lib/negotiationNotifications.js');
+  const event = {
+    type: 'CONTRACT_SUBMITTED',
+    entityType: 'CONTRACT',
+    entityId: 'contract',
+    familyId: 'family',
+    actorType: 'CHILD',
+    actorUid: 'child',
+    note: 'Private feedback',
+  };
+  const intent = submissionNotificationIntent(event, offer);
+  assert.equal(intent.recipientUid, 'parent');
+  assert.equal(intent.recipientRole, 'PARENT');
+  assert.deepEqual(intent.data, {
+    type: 'CONTRACT_SUBMITTED',
+    entityType: 'CONTRACT',
+    entityId: 'contract',
+    familyId: 'family',
+  });
+  assert.equal(JSON.stringify(intent).includes('Private'), false);
+  for (const patch of [
+    { actorUid: 'other' },
+    { actorType: 'PARENT' },
+    { familyId: 'other' },
+    { entityType: 'OFFER' },
+  ])
+    assert.equal(
+      submissionNotificationIntent({ ...event, ...patch }, offer),
+      undefined,
+    );
+});

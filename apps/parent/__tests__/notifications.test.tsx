@@ -157,3 +157,14 @@ it('changes-requested notification routes to Contract detail with no feedback pa
     }),
   ).toBeUndefined();
 });
+
+it('submission notification opens existing Contract detail', () => {
+  expect(
+    negotiationNotificationRoute({
+      type: 'CONTRACT_SUBMITTED',
+      entityType: 'CONTRACT',
+      entityId: 'contract-1',
+      familyId: 'family-1',
+    }),
+  ).toBe('/contracts/contract-1');
+});

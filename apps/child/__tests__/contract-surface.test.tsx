@@ -555,7 +555,7 @@ it('realtime approval communicates an earned, pending reward without execution a
   ).not.toBeOnTheScreen();
 });
 
-it('realtime requested changes displays authoritative cached feedback and no correction/resubmission actions', () => {
+it('realtime requested changes displays authoritative cached feedback and read-only task progress', () => {
   const view = render(<ContractDetail {...props} />);
   emitReady();
   act(() =>
@@ -576,7 +576,10 @@ it('realtime requested changes displays authoritative cached feedback and no cor
   expect(
     screen.getByText('Changes were requested. The reward has not been earned.'),
   ).toBeOnTheScreen();
-  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(
+    screen.getByRole('button', { name: 'Resubmit for review' }),
+  ).toBeEnabled();
+  expect(screen.queryByRole('button', { name: 'Mark one done' })).toBeNull();
   const oldReview = mockReview;
   view.rerender(<ContractDetail {...props} contractId="another" />);
   expect(mockReviewStop).toHaveBeenCalled();
@@ -599,4 +602,103 @@ it('feedback listener errors preserve visible Contract state without inventing f
       'Feedback could not be loaded. Reopen this Contract to try again.',
     ),
   ).toBeOnTheScreen();
+});
+
+function emitCorrection(cycle = 0) {
+  completeTasks();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'CHANGES_REQUESTED', reviewCycle: cycle },
+      fromCache: false,
+    }),
+  );
+  act(() =>
+    mockReview({
+      data: { note: 'Please check the result.' },
+      fromCache: false,
+    }),
+  );
+}
+it('resubmission confirms addressed feedback, guards pending taps and waits for backend/realtime', async () => {
+  let resolve: (value: unknown) => void = () => {};
+  mockSubmit.mockImplementationOnce(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      }),
+  );
+  render(<ContractDetail {...props} />);
+  emitCorrection();
+  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Mark one done' })).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
+  expect(
+    screen.getByRole('header', { name: 'Send this Contract back for review?' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.',
+    ),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Keep checking' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
+  const button = screen.getByRole('button', { name: 'Confirm resubmission' });
+  fireEvent.press(button);
+  fireEvent.press(button);
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(button).toBeDisabled();
+  expect(screen.queryByText('Sent back for review')).toBeNull();
+  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  await act(async () =>
+    resolve({
+      contract: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
+    }),
+  );
+  expect(screen.getByText('Sent back for review')).toBeOnTheScreen();
+  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(screen.queryByText('Please check the result.')).toBeNull();
+  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+});
+it('resubmission failure keeps correction state and same-key retry; a new round uses a fresh key', async () => {
+  mockSubmit.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({});
+  render(<ContractDetail {...props} />);
+  emitCorrection();
+  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm resubmission' }),
+    ),
+  );
+  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(screen.queryByText('Sent back for review')).toBeNull();
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm resubmission' }),
+    ),
+  );
+  expect(mockSubmit.mock.calls[0][0]).toEqual(mockSubmit.mock.calls[1][0]);
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
+      fromCache: false,
+    }),
+  );
+  emitCorrection(1);
+  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
+  await act(async () =>
+    fireEvent.press(
+      screen.getByRole('button', { name: 'Confirm resubmission' }),
+    ),
+  );
+  expect(mockSubmit.mock.calls[2][0].idempotencyKey).not.toBe(
+    mockSubmit.mock.calls[0][0].idempotencyKey,
+  );
 });

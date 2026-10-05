@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import {
   contractCommandErrorCodes,
   contractSchema,
+  contractReviewSchema,
   submitContractForReviewInputSchema,
   submitContractForReviewOutputSchema,
   type ContractCommandErrorCode,
@@ -12,6 +13,7 @@ import {
   readContractTask,
   RecordTaskCompletionCommandError,
 } from './recordTaskCompletion';
+import { contractReviewId, contractRewardId } from './parentReviewDecision';
 
 const commandName = 'submitContractForReview';
 export class SubmitContractForReviewCommandError extends Error {
@@ -100,8 +102,51 @@ export async function executeSubmitContractForReview(
         throw new Error('INVALID_COMPLETED_SUBMISSION_STATE');
       return result;
     }
-    if (data.status !== 'ACTIVE')
+    const resubmitting = data.status === 'CHANGES_REQUESTED';
+    if (data.status !== 'ACTIVE' && !resubmitting)
       return fail(contractCommandErrorCodes.invalidState);
+    if (resubmitting) {
+      if (
+        !Number.isSafeInteger(data.reviewCycle) ||
+        data.reviewCycle < 0 ||
+        !Number.isSafeInteger(data.reviewCycle + 1)
+      )
+        return fail(contractCommandErrorCodes.invalidState);
+      const reviewId = contractReviewId(input.contractId, data.reviewCycle);
+      const [reviewSnapshot, nextReview, reward] = await Promise.all([
+        transaction.get(
+          firestore.doc(`contracts/${input.contractId}/reviews/${reviewId}`),
+        ),
+        transaction.get(
+          firestore.doc(
+            `contracts/${input.contractId}/reviews/${contractReviewId(input.contractId, data.reviewCycle + 1)}`,
+          ),
+        ),
+        transaction.get(
+          firestore.doc(`rewards/${contractRewardId(input.contractId)}`),
+        ),
+      ]);
+      const reviewData = reviewSnapshot.data();
+      if (!reviewData || !(reviewData.createdAt instanceof Timestamp))
+        return fail(contractCommandErrorCodes.invalidState);
+      const review = contractReviewSchema.safeParse({
+        ...reviewData,
+        id: reviewId,
+        createdAt: iso(reviewData.createdAt),
+      });
+      if (
+        !review.success ||
+        review.data.familyId !== data.familyId ||
+        review.data.contractId !== input.contractId ||
+        review.data.cycle !== data.reviewCycle ||
+        review.data.reviewerUid !== data.parentUid ||
+        review.data.decision !== 'REQUEST_CHANGES' ||
+        !review.data.note ||
+        nextReview.exists ||
+        reward.exists
+      )
+        return fail(contractCommandErrorCodes.invalidState);
+    }
     const tasks = await transaction.get(
       firestore.collection(`contracts/${input.contractId}/tasks`),
     );
@@ -126,7 +171,10 @@ export async function executeSubmitContractForReview(
     });
     if (!parsedTasks.length)
       return fail(contractCommandErrorCodes.invalidState);
-    if (parsedTasks.some((task) => task.completedCount !== task.targetCount))
+    if (
+      !resubmitting &&
+      parsedTasks.some((task) => task.completedCount !== task.targetCount)
+    )
       return fail(contractCommandErrorCodes.tasksIncomplete);
     const contract = contractSchema.parse({
       id: input.contractId,
@@ -149,11 +197,13 @@ export async function executeSubmitContractForReview(
       contract: {
         ...contract,
         status: 'READY_FOR_REVIEW',
+        reviewCycle: contract.reviewCycle + (resubmitting ? 1 : 0),
         updatedAt: now.toDate().toISOString(),
       },
     });
     transaction.update(reference, {
       status: 'READY_FOR_REVIEW',
+      ...(resubmitting ? { reviewCycle: result.contract.reviewCycle } : {}),
       updatedAt: now,
     });
     transaction.create(activity, {
@@ -163,6 +213,7 @@ export async function executeSubmitContractForReview(
       type: 'CONTRACT_SUBMITTED',
       entityType: 'CONTRACT',
       entityId: input.contractId,
+      reviewCycle: result.contract.reviewCycle,
       createdAt: now,
     });
     transaction.create(idempotency, {

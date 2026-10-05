@@ -55,3 +55,5 @@ OPEN-009 correction semantics, OPEN-010 undo, OPEN-011 expiry/cancellation and O
 Pre-existing uncommitted Slice 1/2 changes are retained. No dependency, Firestore Rules, index or existing Offer-command behavior changes are introduced by this slice.
 
 Subsequent decision: ADR-043 resolves OPEN-012 with zero-based review rounds. This historical Phase 3 evidence remains unchanged; first submission still preserves the cycle. OPEN-009/010/011 remain unresolved.
+
+Subsequent decision/slice: ADR-044 resolves OPEN-009 with contract-level remediation; [Child resubmission acceptance](PHASE_4_RESUBMISSION_ACCEPTANCE.md) extends the existing submitContractForReview command. Historical verification above remains unchanged. Initial submission still preserves the cycle; corrections preserve task history and successful resubmission alone opens the next round. OPEN-010 and OPEN-011 remain unresolved.

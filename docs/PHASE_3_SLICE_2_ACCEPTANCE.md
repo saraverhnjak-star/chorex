@@ -54,3 +54,5 @@ This slice establishes the execution foundation. [Slice 3](PHASE_3_SLICE_3_ACCEP
 - `functions/README.md`, `packages/firebase-client/README.md`
 
 Pre-existing uncommitted Slice 1 files remain in the workspace; they are listed in its acceptance note. Firestore Rules, Parent production code, dependencies and Offer command implementations are unchanged by Slice 2.
+
+Subsequent decision/slice: ADR-044 resolves OPEN-009 with contract-level remediation; [Child resubmission acceptance](PHASE_4_RESUBMISSION_ACCEPTANCE.md) extends the existing submitContractForReview command. Historical verification above remains unchanged. Initial submission still preserves the cycle; corrections preserve task history and successful resubmission alone opens the next round. OPEN-010 and OPEN-011 remain unresolved.

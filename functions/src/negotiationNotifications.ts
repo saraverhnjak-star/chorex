@@ -119,6 +119,35 @@ export function approvalNotificationIntent(
   };
 }
 
+export function submissionNotificationIntent(
+  event: DocumentData,
+  contract: DocumentData,
+): NotificationIntent | undefined {
+  if (
+    event.type !== 'CONTRACT_SUBMITTED' ||
+    event.entityType !== 'CONTRACT' ||
+    event.familyId !== contract.familyId ||
+    event.actorType !== 'CHILD' ||
+    event.actorUid !== contract.childUid ||
+    typeof contract.parentUid !== 'string'
+  )
+    return;
+  const data = negotiationNotificationDataSchema.safeParse({
+    type: event.type,
+    entityType: 'CONTRACT',
+    entityId: event.entityId,
+    familyId: contract.familyId,
+  });
+  if (!data.success) return;
+  return {
+    recipientUid: contract.parentUid,
+    recipientRole: 'PARENT',
+    title: 'Ready for review',
+    body: 'An agreement is waiting for your review.',
+    data: data.data,
+  };
+}
+
 export function changesRequestedNotificationIntent(
   event: DocumentData,
   contract: DocumentData,
@@ -205,6 +234,7 @@ export async function dispatchNegotiationNotification(
         'OFFER_ACCEPTED',
         'CONTRACT_APPROVED',
         'CONTRACT_CHANGES_REQUESTED',
+        'CONTRACT_SUBMITTED',
       ].includes(event.type)
     )
       return;
@@ -223,7 +253,42 @@ export async function dispatchNegotiationNotification(
     }
     let resolved: NotificationIntent | undefined;
     let familyId: string;
-    if (event.type === 'CONTRACT_CHANGES_REQUESTED') {
+    if (event.type === 'CONTRACT_SUBMITTED') {
+      if (
+        typeof event.entityId !== 'string' ||
+        !event.entityId ||
+        event.entityId.includes('/')
+      )
+        return;
+      const contract = (
+        await tx.get(firestore.doc(`contracts/${event.entityId}`))
+      ).data();
+      if (!contract) return;
+      // The immutable completed receipt validates committed submissions even after later decisions.
+      const receipt = (
+        await tx.get(
+          firestore.doc(`idempotency/${eventId.replace(/^activity_/, '')}`),
+        )
+      ).data();
+      if (
+        !receipt ||
+        receipt.command !== 'submitContractForReview' ||
+        receipt.status !== 'COMPLETE' ||
+        receipt.activityEventId !== eventId ||
+        receipt.actorUid !== event.actorUid ||
+        receipt.contractId !== event.entityId ||
+        receipt.familyId !== contract.familyId ||
+        receipt.result?.contract?.status !== 'READY_FOR_REVIEW' ||
+        receipt.result.contract.id !== event.entityId ||
+        receipt.result.contract.familyId !== contract.familyId ||
+        receipt.result.contract.childUid !== contract.childUid ||
+        receipt.result.contract.parentUid !== contract.parentUid
+      )
+        return;
+      resolved = submissionNotificationIntent(event, contract);
+      if (!resolved) return;
+      familyId = contract.familyId;
+    } else if (event.type === 'CONTRACT_CHANGES_REQUESTED') {
       if (
         typeof event.entityId !== 'string' ||
         !event.entityId ||

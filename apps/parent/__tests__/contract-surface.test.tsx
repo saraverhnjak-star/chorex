@@ -500,3 +500,20 @@ it('Parent current-feedback listener failure does not show stale feedback or rev
     screen.queryByRole('button', { name: 'Approve' }),
   ).not.toBeOnTheScreen();
 });
+
+it('Ready-for-Review queue receives a resubmitted Contract in the next round', () => {
+  render(<ReadyForReviewContracts familyId="family-1" authUid="parent-1" />);
+  act(() => mockList({ data: [], fromCache: false }));
+  expect(
+    screen.queryByRole('button', { name: expect.stringContaining('Cinema') }),
+  ).toBeNull();
+  act(() =>
+    mockList({
+      data: [{ ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 }],
+      fromCache: false,
+    }),
+  );
+  expect(
+    screen.getByRole('button', { name: 'Open Contract: Cinema' }),
+  ).toBeOnTheScreen();
+});

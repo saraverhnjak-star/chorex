@@ -228,7 +228,7 @@ Undo semantics are intentionally unresolved (see `DECISIONS.md`, OPEN-010). Unti
 
 ## 9. Review
 
-ADR-043 defines zero-based review rounds. `Contract.reviewCycle` starts at `0`; first submission leaves it unchanged. A Parent review copies that value into `ContractReview.cycle` and does not increment it. Only a future successful resubmission increments it. One immutable Parent decision is allowed per Contract/cycle. OPEN-009 remains unresolved.
+ADR-043 defines zero-based review rounds. `Contract.reviewCycle` starts at `0`; first submission leaves it unchanged. A Parent review copies that value into `ContractReview.cycle` and does not increment it. Only a successful CHANGES_REQUESTED resubmission increments it. One immutable Parent decision is allowed per Contract/cycle. ADR-044 resolves OPEN-009 with contract-level remediation.
 
 ```ts
 export interface ContractReview {
@@ -305,4 +305,4 @@ Do not put secrets, pairing codes, auth tokens, or sensitive free-form payloads 
 
 `approveContract({ contractId, idempotencyKey })` is the active Parent participant's server command from exactly `READY_FOR_REVIEW`. It atomically creates an immutable APPROVE review at the existing zero-based cycle, marks the Contract APPROVED, and creates its single earned Reward in PENDING_FULFILLMENT. Terms come only from the frozen Contract. No approval note or fulfillment command is introduced. The current shared Reward output schema covers this pending earned boundary; other Reward lifecycle commands remain future work.
 
-`requestContractChanges({ contractId, idempotencyKey, note })` shares the Parent review-decision transaction and round identity. Required feedback uses the existing trimmed, nonempty description convention (maximum 500 characters). It creates one immutable REQUEST_CHANGES Review at the unchanged cycle, transitions READY_FOR_REVIEW to CHANGES_REQUESTED, and creates no Reward. Current review feedback is read by the active Contract participants. No task/completion data is changed; this preservation is not a resolution of OPEN-009. Child correction/resubmission remains unimplemented.
+`requestContractChanges({ contractId, idempotencyKey, note })` shares the Parent review-decision transaction and round identity. Required feedback uses the existing trimmed, nonempty description convention (maximum 500 characters). It creates one immutable REQUEST_CHANGES Review at the unchanged cycle, transitions READY_FOR_REVIEW to CHANGES_REQUESTED, and creates no Reward. Current review feedback is read by the active Contract participants. ADR-044 preserves all task/completion data as valid: remediation happens outside the task-progress model. The Child explicitly resubmits through submitContractForReview after addressing feedback; the transaction verifies the deterministic current REQUEST_CHANGES review and opens the next cycle without a Review or Reward. OPEN-010 and OPEN-011 remain unresolved.

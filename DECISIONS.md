@@ -1755,16 +1755,6 @@ The choice between Maestro, Detox, or another end-to-end framework can be deferr
 
 ---
 
-## OPEN-009 — Correction Semantics After `CHANGES_REQUESTED`
-
-The Contract state is already canonical: parent request for changes moves `READY_FOR_REVIEW -> CHANGES_REQUESTED`.
-
-Still undecided is how requested corrections affect task progress that already reached its target count. Candidates include leaving completion events/counters unchanged and treating remediation as contract-level review work, or explicitly invalidating/replacing selected completion evidence.
-
-Do not implement task-event invalidation or automatic counter reduction until this is explicitly decided.
-
----
-
 ## OPEN-010 — Task Completion Undo
 
 The completion-event model is immutable by default, but user-facing undo behavior is not yet selected. Candidates include no undo in MVP or an explicit reversal/revocation event model.
@@ -1809,7 +1799,33 @@ This decision resolves numbering only. OPEN-009 correction/task-progress semanti
 
 ---
 
+# ADR-044 — Requested Changes Use Contract-Level Remediation
+
+**Status:** Accepted
+
+**Resolves:** OPEN-009 — Correction Semantics After `CHANGES_REQUESTED`
+
+## Decision
+
+MVP requested changes use contract-level remediation. This explicitly resolves the correction semantics deferred by ADR-032/033 and the Domain Model/State Machines: existing ContractTask counters, task terms and immutable TaskCompletion history remain valid and unchanged. Request changes does not reset, invalidate, reopen, decrement or replace individual task progress. `recordTaskCompletion` remains legal only in ACTIVE; CHANGES_REQUESTED grants no new completion capability.
+
+The immutable Parent REQUEST_CHANGES ContractReview explains the correction. After addressing that feedback outside the task-progress model, the Child explicitly resubmits using `submitContractForReview`. One authoritative transaction verifies the committed current-cycle REQUEST_CHANGES review, transitions CHANGES_REQUESTED -> READY_FOR_REVIEW and increments reviewCycle by exactly one, opening the next zero-based round under ADR-043. Resubmission creates no ContractReview or Reward and preserves the previous review. Initial ACTIVE submission still requires complete tasks and leaves the cycle unchanged. Failed actions and same-key retries never increment it.
+
+## Scope and rationale
+
+Contract-level review preserves completed work and immutable execution evidence without inventing per-task rejection or remediation tasks. This decision does not define task undo/reversal: OPEN-010 remains independent and unresolved. OPEN-011 expiry/cancellation also remains unresolved. ADR-043 continues to govern round numbering and one Parent decision per Contract/cycle.
+
+---
+
 # Resolved Open Decisions
+
+## OPEN-009 — Correction Semantics After `CHANGES_REQUESTED`
+
+**Status:** Resolved by ADR-044
+
+MVP corrections are contract-level remediation with preserved task progress/history and explicit Child resubmission. See ADR-044; task undo remains OPEN-010.
+
+---
 
 ## OPEN-012 — Review Cycle Numbering
 

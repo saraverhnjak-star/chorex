@@ -90,3 +90,5 @@ ADR-043 remains authoritative; no new ADR is needed. OPEN-009, OPEN-010, OPEN-01
 - Security: bounded current-round Review read Rules; writes stay denied.
 - Verification: existing backend/UI/adapter/notification tests, new `firebase/verify-contract-changes.mjs`, existing submission harness hook and focused root runner.
 - Documentation: Domain Model, State Machines, Firestore Schema, Auth/Security, Push, roadmap, backend/client README, approval follow-up and this report. DECISIONS.md is unchanged.
+
+Subsequent decision/slice: ADR-044 resolves OPEN-009 with contract-level remediation; [Child resubmission acceptance](PHASE_4_RESUBMISSION_ACCEPTANCE.md) extends the existing submitContractForReview command. Historical verification above remains unchanged. Initial submission still preserves the cycle; corrections preserve task history and successful resubmission alone opens the next round. OPEN-010 and OPEN-011 remain unresolved.

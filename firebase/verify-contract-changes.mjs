@@ -251,13 +251,6 @@ export async function verifyContractChanges(ctx) {
   );
   await expectCode('INVALID_STATE', () =>
     callFunction(
-      'submitContractForReview',
-      { contractId, idempotencyKey: 'resubmission-forbidden' },
-      child.idToken,
-    ),
-  );
-  await expectCode('INVALID_STATE', () =>
-    callFunction(
       'recordTaskCompletion',
       {
         contractId,
@@ -358,6 +351,12 @@ export async function verifyContractChanges(ctx) {
   });
   assert.equal(JSON.stringify(effect).includes(input.note.trim()), false);
   await verifyChangesRacesAndTransport();
+  if (process.env.CHOREX_VERIFY_RESUBMISSION === '1') {
+    const { verifyContractResubmission } =
+      await import('./verify-contract-resubmission.mjs');
+    await verifyContractResubmission(ctx);
+  }
+
   console.info(
     'PASS: requestContractChanges full submitted path, feedback/current-cycle Rules/cache/reconnect, frozen execution/negotiation history, no Reward/remediation, canonical retries, mixed-decision races and committed notification',
   );

@@ -32,10 +32,13 @@ for (const [service, host] of Object.entries(emulatorHosts)) {
   }
 }
 
-const timeout = setTimeout(() => {
-  console.error('FAIL: recordTaskCompletion emulator verification timed out');
-  process.exit(1);
-}, 90_000);
+const timeout = setTimeout(
+  () => {
+    console.error('FAIL: recordTaskCompletion emulator verification timed out');
+    process.exit(1);
+  },
+  process.env.CHOREX_VERIFY_RESUBMISSION === '1' ? 180_000 : 90_000,
+);
 const identities = [];
 let environment;
 

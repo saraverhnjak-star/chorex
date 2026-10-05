@@ -288,3 +288,7 @@ When photos become part of the product:
 - add an explicit deletion/retention policy.
 
 Do not add proof media to MVP unless it is necessary to validate the core concept.
+
+## Child correction/resubmission authorization
+
+ADR-044 extends submitContractForReview through its existing authenticated active Child membership and exact Contract participant checks. Status, review cycle and current REQUEST_CHANGES decision come only from transaction reads; input remains Contract ID/idempotency key. Direct status/cycle/review/task/completion/activity/Reward writes remain denied. Existing current-round feedback queries remain read-only and family/participant scoped. No offline command queue is introduced.

@@ -220,11 +220,11 @@ The authenticated, idempotent `rejectOffer` command retains its Child branch: th
 
 ### Submission persistence
 
-`submitContractForReview` accepts only `{ contractId, idempotencyKey }`. The active authenticated Child participant's transaction reads Contract, membership, idempotency and the entire `/contracts/{contractId}/tasks` collection. Every task must match family/Contract/assignee, have valid bounded counters, and meet its target exactly. Empty or invalid task state fails; incomplete tasks return `TASKS_INCOMPLETE`.
+`submitContractForReview` accepts only `{ contractId, idempotencyKey }`. The active authenticated Child participant's transaction reads Contract, membership, idempotency and the entire `/contracts/{contractId}/tasks` collection. For initial ACTIVE submission, every task must match family/Contract/assignee, have valid bounded counters, and meet its target exactly. Empty or invalid task state fails; incomplete tasks return `TASKS_INCOMPLETE`.
 
-The transaction updates only `status: READY_FOR_REVIEW` and native server `updatedAt`, creates deterministic `/activityEvents/activity_{sha256(command:actor:key)}` with `type: CONTRACT_SUBMITTED`, `entityType: CONTRACT`, Contract ID, authenticated Child UID and `actorType: CHILD`, and creates completed `/idempotency/{sha256}` state. That state stores command/actor/family/Contract IDs, payload hash, activity ID, completedAt and the canonical original `{ contract }` response (UTC ISO timestamps). Conflicting input reuse returns `IDEMPOTENCY_CONFLICT`; currently authorized same-key retries return the original response after later state changes.
+The ACTIVE transaction updates only `status: READY_FOR_REVIEW` and native server `updatedAt`, creates deterministic `/activityEvents/activity_{sha256(command:actor:key)}` with `type: CONTRACT_SUBMITTED`, `entityType: CONTRACT`, Contract ID, authenticated Child UID and `actorType: CHILD`, and creates completed `/idempotency/{sha256}` state. That state stores command/actor/family/Contract IDs, payload hash, activity ID, completedAt and the canonical original `{ contract }` response (UTC ISO timestamps). Conflicting input reuse returns `IDEMPOTENCY_CONFLICT`; currently authorized same-key retries return the original response after later state changes.
 
-Accepted terms, task projections/completions and review cycle remain unchanged. Submission creates neither a Review, Reward nor notification effect. Client writes remain denied. See [Slice 3 verification](PHASE_3_SLICE_3_ACCEPTANCE.md).
+Accepted terms and task projections/completions remain unchanged. Initial submission preserves reviewCycle; ADR-044 resubmission below increments it once. Both modes create no Review or Reward; the committed submission event now owns a Parent notification effect through the existing dispatcher. Client writes remain denied. See [Slice 3 verification](PHASE_3_SLICE_3_ACCEPTANCE.md) and [resubmission verification](PHASE_4_RESUBMISSION_ACCEPTANCE.md).
 
 ## 8. Task completions
 
@@ -439,3 +439,7 @@ Avoid copying full user profiles into every document. If a historical display na
 ## Phase 2 notification effect persistence
 
 Each committed negotiation activity event may own `/activityEvents/{eventId}/notificationEffects/expo`. The dispatcher alone writes its delivery lease, attempt count, terminal/retry status, recipient UID, minimal routing metadata, device count and Expo ticket IDs. Clients cannot read or write these records under the existing deny-by-default Rules. Rejection events have no notification effect. This record stores delivery bookkeeping and does not duplicate authoritative Offer/Contract state; see `docs/06_PUSH_NOTIFICATIONS.md` for dispatch and retry semantics.
+
+## Correction and resubmission persistence (ADR-044)
+
+The existing submitContractForReview command additionally accepts CHANGES_REQUESTED. It reads the deterministic current-cycle REQUEST_CHANGES review, validates identity/required feedback and absence of a next-cycle decision/Reward, and reads structurally valid scoped tasks without modifying them. One transaction updates status READY_FOR_REVIEW, reviewCycle + 1 and updatedAt, creates the canonical Child CONTRACT_SUBMITTED event (reviewCycle identifies the opened round), and completes the existing idempotency receipt. Initial ACTIVE submission preserves its cycle. No new Review, TaskCompletion or Reward exists on resubmission. Immutable previous reviews and all execution/frozen terms remain unchanged; direct writes remain denied.

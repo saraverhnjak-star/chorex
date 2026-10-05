@@ -78,3 +78,5 @@ Verification, configuration and documentation:
 - `packages/firebase-client/README.md`
 - `docs/07_IMPLEMENTATION_ROADMAP.md`
 - `docs/PHASE_3_SLICE_1_ACCEPTANCE.md`
+
+Subsequent decision/slice: ADR-044 resolves OPEN-009 with contract-level remediation; [Child resubmission acceptance](PHASE_4_RESUBMISSION_ACCEPTANCE.md) extends the existing submitContractForReview command. Historical verification above remains unchanged. Initial submission still preserves the cycle; corrections preserve task history and successful resubmission alone opens the next round. OPEN-010 and OPEN-011 remain unresolved.

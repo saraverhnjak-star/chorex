@@ -74,6 +74,16 @@ export function ContractDetail({
           fromCache={feedback.status === 'ready' && feedback.fromCache}
         />
       ) : null}
+      {contract.status === 'CHANGES_REQUESTED' ? (
+        <Text
+          allowFontScaling={false}
+          className="text-text-muted"
+          style={styles.body}
+        >
+          Address your Parent’s feedback in real life, then send this agreement
+          back for review. Your completed task progress stays unchanged.
+        </Text>
+      ) : null}
       {contract.status === 'APPROVED' ? (
         <Text
           allowFontScaling={false}
@@ -148,9 +158,12 @@ export function ContractDetail({
       )}
       {contract.childUid === authUid ? (
         <SubmitForReviewAction
-          key={`${contract.id}:${authUid}`}
+          key={`${contract.id}:${authUid}:${contract.reviewCycle + (contract.status === 'CHANGES_REQUESTED' ? 1 : 0)}`}
           contract={contract}
           tasks={tasks}
+          feedbackAvailable={
+            feedback.status === 'ready' && !!feedback.review?.note
+          }
         />
       ) : null}
       <Text
