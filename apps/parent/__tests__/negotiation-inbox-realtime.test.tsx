@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ParentNegotiationInbox } from '../src/offers/ParentNegotiationInbox';
 
 const mockAccept = jest.fn();
+const mockCounter = jest.fn();
 const mockUnsubscribe = jest.fn();
 let emitItems: ((items: readonly unknown[]) => void) | undefined;
 let emitError: ((error: unknown) => void) | undefined;
@@ -19,6 +20,7 @@ const mockSubscribe = jest.fn(
 
 jest.mock('@chorex/firebase-client', () => ({
   acceptOffer: (input: unknown) => mockAccept(input),
+  counterOffer: (input: unknown) => mockCounter(input),
   isFamilyClientError: () => false,
   familyClientErrorCodes: {},
   isOfferInboxClientError: () => false,
@@ -176,4 +178,119 @@ it('requires confirmation, retains the retry key, and lets realtime remove the a
   act(() => emitItems?.([]));
   expect(screen.queryByText('Mia')).toBeNull();
   expect(screen.getByText('Contract active')).toBeOnTheScreen();
+});
+
+it('reviews complete Parent terms before sending, retries safely, and follows realtime removal', async () => {
+  mockCounter
+    .mockReset()
+    .mockRejectedValueOnce(new Error('offline'))
+    .mockResolvedValueOnce({});
+  render(
+    <ParentNegotiationInbox
+      activeChildren={children}
+      authUid="parent-1"
+      familyId="family-1"
+    />,
+  );
+  act(() => emitItems?.([item]));
+  fireEvent.press(screen.getByRole('button', { name: 'Counteroffer' }));
+  expect(screen.getByLabelText('Task 1 title')).toHaveProp(
+    'value',
+    'Load the dishwasher',
+  );
+  fireEvent.changeText(screen.getByLabelText('Task 1 title'), 'Water plants');
+  fireEvent.changeText(screen.getByLabelText('Task 1 target count'), '3');
+  fireEvent.changeText(
+    screen.getByLabelText('Task 1 description (optional)'),
+    'All pots',
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Add task' }));
+  fireEvent.changeText(screen.getByLabelText('Task 2 title'), 'Set the table');
+  fireEvent.changeText(screen.getByLabelText('Reward title'), 'Museum');
+  fireEvent.press(screen.getByRole('button', { name: 'Select experience' }));
+  fireEvent.changeText(
+    screen.getByLabelText('Deadline date (YYYY-MM-DD)'),
+    '2099-10-11',
+  );
+  fireEvent.changeText(
+    screen.getByLabelText('Deadline time (local, HH:mm)'),
+    '17:30',
+  );
+  fireEvent.changeText(
+    screen.getByLabelText('Proposal note (optional)'),
+    'New proposal',
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Review counteroffer' }));
+  expect(mockCounter).not.toHaveBeenCalled();
+  expect(screen.getByText('Review your counteroffer')).toBeOnTheScreen();
+  expect(screen.getByText('Water plants · 3×')).toBeOnTheScreen();
+  expect(screen.getByText('Reward: Museum · EXPERIENCE')).toBeOnTheScreen();
+  await act(async () =>
+    fireEvent.press(screen.getByRole('button', { name: 'Send counteroffer' })),
+  );
+  expect(
+    screen.getByText('This counteroffer could not be sent. Try again.'),
+  ).toBeOnTheScreen();
+  await act(async () =>
+    fireEvent.press(screen.getByRole('button', { name: 'Send counteroffer' })),
+  );
+  expect(mockCounter.mock.calls[1][0]).toEqual(mockCounter.mock.calls[0][0]);
+  const request = mockCounter.mock.calls[0][0];
+  expect(request).toEqual(
+    expect.objectContaining({
+      offerId: 'offer-1',
+      currentRevisionId: 'revision-2',
+      tasks: [
+        { title: 'Water plants', description: 'All pots', targetCount: 3 },
+        { title: 'Set the table', targetCount: 1 },
+      ],
+      reward: { title: 'Museum', type: 'EXPERIENCE' },
+      note: 'New proposal',
+    }),
+  );
+  const localDeadline = new Date(request.deadlineAt);
+  expect([
+    localDeadline.getFullYear(),
+    localDeadline.getMonth(),
+    localDeadline.getDate(),
+    localDeadline.getHours(),
+    localDeadline.getMinutes(),
+  ]).toEqual([2099, 9, 11, 17, 30]);
+  expect(screen.getByText('Counteroffer sent')).toBeOnTheScreen();
+  act(() => emitItems?.([]));
+  expect(screen.queryByText('Mia')).toBeNull();
+  expect(screen.getByText('Counteroffer sent')).toBeOnTheScreen();
+});
+
+it('blocks invalid terms and discards an editor when the current revision changes', () => {
+  mockCounter.mockReset();
+  render(
+    <ParentNegotiationInbox
+      activeChildren={children}
+      authUid="parent-1"
+      familyId="family-1"
+    />,
+  );
+  act(() => emitItems?.([item]));
+  fireEvent.press(screen.getByRole('button', { name: 'Counteroffer' }));
+  fireEvent.changeText(screen.getByLabelText('Task 1 target count'), '1.5');
+  fireEvent.press(screen.getByRole('button', { name: 'Review counteroffer' }));
+  expect(
+    screen.getByText('Task target counts must be whole numbers.'),
+  ).toBeOnTheScreen();
+  expect(mockCounter).not.toHaveBeenCalled();
+  act(() =>
+    emitItems?.([
+      {
+        ...item,
+        offer: { ...item.offer, currentRevisionId: 'revision-4' },
+        revision: { ...item.revision, id: 'revision-4', revisionNumber: 4 },
+      },
+    ]),
+  );
+  expect(screen.queryByText('Edit counteroffer terms')).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Counteroffer' }));
+  expect(screen.getByLabelText('Task 1 target count')).toHaveProp('value', '2');
+  fireEvent.press(screen.getByRole('button', { name: 'Cancel counteroffer' }));
+  expect(screen.queryByText('Edit counteroffer terms')).toBeNull();
 });

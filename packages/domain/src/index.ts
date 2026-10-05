@@ -70,6 +70,7 @@ export {
   createOfferDraftInputSchema,
   createOfferDraftOutputSchema,
   counterOfferInputSchema,
+  parentCounterOfferInputSchema,
   counterOfferOutputSchema,
   childOfferInboxItemSchema,
   offerCommandErrorCodes,

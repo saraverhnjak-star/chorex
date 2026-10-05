@@ -200,7 +200,7 @@ export const rejectOfferOutputSchema = z.strictObject({
   offer: rejectedOfferSchema,
 });
 
-export const counterOfferInputSchema = z.strictObject({
+const childCounterOfferInputSchema = z.strictObject({
   offerId: boundedIdSchema,
   currentRevisionId: boundedIdSchema,
   reward: rewardTermsSchema,
@@ -208,30 +208,41 @@ export const counterOfferInputSchema = z.strictObject({
   idempotencyKey: idempotencyKeySchema,
 });
 
-const counteredOfferSchema = offerSchema.extend({
-  status: z.literal('AWAITING_PARENT'),
-  currentRevisionId: boundedIdSchema,
-});
+// Request shape selects terms only; authenticated membership determines permissions.
+export const parentCounterOfferInputSchema =
+  childCounterOfferInputSchema.extend({
+    tasks: offerRevisionSchema.shape.tasks,
+    deadlineAt: utcIsoDateTimeSchema,
+  });
 
-const childCounterOfferRevisionSchema = offerRevisionSchema.extend({
-  revisionNumber: z.number().int().min(2),
-  proposedByRole: z.literal('CHILD'),
-});
+export const counterOfferInputSchema = z.union([
+  childCounterOfferInputSchema,
+  parentCounterOfferInputSchema,
+]);
 
 export const counterOfferOutputSchema = z
   .strictObject({
-    offer: counteredOfferSchema,
-    revision: childCounterOfferRevisionSchema,
+    offer: offerSchema.extend({
+      status: z.enum(['AWAITING_PARENT', 'AWAITING_CHILD']),
+      currentRevisionId: boundedIdSchema,
+    }),
+    revision: offerRevisionSchema.extend({
+      revisionNumber: z.number().int().min(2),
+    }),
   })
   .superRefine(({ offer, revision }, context) => {
+    const parentProposal = revision.proposedByRole === 'PARENT';
     if (
       revision.id !== offer.currentRevisionId ||
       revision.offerId !== offer.id ||
-      revision.proposedByUid !== offer.childUid
+      revision.proposedByUid !==
+        (parentProposal ? offer.parentUid : offer.childUid) ||
+      offer.status !== (parentProposal ? 'AWAITING_CHILD' : 'AWAITING_PARENT')
     ) {
       context.addIssue({
         code: 'custom',
-        message: 'Counteroffer revision must be the current Child revision.',
+        message:
+          'Counteroffer must be the current revision awaiting the other participant.',
         path: ['revision', 'id'],
       });
     }

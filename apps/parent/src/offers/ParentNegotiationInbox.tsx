@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
-import type { ChildFamilyMembership } from '@chorex/domain';
+import type { ChildFamilyMembership, CounterOfferInput } from '@chorex/domain';
 import {
   acceptOffer,
+  counterOffer,
   subscribeToCurrentParentNegotiationInbox,
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
@@ -14,8 +15,11 @@ import {
 } from '@chorex/ui';
 import {
   getAcceptOfferErrorMessage,
+  getCounterOfferErrorMessage,
   getParentNegotiationInboxErrorMessage,
 } from './messages';
+
+import { ParentCounterofferForm } from './ParentCounterofferForm';
 
 type ParentNegotiationInboxState =
   | { subscriptionKey: string; status: 'loading' }
@@ -51,6 +55,7 @@ export function ParentNegotiationInbox({
     status: 'loading',
   });
 
+  const [editing, setEditing] = useState<string>();
   const [confirmation, setConfirmation] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
@@ -84,6 +89,32 @@ export function ParentNegotiationInbox({
     } catch (error) {
       if (scope.current === subscriptionKey)
         setActionError(getAcceptOfferErrorMessage(error));
+    } finally {
+      mutating.current = false;
+      setBusy(false);
+    }
+  };
+
+  const sendCounteroffer = async (proposal: CounterOfferInput) => {
+    if (mutating.current) return;
+    mutating.current = true;
+    setBusy(true);
+    setActionError(undefined);
+    setMessage(undefined);
+    const terms = { ...proposal, idempotencyKey: undefined };
+    const fingerprint = `${subscriptionKey}:counter:${JSON.stringify(terms)}`;
+    const key =
+      keys.current.get(fingerprint) ?? `counter-${newIdempotencyKey()}`;
+    keys.current.set(fingerprint, key);
+    try {
+      await counterOffer({ ...terms, idempotencyKey: key });
+      if (scope.current === subscriptionKey) {
+        setMessage('Counteroffer sent');
+        setEditing(undefined);
+      }
+    } catch (error) {
+      if (scope.current === subscriptionKey)
+        setActionError(getCounterOfferErrorMessage(error));
     } finally {
       mutating.current = false;
       setBusy(false);
@@ -298,7 +329,15 @@ export function ParentNegotiationInbox({
                 >
                   Deadline: {formatDeadline(revision.deadlineAt)}
                 </Text>
-                {confirmation === identity ? (
+                {editing === identity ? (
+                  <ParentCounterofferForm
+                    key={identity}
+                    revision={revision}
+                    busy={busy}
+                    onCancel={() => setEditing(undefined)}
+                    onSubmit={sendCounteroffer}
+                  />
+                ) : confirmation === identity ? (
                   <View className="gap-3">
                     <Text
                       accessibilityLiveRegion="polite"
@@ -331,6 +370,19 @@ export function ParentNegotiationInbox({
                     }}
                   />
                 )}
+                {editing !== identity && confirmation !== identity ? (
+                  <Button
+                    label="Counteroffer"
+                    variant="secondary"
+                    disabled={busy}
+                    onPress={() => {
+                      setEditing(identity);
+                      setConfirmation(undefined);
+                      setActionError(undefined);
+                      setMessage(undefined);
+                    }}
+                  />
+                ) : null}
               </View>
             );
           })}

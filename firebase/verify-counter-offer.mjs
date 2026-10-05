@@ -466,6 +466,293 @@ try {
     'Counteroffer did not create exactly one activity event',
   );
 
+  // Parent continuation uses the same command and immutable sequential history.
+  const parentInput = {
+    offerId: draft.offer.id,
+    currentRevisionId: first.revision.id,
+    tasks: [
+      { title: 'Set the table', description: 'For everyone', targetCount: 3 },
+      { title: 'Water plants', targetCount: 1 },
+    ],
+    deadlineAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+    reward: {
+      title: 'Museum trip',
+      description: 'On Saturday',
+      type: 'EXPERIENCE',
+    },
+    note: 'How about these terms?',
+    idempotencyKey: 'parent-counter-main-001',
+  };
+  const parentMemberPath = `families/${familyId}/members/${parent.localId}`;
+  const childMemberPath = `families/${familyId}/members/${child.localId}`;
+  await expectCallableError('AUTH_REQUIRED', () =>
+    callFunction('counterOffer', parentInput),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('counterOffer', parentInput, otherParent.idToken),
+  );
+  await withAdmin((db) =>
+    setDoc(doc(db, `families/${familyId}/members/${otherParent.localId}`), {
+      status: 'ACTIVE',
+      role: 'PARENT',
+    }),
+  );
+  await expectCallableError('FORBIDDEN', () =>
+    callFunction('counterOffer', parentInput, otherParent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentMemberPath), { status: 'DISABLED' }),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('counterOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentMemberPath), { status: 'ACTIVE', role: 'INVALID' }),
+  );
+  await expectCallableError('WRONG_ACTOR_ROLE', () =>
+    callFunction('counterOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, parentMemberPath), { role: 'PARENT' }),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, childMemberPath), { status: 'DISABLED' }),
+  );
+  await expectCallableError('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('counterOffer', parentInput, parent.idToken),
+  );
+  await withAdmin((db) =>
+    updateDoc(doc(db, childMemberPath), { status: 'ACTIVE' }),
+  );
+  await expectCallableError('INVALID_INPUT', () =>
+    callFunction('counterOffer', parentInput, child.idToken),
+  );
+  for (const status of [
+    'DRAFT',
+    'AWAITING_CHILD',
+    'ACCEPTED',
+    'REJECTED',
+    'CANCELLED',
+    'EXPIRED',
+  ]) {
+    await withAdmin((db) => updateDoc(doc(db, offerPath), { status }));
+    await expectCallableError('INVALID_STATE', () =>
+      callFunction('counterOffer', parentInput, parent.idToken),
+    );
+  }
+  await withAdmin((db) =>
+    updateDoc(doc(db, offerPath), { status: 'AWAITING_PARENT' }),
+  );
+  await expectCallableError('STALE_REVISION', () =>
+    callFunction(
+      'counterOffer',
+      { ...parentInput, currentRevisionId: draft.revision.id },
+      parent.idToken,
+    ),
+  );
+  for (const patch of [
+    { proposedByRole: 'PARENT' },
+    { proposedByUid: sibling.localId },
+  ]) {
+    await withAdmin((db) => updateDoc(doc(db, resultRevisionPath), patch));
+    await expectCallableError('INVALID_STATE', () =>
+      callFunction('counterOffer', parentInput, parent.idToken),
+    );
+    await withAdmin((db) =>
+      updateDoc(doc(db, resultRevisionPath), {
+        proposedByRole: 'CHILD',
+        proposedByUid: child.localId,
+      }),
+    );
+  }
+  for (const invalidTerms of [
+    { tasks: [] },
+    { tasks: [{ title: 'Invalid', targetCount: 0 }] },
+    { deadlineAt: 'bad' },
+    { proposedByRole: 'PARENT' },
+  ]) {
+    await expectCallableError('INVALID_INPUT', () =>
+      callFunction(
+        'counterOffer',
+        { ...parentInput, ...invalidTerms },
+        parent.idToken,
+      ),
+    );
+  }
+  const { tasks: omittedTasks, ...missingTasks } = parentInput;
+  assert(omittedTasks.length > 0, 'Expected task fixture');
+  await expectCallableError('INVALID_INPUT', () =>
+    callFunction('counterOffer', missingTasks, parent.idToken),
+  );
+  await expectCallableError('DEADLINE_PASSED', () =>
+    callFunction(
+      'counterOffer',
+      { ...parentInput, deadlineAt: new Date(Date.now() - 1).toISOString() },
+      parent.idToken,
+    ),
+  );
+  const parentResults = await Promise.all(
+    Array.from({ length: 4 }, () =>
+      callFunction('counterOffer', parentInput, parent.idToken),
+    ),
+  );
+  const parentFirst = parentResults[0];
+  assert(
+    parentResults.every(
+      (r) => JSON.stringify(r) === JSON.stringify(parentFirst),
+    ),
+    'Parent same-key concurrency duplicated revision',
+  );
+  assert(
+    parentFirst.offer.status === 'AWAITING_CHILD' &&
+      parentFirst.offer.currentRevisionId === parentFirst.revision.id,
+    'Parent proposal did not become current AWAITING_CHILD',
+  );
+  assert(
+    parentFirst.revision.revisionNumber === 3 &&
+      parentFirst.revision.proposedByUid === parent.localId &&
+      parentFirst.revision.proposedByRole === 'PARENT',
+    'Parent revision author or sequence incorrect',
+  );
+  assert(
+    JSON.stringify(parentFirst.revision.tasks) ===
+      JSON.stringify(parentInput.tasks) &&
+      JSON.stringify(parentFirst.revision.reward) ===
+        JSON.stringify(parentInput.reward) &&
+      parentFirst.revision.deadlineAt === parentInput.deadlineAt &&
+      parentFirst.revision.note === parentInput.note,
+    'Parent complete terms snapshot incorrect',
+  );
+  assert(
+    JSON.stringify(
+      await callFunction('counterOffer', parentInput, parent.idToken),
+    ) === JSON.stringify(parentFirst),
+    'Parent retry did not return original proposal',
+  );
+  for (const changed of [
+    { tasks: [{ title: 'Other', targetCount: 1 }] },
+    { deadlineAt: new Date(Date.now() + 100000).toISOString() },
+    { reward: { title: 'Other', type: 'CUSTOM' } },
+  ]) {
+    await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
+      callFunction(
+        'counterOffer',
+        { ...parentInput, ...changed },
+        parent.idToken,
+      ),
+    );
+  }
+  assert(
+    JSON.stringify(normalized((await readAdmin(sourceRevisionPath)).data())) ===
+      JSON.stringify(normalized(sourceBefore)),
+    'Parent mutated revision 1',
+  );
+  assert(
+    JSON.stringify(normalized((await readAdmin(resultRevisionPath)).data())) ===
+      JSON.stringify(normalized(persistedResult)),
+    'Parent mutated revision 2',
+  );
+  const parentRevisionPath = `${offerPath}/revisions/${parentFirst.revision.id}`;
+  const parentBefore = (await readAdmin(parentRevisionPath)).data();
+  const revisionHistory = await allAdmin(`${offerPath}/revisions`);
+  assert(
+    revisionHistory.size === 3 &&
+      revisionHistory.docs
+        .map((d) => d.data().revisionNumber)
+        .sort()
+        .join(',') === '1,2,3',
+    'Parent created branching history',
+  );
+  await withAdmin(async (db) => {
+    const events = await getDocs(
+      query(
+        collection(db, 'activityEvents'),
+        where('entityId', '==', draft.offer.id),
+        where('type', '==', 'OFFER_COUNTERED'),
+      ),
+    );
+    const parentEvents = events.docs.filter(
+      (d) => d.data().actorType === 'PARENT',
+    );
+    assert(
+      parentEvents.length === 1 &&
+        parentEvents[0].data().actorUid === parent.localId &&
+        parentEvents[0].data().revisionId === parentFirst.revision.id,
+      'Parent activity actor incorrect',
+    );
+    const waiting = await getDocs(
+      query(
+        collection(db, 'offers'),
+        where('parentUid', '==', parent.localId),
+        where('status', '==', 'AWAITING_PARENT'),
+      ),
+    );
+    assert(
+      !waiting.docs.some((d) => d.id === draft.offer.id),
+      'Parent waiting inbox still includes sent offer',
+    );
+  });
+  const childAgain = await callFunction(
+    'counterOffer',
+    {
+      offerId: draft.offer.id,
+      currentRevisionId: parentFirst.revision.id,
+      reward: { title: 'Games again', type: 'PRIVILEGE' },
+      idempotencyKey: 'child-after-parent',
+    },
+    child.idToken,
+  );
+  assert(
+    childAgain.revision.revisionNumber === 4 &&
+      JSON.stringify(childAgain.revision.tasks) ===
+        JSON.stringify(parentInput.tasks) &&
+      childAgain.revision.deadlineAt === parentInput.deadlineAt,
+    'Child path changed after Parent terms proposal',
+  );
+  assert(
+    JSON.stringify(normalized((await readAdmin(parentRevisionPath)).data())) ===
+      JSON.stringify(normalized(parentBefore)),
+    'Later Child action mutated Parent revision',
+  );
+  const competing = await Promise.allSettled(
+    ['parent-competing-one', 'parent-competing-two'].map((idempotencyKey) =>
+      callFunction(
+        'counterOffer',
+        {
+          ...parentInput,
+          currentRevisionId: childAgain.revision.id,
+          idempotencyKey,
+        },
+        parent.idToken,
+      ),
+    ),
+  );
+  assert(
+    competing.filter((r) => r.status === 'fulfilled').length === 1 &&
+      competing.some(
+        (r) =>
+          r.status === 'rejected' &&
+          r.reason.callable?.details?.code === 'INVALID_STATE',
+      ),
+    'Parent competing requests did not serialize',
+  );
+  const completeHistory = await allAdmin(`${offerPath}/revisions`);
+  assert(
+    completeHistory.size === 5 &&
+      completeHistory.docs
+        .map((d) => d.data().revisionNumber)
+        .sort()
+        .join(',') === '1,2,3,4,5',
+    'Competing Parent requests branched history',
+  );
+  assert(
+    !(await allAdmin('contracts')).docs.some(
+      (d) => d.data().source?.offerId === draft.offer.id,
+    ),
+    'Parent counter created Contract',
+  );
+  assert((await allAdmin('rewards')).empty, 'Counteroffer created Reward');
+
   const raceDraft = await createDraft(
     parent,
     familyId,
@@ -540,7 +827,7 @@ try {
   }
 
   console.info(
-    'PASS: counterOffer authorization, reward-only revision, idempotency, three-way race, activity, and denied client writes',
+    'PASS: counterOffer Child reward-only and Parent complete terms, authorization, immutable sequential history, idempotency, concurrency, activity roles, no Contract/Reward, and rules',
   );
 } finally {
   try {

@@ -59,6 +59,9 @@ function requestPayloadHash(input: CounterOfferInput): string {
           : { description: input.reward.description }),
       },
       ...(input.note === undefined ? {} : { note: input.note }),
+      ...('tasks' in input
+        ? { tasks: input.tasks, deadlineAt: input.deadlineAt }
+        : {}),
     }),
   );
 }
@@ -120,15 +123,18 @@ function requireMatchingRequest(
   }
 }
 
-function requireActiveChildMembership(data: DocumentData | undefined): void {
+function requireActiveMembership(
+  data: DocumentData | undefined,
+): 'PARENT' | 'CHILD' {
   if (!data || data.status !== 'ACTIVE') {
     throw new CounterOfferCommandError(
       offerCommandErrorCodes.familyMembershipRequired,
     );
   }
-  if (data.role !== 'CHILD') {
+  if (data.role !== 'CHILD' && data.role !== 'PARENT') {
     throw new CounterOfferCommandError(offerCommandErrorCodes.wrongActorRole);
   }
+  return data.role;
 }
 
 function parseTimestamp(value: unknown): string {
@@ -275,14 +281,24 @@ export async function executeCounterOffer(
         transaction.get(sourceRevisionReference),
         transaction.get(resultRevisionReference),
       ]);
-    requireActiveChildMembership(membershipSnapshot.data());
-    if (offer.childUid !== actorUid) {
+    const actorRole = requireActiveMembership(membershipSnapshot.data());
+    const parentTerms = 'tasks' in input ? input : undefined;
+    if (actorRole === 'CHILD' && parentTerms) {
+      throw new CounterOfferCommandError(offerCommandErrorCodes.invalidInput);
+    }
+    if (actorRole === 'PARENT' && !parentTerms) {
+      throw new CounterOfferCommandError(offerCommandErrorCodes.wrongActorRole);
+    }
+    if (
+      (actorRole === 'PARENT' ? offer.parentUid : offer.childUid) !== actorUid
+    ) {
       throw new CounterOfferCommandError(offerCommandErrorCodes.forbidden);
     }
 
     if (completedRecord) {
       if (
-        offer.status !== 'AWAITING_PARENT' ||
+        offer.status !==
+          (actorRole === 'PARENT' ? 'AWAITING_CHILD' : 'AWAITING_PARENT') ||
         offer.currentRevisionId !== resultRevisionId ||
         !resultRevisionSnapshot.exists
       ) {
@@ -291,7 +307,10 @@ export async function executeCounterOffer(
       return;
     }
 
-    if (offer.status !== 'AWAITING_CHILD') {
+    if (
+      offer.status !==
+      (actorRole === 'PARENT' ? 'AWAITING_PARENT' : 'AWAITING_CHILD')
+    ) {
       throw new CounterOfferCommandError(offerCommandErrorCodes.invalidState);
     }
     if (offer.currentRevisionId !== input.currentRevisionId) {
@@ -307,13 +326,32 @@ export async function executeCounterOffer(
       throw new CounterOfferCommandError(offerCommandErrorCodes.staleRevision);
     }
     if (
-      sourceRevision.proposedByRole !== 'PARENT' ||
-      sourceRevision.proposedByUid !== offer.parentUid
+      sourceRevision.proposedByRole !==
+        (actorRole === 'PARENT' ? 'CHILD' : 'PARENT') ||
+      sourceRevision.proposedByUid !==
+        (actorRole === 'PARENT' ? offer.childUid : offer.parentUid)
     ) {
       throw new CounterOfferCommandError(offerCommandErrorCodes.invalidState);
     }
 
+    if (actorRole === 'PARENT') {
+      const childSnapshot = await transaction.get(
+        firestore.doc(`families/${offer.familyId}/members/${offer.childUid}`),
+      );
+      const child = childSnapshot.data();
+      if (!child || child.status !== 'ACTIVE' || child.role !== 'CHILD') {
+        throw new CounterOfferCommandError(
+          offerCommandErrorCodes.familyMembershipRequired,
+        );
+      }
+    }
     const counteredAt = Timestamp.now();
+    if (
+      parentTerms &&
+      Date.parse(parentTerms.deadlineAt) <= counteredAt.toMillis()
+    ) {
+      throw new CounterOfferCommandError(offerCommandErrorCodes.deadlinePassed);
+    }
     if (Date.parse(sourceRevision.deadlineAt) <= counteredAt.toMillis()) {
       throw new CounterOfferCommandError(offerCommandErrorCodes.deadlinePassed);
     }
@@ -332,22 +370,32 @@ export async function executeCounterOffer(
     transaction.create(resultRevisionReference, {
       revisionNumber: sourceRevision.revisionNumber + 1,
       proposedByUid: actorUid,
-      proposedByRole: 'CHILD',
-      tasks: sourceData.tasks,
+      proposedByRole: actorRole,
+      tasks: parentTerms
+        ? parentTerms.tasks.map((task) => ({
+            title: task.title,
+            targetCount: task.targetCount,
+            ...(task.description === undefined
+              ? {}
+              : { description: task.description }),
+          }))
+        : sourceData.tasks,
       reward: persistedReward,
-      deadlineAt: sourceData.deadlineAt,
+      deadlineAt: parentTerms
+        ? Timestamp.fromDate(new Date(parentTerms.deadlineAt))
+        : sourceData.deadlineAt,
       ...(input.note === undefined ? {} : { note: input.note }),
       createdAt: counteredAt,
     });
     transaction.update(offerReference, {
-      status: 'AWAITING_PARENT',
+      status: actorRole === 'PARENT' ? 'AWAITING_CHILD' : 'AWAITING_PARENT',
       currentRevisionId: resultRevisionId,
       updatedAt: counteredAt,
     });
     transaction.create(activityReference, {
       familyId: offer.familyId,
       actorUid,
-      actorType: 'CHILD',
+      actorType: actorRole,
       type: 'OFFER_COUNTERED',
       entityType: 'OFFER',
       entityId: input.offerId,

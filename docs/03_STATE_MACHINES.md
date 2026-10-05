@@ -36,6 +36,9 @@ Either waiting state may also -> CANCELLED / EXPIRED
 
 ### Invariants
 
+- `counterOffer` uses the exact current revision and active participant memberships. A Child supplies reward/note only; the server copies tasks/deadline. A Parent responding in `AWAITING_PARENT` to the active Child's proposal supplies complete tasks, deadline and reward (plus optional note), as permitted by ADR-029. Both paths create the next sequential immutable revision in one transaction, switch the waiting actor, record the proposer role in `OFFER_COUNTERED`, and complete idempotency state. Neither path creates a Contract or Reward.
+- Parent proposed deadlines must be in the future according to server time. The existing source-deadline guard remains in both paths; this does not process Offer expiry.
+- Concurrent counteroffers serialize on the Offer document; losing or stale actions cannot create a second current revision or branch history.
 - The actor may accept only a revision proposed by the other side.
 - Acceptance references an exact revision ID.
 - Acceptance is idempotent: retries must return the same resulting contract.

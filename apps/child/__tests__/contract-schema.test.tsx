@@ -155,6 +155,61 @@ it('validates reward-only counterOffer input and its current Child revision', ()
   ).toBe(false);
 });
 
+it('validates complete Parent counteroffer terms and the matching waiting state', () => {
+  const input = {
+    offerId: 'offer-1',
+    currentRevisionId: 'revision-2',
+    tasks: [{ title: 'Water plants', description: 'All pots', targetCount: 3 }],
+    reward: { title: 'Museum', type: 'EXPERIENCE' },
+    deadlineAt: '2026-10-10T18:00:00.000Z',
+    idempotencyKey: 'parent-counter-001',
+  };
+  expect(counterOfferInputSchema.safeParse(input).success).toBe(true);
+  expect(
+    counterOfferInputSchema.safeParse({ ...input, tasks: [] }).success,
+  ).toBe(false);
+  expect(
+    counterOfferInputSchema.safeParse({ ...input, proposedByRole: 'PARENT' })
+      .success,
+  ).toBe(false);
+  const output = {
+    offer: {
+      id: input.offerId,
+      familyId: 'family-1',
+      parentUid: 'parent-1',
+      childUid: 'child-1',
+      status: 'AWAITING_CHILD',
+      currentRevisionId: 'revision-3',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    revision: {
+      id: 'revision-3',
+      offerId: input.offerId,
+      revisionNumber: 3,
+      proposedByUid: 'parent-1',
+      proposedByRole: 'PARENT',
+      tasks: input.tasks,
+      reward: input.reward,
+      deadlineAt: input.deadlineAt,
+      createdAt: timestamp,
+    },
+  };
+  expect(counterOfferOutputSchema.safeParse(output).success).toBe(true);
+  expect(
+    counterOfferOutputSchema.safeParse({
+      ...output,
+      offer: { ...output.offer, status: 'AWAITING_PARENT' },
+    }).success,
+  ).toBe(false);
+  expect(
+    counterOfferOutputSchema.safeParse({
+      ...output,
+      revision: { ...output.revision, proposedByUid: 'child-1' },
+    }).success,
+  ).toBe(false);
+});
+
 it('requires output tasks to belong to the accepted Contract', () => {
   const result = acceptOfferOutputSchema.safeParse({
     offer: {
