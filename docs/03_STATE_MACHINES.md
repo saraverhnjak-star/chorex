@@ -44,7 +44,7 @@ Either waiting state may also -> CANCELLED / EXPIRED
 - Acceptance references an exact revision ID.
 - Acceptance is idempotent: retries must return the same resulting contract.
 - Parent acceptance requires `AWAITING_PARENT`, the active Parent participant, and a current revision authored by the active Child participant. The accepted deadline must still be in the future according to server time.
-- Both acceptance paths share one atomic Contract-creation transaction: `ACCEPTED` Offer, deterministic `ACTIVE` Contract and tasks, frozen reward/deadline/task terms, initial `reviewCycle: 0`, one activity event recording the accepting actor's role, and completed idempotency state. Acceptance creates no earned Reward. Initial zero does not resolve later review-cycle numbering (OPEN-012).
+- Both acceptance paths share one atomic Contract-creation transaction: `ACCEPTED` Offer, deterministic `ACTIVE` Contract and tasks, frozen reward/deadline/task terms, initial `reviewCycle: 0`, one activity event recording the accepting actor's role, and completed idempotency state. Acceptance creates no earned Reward. ADR-043 defines zero-based review rounds.
 - No accepted terms are mutated after contract creation.
 
 ## 2. Contract execution
@@ -70,7 +70,9 @@ Expiry and cancellation transitions are intentionally not fully specified yet (s
 
 `submitContractForReview` requires the Contract's authenticated active Child participant and exactly `ACTIVE` for a new action. One transaction reads every persisted scoped ContractTask, validates family/Contract/assignee and bounded counters, requires a nonempty task collection with each `completedCount === targetCount`, and moves the Contract to `READY_FOR_REVIEW`. Incomplete tasks return `TASKS_INCOMPLETE`; invalid counters or zero tasks return `INVALID_STATE`. It updates only Contract status/updatedAt, creates one `CONTRACT_SUBMITTED` Child activity event, and completes idempotency state. Same-key retries return the original canonical receipt after current authorization checks; different-key competitors serialize on the Contract and the loser returns `INVALID_STATE`. Completion races are checked against transactional task reads.
 
-Submission preserves frozen terms, task counts/history and `reviewCycle`, creates no Review or Reward, and imposes no deadline cutoff. OPEN-009/010/011/012 remain unresolved. The Child confirms submission deliberately, waits for backend confirmation and uses realtime Contract state. Parent detail receives that state without new review actions. Submission push wiring remains for Phase 4.
+Submission preserves frozen terms, task counts/history and `reviewCycle`, creates no Review or Reward, and imposes no deadline cutoff. OPEN-009/010/011 remain unresolved; ADR-043 defines review numbering. The Child confirms submission deliberately, waits for backend confirmation and uses realtime Contract state. Parent detail receives that state without new review actions. Submission push wiring remains for Phase 4.
+
+`approveContract` requires the authenticated active Parent participant and exactly `READY_FOR_REVIEW` for a new action. A single transaction creates the deterministic review for the Contract/current cycle, transitions to `APPROVED` with `approvedAt`/`updatedAt`, creates the deterministic pending Reward from frozen Contract terms, writes one Parent `CONTRACT_APPROVED` event and completes idempotency state. Approval preserves `reviewCycle` and task/completion history. Currently authorized same-key retries return the original receipt; different-key approval of an already approved Contract fails `INVALID_STATE`. A pre-existing decision for the round or Reward prevents another transition. Notification is a committed-event effect. No request-changes or resubmission command is introduced.
 
 ### Important semantic distinction
 
@@ -102,10 +104,12 @@ The derived state should be computed, not stored, unless there is a proven query
 
 ## 5. Review cycles
 
+ADR-043 defines `reviewCycle` as the zero-based current/most recently opened round. Creation initializes `0`; first submission opens round `0` unchanged. A future successful resubmission from `CHANGES_REQUESTED` increments the counter atomically. At most one Parent decision exists per Contract/cycle. Correction progress remains OPEN-009.
+
 When a parent requests changes:
 
 - write an immutable `ContractReview` with decision `REQUEST_CHANGES`;
-- preserve every prior review; exact `reviewCycle` numbering semantics remain OPEN-012 in `DECISIONS.md` and must not be invented during implementation;
+- preserve every prior review; ADR-043 requires `ContractReview.cycle = Contract.reviewCycle`, without incrementing on a Parent decision;
 - set the contract to `CHANGES_REQUESTED`;
 - notify the child;
 - allow the child to return to `READY_FOR_REVIEW` after addressing the issue.

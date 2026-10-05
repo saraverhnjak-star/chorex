@@ -14,23 +14,24 @@ import {
 
 // Extends the existing real acceptance -> completion verification and its safe
 // emulator/auth/listener harness; does not duplicate Phase 3 setup.
-export async function verifyContractSubmission({
-  environment,
-  withAdmin,
-  readAdmin,
-  callFunction,
-  watch,
-  expectCode,
-  normalized,
-  parent,
-  child,
-  sibling,
-  outside,
-  familyId,
-  contractId,
-  tasks,
-  audit,
-}) {
+export async function verifyContractSubmission(ctx) {
+  const {
+    environment,
+    withAdmin,
+    readAdmin,
+    callFunction,
+    watch,
+    expectCode,
+    normalized,
+    parent,
+    child,
+    sibling,
+    outside,
+    familyId,
+    contractId,
+    tasks,
+    audit,
+  } = ctx;
   const memberPath = `families/${familyId}/members/${child.localId}`;
   await withAdmin((db) =>
     setDoc(doc(db, memberPath), {
@@ -294,4 +295,9 @@ export async function verifyContractSubmission({
   console.info(
     'PASS: submitContractForReview full accepted/completed flow, authorization, strict input, bilateral realtime, immutable terms/counts/history, unchanged cycle, canonical retries, concurrent submissions/final completion, denied direct writes, no Review/Reward/push',
   );
+  if (process.env.CHOREX_VERIFY_APPROVAL === '1') {
+    const { verifyContractApproval } =
+      await import('./verify-contract-approval.mjs');
+    await verifyContractApproval(ctx);
+  }
 }

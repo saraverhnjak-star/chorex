@@ -1,3 +1,4 @@
+import { ApproveContractAction } from './ApproveContractAction';
 import { Text, View } from 'react-native';
 import { useContractDetail } from '@chorex/firebase-client';
 import { FormMessage, TaskProgress, useDynamicTypeStyles } from '@chorex/ui';
@@ -51,6 +52,11 @@ export function ContractDetail({
   const childName = childNames[contract.childUid];
   return (
     <View className="gap-4">
+      <ApproveContractAction
+        key={`${contract.id}:${authUid}`}
+        contract={contract}
+        authUid={authUid}
+      />
       {childName ? (
         <Text
           allowFontScaling={false}

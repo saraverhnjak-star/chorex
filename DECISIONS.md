@@ -1781,19 +1781,43 @@ Deadline display is in scope before this policy is finalized; automatic expiry/c
 
 ---
 
-## OPEN-012 — Review Cycle Numbering
-
-Review records are immutable, but the exact meaning and increment timing of `reviewCycle` is not yet locked. Do not infer a numbering rule from examples alone.
-
----
-
 ## OPEN-014 — Individual Child Device Access Revocation
 
 Push registration revocation is not the same as Firebase Auth session revocation. Decide whether MVP needs individual paired-device auth revocation or whether child-wide refresh-token revocation is sufficient for the first release.
 
 ---
 
+# ADR-043 — Review Cycles Identify Zero-Based Review Rounds
+
+**Status:** Accepted
+
+**Resolves:** OPEN-012 — Review Cycle Numbering
+
+## Decision
+
+`Contract.reviewCycle` is the zero-based index of the current or most recently opened review round. A new Contract starts at `0`. First Child submission (`ACTIVE -> READY_FOR_REVIEW`) opens round `0` without incrementing it. Each immutable Parent `ContractReview` records `cycle = Contract.reviewCycle` from authoritative state.
+
+Approval and request changes do not increment the counter. A future successful Child resubmission (`CHANGES_REQUESTED -> READY_FOR_REVIEW`) atomically increments it by one and opens the next round. The correction period itself does not open a round.
+
+At most one Parent review decision may exist per Contract and cycle. Idempotent retries must not create another review, increment a cycle or duplicate logical effects. Approval ends the ordinary review flow; Reward fulfillment remains separate.
+
+## Rationale and scope
+
+The same round identity on Contract and Review makes immutable history and concurrent decisions deterministic while preserving existing `reviewCycle: 0` creation and first-submission behavior. Initial zero is not a count of completed reviews.
+
+This decision resolves numbering only. OPEN-009 correction/task-progress semantics, OPEN-010 undo and OPEN-011 expiry/cancellation remain unresolved. Resubmission is specified here for future implementation, not implemented by this decision.
+
+---
+
 # Resolved Open Decisions
+
+## OPEN-012 — Review Cycle Numbering
+
+**Status:** Resolved by ADR-043
+
+Review cycles identify zero-based review rounds. See ADR-043 for increment timing and immutable review uniqueness.
+
+---
 
 ## OPEN-013 — Firestore Serialization Contract
 

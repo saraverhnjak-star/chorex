@@ -91,6 +91,11 @@ jest.mock('@chorex/firebase-client', () => ({
     contracts: [],
     fromCache: false,
   }),
+  useReadyForReviewContracts: () => ({
+    status: 'ready',
+    contracts: [],
+    fromCache: false,
+  }),
   readCurrentParentFamily: jest.fn().mockResolvedValue({
     profile: {
       uid: 'parent-test-uid',

@@ -56,7 +56,7 @@ Do not let clients send notifications directly to other users.
 
 ### Implemented Phase 2 dispatcher
 
-`notifyOfferNegotiation` is a Firestore document-created trigger on `/activityEvents/{eventId}`. Only `OFFER_PUBLISHED`, `OFFER_COUNTERED` (both actor directions), and `OFFER_ACCEPTED` (both actor directions) are dispatched. Rejection remains an activity event without a push requirement.
+`notifyOfferNegotiation` is a Firestore document-created trigger on `/activityEvents/{eventId}`. The Phase 2 paths dispatch `OFFER_PUBLISHED`, `OFFER_COUNTERED` (both actor directions), and `OFFER_ACCEPTED` (both actor directions). Phase 4 approval additionally dispatches `CONTRACT_APPROVED`. Rejection remains an activity event without a push requirement.
 
 The dispatcher loads the authoritative Offer, the event's immutable revision, and active recipient membership; acceptance additionally verifies the committed Contract source. Historical committed events may be processed after later revisions become current. It never reads terms into copy or payloads, accepts client-selected recipients, or participates in a command transaction. Only the intended participant's `pushEnabled: true` registrations for the correct app variant are targeted, with identical tokens deduplicated.
 
@@ -68,25 +68,29 @@ Both apps suppress foreground banners/sounds for this realtime-first workflow. A
 
 The local Functions emulator substitutes fake Expo tickets; verification makes no real Expo calls. Deterministic transport tests cover payloads, direction, batching and failures.
 
+### Implemented Contract approval effect
+
+The same dispatcher handles CONTRACT_APPROVED after verifying the authoritative approved Contract, deterministic APPROVE review at its current cycle, and matching earned Reward. It resolves the active Child participant, using the existing Expo effect lease, bounded retry and device/token filters. Generic copy is “Reward earned” / “You earned your promised reward. Delivery is still pending.” Routing data contains only CONTRACT_APPROVED, CONTRACT, Contract ID and Family ID. The approval response handler opens the existing stable Contract detail route. Offer routing remains unchanged. Transport failure never rolls back approval; no receipt polling is added.
+
 ## 5. Initial notification matrix
 
-| Event | Recipient | Example |
-| --- | --- | --- |
-| Offer published | Child | "You have a new chore offer." |
-| Child counteroffers | Parent | "Mia proposed different terms." |
-| Parent counteroffers | Child | "Your offer has new terms." |
-| Offer accepted | Other participant | "Agreement reached. Your contract is active." |
-| Task milestone | Optional parent | Avoid noisy per-task pushes by default. |
-| Contract submitted | Parent | "Mia submitted 'Cinema weekend' for review." |
-| Changes requested | Child | "A change was requested before approval." |
-| Contract approved | Child | "You earned: Cinema." |
-| Reward fulfilled | Child | "Cinema was marked as delivered." |
-| Auction opened | Eligible children | "New family auction: Cinema." |
-| Bid placed/updated | Parent | "A new auction bid is ready." |
-| Bid selected | Winner | "Your bid won. A contract is now active." |
-| Auction closed | Non-winners | Optional, configurable. |
-| Deadline reminder | Child | "Your contract is due tomorrow." |
-| Reward reminder | Parent | "You still owe an earned reward." |
+| Event                | Recipient         | Example                                       |
+| -------------------- | ----------------- | --------------------------------------------- |
+| Offer published      | Child             | "You have a new chore offer."                 |
+| Child counteroffers  | Parent            | "Mia proposed different terms."               |
+| Parent counteroffers | Child             | "Your offer has new terms."                   |
+| Offer accepted       | Other participant | "Agreement reached. Your contract is active." |
+| Task milestone       | Optional parent   | Avoid noisy per-task pushes by default.       |
+| Contract submitted   | Parent            | "Mia submitted 'Cinema weekend' for review."  |
+| Changes requested    | Child             | "A change was requested before approval."     |
+| Contract approved    | Child             | "You earned: Cinema."                         |
+| Reward fulfilled     | Child             | "Cinema was marked as delivered."             |
+| Auction opened       | Eligible children | "New family auction: Cinema."                 |
+| Bid placed/updated   | Parent            | "A new auction bid is ready."                 |
+| Bid selected         | Winner            | "Your bid won. A contract is now active."     |
+| Auction closed       | Non-winners       | Optional, configurable.                       |
+| Deadline reminder    | Child             | "Your contract is due tomorrow."              |
+| Reward reminder      | Parent            | "You still owe an earned reward."             |
 
 ## 6. Notification payload
 

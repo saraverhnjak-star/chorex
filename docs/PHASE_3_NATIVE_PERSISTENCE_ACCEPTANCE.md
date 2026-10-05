@@ -66,3 +66,5 @@ Only this report, the Slice 1–3 acceptance notes and the roadmap are changed b
 The same development Firebase routing was used for native verification. Automated emulator regressions used isolated localhost ports to avoid altering that dataset. All paused services were resumed; the task-owned Auth/Functions service remains available with the saved local accounts. No commit, push or deployment was performed.
 
 OPEN-009/010/011/012 remain unresolved. No Parent review queue/actions, Review, review-cycle change, Reward, notification expansion, expiry/cancellation, custom Contract persistence or offline mutation queue was added. Physical-device push delivery, Android-native verification and reinstall/cache eviction are outside this iOS restart check.
+
+Subsequent decision: ADR-043 resolves OPEN-012 with zero-based review rounds. This historical Phase 3 evidence remains unchanged; first submission still preserves the cycle. OPEN-009/010/011 remain unresolved.

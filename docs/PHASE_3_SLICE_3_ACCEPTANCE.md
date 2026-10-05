@@ -53,3 +53,5 @@ OPEN-009 correction semantics, OPEN-010 undo, OPEN-011 expiry/cancellation and O
 - Documentation: `docs/03_STATE_MACHINES.md`, `docs/04_FIRESTORE_SCHEMA.md`, `docs/07_IMPLEMENTATION_ROADMAP.md`, `docs/PHASE_3_SLICE_2_ACCEPTANCE.md`, this note and `functions/README.md`.
 
 Pre-existing uncommitted Slice 1/2 changes are retained. No dependency, Firestore Rules, index or existing Offer-command behavior changes are introduced by this slice.
+
+Subsequent decision: ADR-043 resolves OPEN-012 with zero-based review rounds. This historical Phase 3 evidence remains unchanged; first submission still preserves the cycle. OPEN-009/010/011 remain unresolved.

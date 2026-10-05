@@ -126,3 +126,14 @@ it('routes only minimal negotiation metadata to existing Phase 2 home surfaces',
     }),
   ).toBeUndefined();
 });
+
+it('approval notification opens the existing stable Contract detail route', () => {
+  expect(
+    negotiationNotificationRoute({
+      type: 'CONTRACT_APPROVED',
+      entityType: 'CONTRACT',
+      entityId: 'contract-1',
+      familyId: 'family-1',
+    }),
+  ).toBe('/contracts/contract-1');
+});

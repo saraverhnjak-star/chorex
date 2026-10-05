@@ -52,6 +52,17 @@ export function ContractDetail({
   const { contract, tasks, fromCache } = state;
   return (
     <View className="gap-4">
+      {contract.status === 'APPROVED' ? (
+        <Text
+          allowFontScaling={false}
+          accessibilityLiveRegion="polite"
+          className="text-text"
+          style={styles.body}
+        >
+          Your Parent approved this agreement. Your reward is earned and waiting
+          to be fulfilled.
+        </Text>
+      ) : null}
       {childName ? (
         <Text
           allowFontScaling={false}

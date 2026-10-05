@@ -129,3 +129,14 @@ export {
   type RecordTaskCompletionInputValue,
   type RecordTaskCompletionOutput,
 } from './completion';
+export {
+  contractReviewSchema,
+  rewardSchema,
+  approveContractInputSchema,
+  approveContractOutputSchema,
+  type ContractReview,
+  type EarnedReward,
+  type ApproveContractInput,
+  type ApproveContractInputValue,
+  type ApproveContractOutput,
+} from './review';

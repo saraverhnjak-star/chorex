@@ -3,7 +3,12 @@ import { z } from 'zod';
 const id = z.string().min(1).max(128);
 export const negotiationNotificationDataSchema = z
   .strictObject({
-    type: z.enum(['OFFER_PUBLISHED', 'OFFER_COUNTERED', 'OFFER_ACCEPTED']),
+    type: z.enum([
+      'OFFER_PUBLISHED',
+      'OFFER_COUNTERED',
+      'OFFER_ACCEPTED',
+      'CONTRACT_APPROVED',
+    ]),
     entityType: z.enum(['OFFER', 'CONTRACT']),
     entityId: id,
     familyId: id,
@@ -11,7 +16,9 @@ export const negotiationNotificationDataSchema = z
   .superRefine((data, context) => {
     if (
       data.entityType !==
-      (data.type === 'OFFER_ACCEPTED' ? 'CONTRACT' : 'OFFER')
+      (['OFFER_ACCEPTED', 'CONTRACT_APPROVED'].includes(data.type)
+        ? 'CONTRACT'
+        : 'OFFER')
     ) {
       context.addIssue({
         code: 'custom',

@@ -1,8 +1,12 @@
 import ContractScreen from '../app/(app)/contracts/[contractId]';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ContractDetail } from '../src/contracts/ContractDetail';
-import { ActiveContracts } from '../src/contracts/ActiveContracts';
+import {
+  ActiveContracts,
+  ReadyForReviewContracts,
+} from '../src/contracts/ActiveContracts';
 
+const mockApprove = jest.fn();
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockSessionUser = { uid: 'parent-1' };
@@ -26,6 +30,16 @@ jest.mock('@chorex/firebase-client', () => {
   );
   return {
     ...hooks,
+    approveContract: (...args: unknown[]) => mockApprove(...args),
+    isContractClientError: (error: unknown) =>
+      !!error && typeof error === 'object' && 'code' in error,
+    observeReadyForReviewContracts: (
+      _familyId: string,
+      callback: typeof mockList,
+    ) => {
+      mockList = callback;
+      return mockListStop;
+    },
     readCurrentParentFamily: () =>
       Promise.resolve({
         profile: { uid: 'parent-1' },
@@ -217,7 +231,7 @@ it('opens the stable-ID detail route with a heading and accessible home navigati
   expect(mockReplace).toHaveBeenCalledWith('/');
 });
 
-it('receives READY_FOR_REVIEW through the existing listener without adding review actions', () => {
+it('receives READY_FOR_REVIEW through the existing listener and exposes approval', () => {
   render(<ContractDetail {...props} />);
   emitReady();
   act(() =>
@@ -229,6 +243,120 @@ it('receives READY_FOR_REVIEW through the existing listener without adding revie
   expect(
     screen.getByLabelText('Contract status: READY FOR REVIEW'),
   ).toBeOnTheScreen();
-  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
   expect(mockContractStop).not.toHaveBeenCalled();
+});
+
+function emitReview() {
+  act(() => {
+    mockContract({
+      data: { ...contract, status: 'READY_FOR_REVIEW' },
+      fromCache: false,
+    });
+    mockTasks({ data: [{ ...task, completedCount: 3 }], fromCache: false });
+  });
+}
+it('approval confirms deliberately, guards duplicate taps, waits for receipt and realtime, and distinguishes earning from fulfillment', async () => {
+  let resolve!: (value: unknown) => void;
+  mockApprove.mockImplementationOnce(
+    () =>
+      new Promise((r) => {
+        resolve = r;
+      }),
+  );
+  render(<ContractDetail {...props} />);
+  emitReview();
+  fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
+  expect(mockApprove).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole('header', { name: 'Approve this completed agreement?' }),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Keep reviewing' }));
+  expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
+  const button = screen.getByRole('button', { name: 'Confirm approval' });
+  fireEvent.press(button);
+  fireEvent.press(button);
+  expect(mockApprove).toHaveBeenCalledTimes(1);
+  expect(button).toBeDisabled();
+  expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
+  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  await act(async () => resolve({}));
+  expect(screen.getByText('Approved — reward earned')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Waiting for updated Contract status…'),
+  ).toBeOnTheScreen();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'APPROVED' },
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('Status: APPROVED')).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Approve' }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'You approved this agreement. The reward is earned and still needs to be fulfilled.',
+    ),
+  ).toBeOnTheScreen();
+});
+it('ambiguous approval failure preserves status and explicit retry uses the same key', async () => {
+  mockApprove
+    .mockRejectedValueOnce(new Error('timeout'))
+    .mockResolvedValueOnce({});
+  render(<ContractDetail {...props} />);
+  emitReview();
+  fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
+  await act(async () =>
+    fireEvent.press(screen.getByRole('button', { name: 'Confirm approval' })),
+  );
+  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'We could not confirm approval. Try again to confirm the same action.',
+    ),
+  ).toBeOnTheScreen();
+  const input = mockApprove.mock.calls[0][0];
+  await act(async () =>
+    fireEvent.press(screen.getByRole('button', { name: 'Confirm approval' })),
+  );
+  expect(mockApprove.mock.calls[1][0]).toEqual(input);
+});
+it('another Parent sees no approval controls', () => {
+  render(<ContractDetail {...props} authUid="other" />);
+  emitReview();
+  expect(
+    screen.queryByRole('button', { name: 'Approve' }),
+  ).not.toBeOnTheScreen();
+});
+it('Ready-for-Review list opens stable IDs and realtime removal does not claim approval', () => {
+  render(
+    <ReadyForReviewContracts
+      familyId="family-1"
+      authUid="parent-1"
+      childNames={{ 'child-1': 'Mia' }}
+    />,
+  );
+  act(() =>
+    mockList({
+      data: [{ ...contract, status: 'READY_FOR_REVIEW' }],
+      fromCache: false,
+    }),
+  );
+  expect(
+    screen.getByRole('header', { name: 'Ready for Review' }),
+  ).toBeOnTheScreen();
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Open Contract: Mia · Cinema' }),
+  );
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/contracts/[contractId]',
+    params: { contractId: 'contract-1' },
+  });
+  act(() => mockList({ data: [], fromCache: false }));
+  expect(screen.getByText('No Contracts awaiting review.')).toBeOnTheScreen();
+  expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
 });

@@ -39,6 +39,10 @@ import {
   httpsCallable,
 } from '@react-native-firebase/functions';
 import {
+  approveContractInputSchema,
+  approveContractOutputSchema,
+  type ApproveContractInputValue,
+  type ApproveContractOutput,
   submitContractForReviewInputSchema,
   submitContractForReviewOutputSchema,
   type SubmitContractForReviewInputValue,
@@ -843,7 +847,7 @@ export async function readCurrentParentFamily(): Promise<ParentFamilyHome | null
           query(
             collection(firestore, 'families', familyId, 'members'),
             where('role', '==', 'CHILD'),
-            where('status', '==', 'ACTIVE'),
+            where('status', '==', status),
           ),
         ),
       ]);
@@ -1148,12 +1152,32 @@ export function observeActiveContracts(
   callback: (snapshot: ReadSnapshot<readonly Contract[]>) => void,
   onError: (error: ContractReadError) => void,
 ): () => void {
+  return observeContractsInState(familyId, 'ACTIVE', callback, onError);
+}
+export function observeReadyForReviewContracts(
+  familyId: string,
+  callback: (snapshot: ReadSnapshot<readonly Contract[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  return observeContractsInState(
+    familyId,
+    'READY_FOR_REVIEW',
+    callback,
+    onError,
+  );
+}
+function observeContractsInState(
+  familyId: string,
+  status: 'ACTIVE' | 'READY_FOR_REVIEW',
+  callback: (snapshot: ReadSnapshot<readonly Contract[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
   const uid = requireContractReadContext(familyId);
   const contractsQuery = query(
     collection(getInitializedFirestore(), 'contracts'),
     where('familyId', '==', familyId),
     where('participantUids', 'array-contains', uid),
-    where('status', '==', 'ACTIVE'),
+    where('status', '==', status),
     orderBy('createdAt', 'desc'),
   );
   try {
@@ -1169,7 +1193,7 @@ export function observeActiveContracts(
             contracts.some(
               (item) =>
                 item.familyId !== familyId ||
-                item.status !== 'ACTIVE' ||
+                item.status !== status ||
                 (item.parentUid !== uid && item.childUid !== uid),
             )
           )
@@ -1189,6 +1213,7 @@ export function observeActiveContracts(
 export {
   useContractDetail,
   useActiveContracts,
+  useReadyForReviewContracts,
   type ContractDetailState,
   type ActiveContractsState,
 } from './contractHooks';
@@ -1276,6 +1301,29 @@ export async function submitContractForReview(
     );
     const result = await callable(parsed.data);
     const output = submitContractForReviewOutputSchema.parse(result.data);
+    if (output.contract.id !== parsed.data.contractId)
+      throw new ContractClientError(contractClientErrorCodes.unknown);
+    return output;
+  } catch (error) {
+    throw translateContractCommandError(error);
+  }
+}
+
+export async function approveContract(
+  rawInput: ApproveContractInputValue,
+): Promise<ApproveContractOutput> {
+  if (!getInitializedAuth().currentUser)
+    throw new ContractClientError(contractClientErrorCodes.authRequired);
+  const parsed = approveContractInputSchema.safeParse(rawInput);
+  if (!parsed.success)
+    throw new ContractClientError(contractClientErrorCodes.invalidInput);
+  try {
+    const callable = httpsCallable<typeof parsed.data, unknown>(
+      getInitializedFunctions(),
+      'approveContract',
+    );
+    const result = await callable(parsed.data);
+    const output = approveContractOutputSchema.parse(result.data);
     if (output.contract.id !== parsed.data.contractId)
       throw new ContractClientError(contractClientErrorCodes.unknown);
     return output;

@@ -516,3 +516,29 @@ it('READY_FOR_REVIEW received externally hides all progress/submission actions',
     screen.getByText('Your Parent now needs to review this agreement.'),
   ).toBeOnTheScreen();
 });
+
+it('realtime approval communicates an earned, pending reward without execution actions', () => {
+  render(<ContractDetail {...props} />);
+  act(() => {
+    mockContract({
+      data: { ...contract, status: 'APPROVED' },
+      fromCache: false,
+    });
+    mockTasks({
+      data: [{ ...task, completedCount: task.targetCount }],
+      fromCache: false,
+    });
+  });
+  expect(screen.getByText('Status: APPROVED')).toBeOnTheScreen();
+  expect(
+    screen.getByText(
+      'Your Parent approved this agreement. Your reward is earned and waiting to be fulfilled.',
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Submit for review' }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Mark one done' }),
+  ).not.toBeOnTheScreen();
+});

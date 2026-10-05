@@ -1,4 +1,6 @@
 import {
+  approveContract,
+  observeReadyForReviewContracts,
   submitContractForReview,
   recordTaskCompletion,
   ContractClientError,
@@ -267,4 +269,95 @@ it('submission callable validates identity, strict canonical status and stable t
   await expect(
     submitContractForReview({ ...input, allTasksComplete: true } as never),
   ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+});
+
+it('approval adapter validates the linked canonical receipt and stable errors', async () => {
+  const input = {
+    contractId: 'contract-1',
+    idempotencyKey: 'approval-client-001',
+  };
+  const { participantUids: _participants, ...canonical } = contractData;
+  const result = {
+    contract: {
+      ...canonical,
+      id: 'contract-1',
+      deadlineAt: iso,
+      createdAt: iso,
+      updatedAt: iso,
+      approvedAt: iso,
+      status: 'APPROVED',
+    },
+    review: {
+      id: 'review-1',
+      familyId: 'family-1',
+      contractId: 'contract-1',
+      cycle: 0,
+      reviewerUid: 'parent-1',
+      decision: 'APPROVE',
+      createdAt: iso,
+    },
+    reward: {
+      id: 'reward-1',
+      familyId: 'family-1',
+      contractId: 'contract-1',
+      parentUid: 'parent-1',
+      childUid: 'child-1',
+      terms: canonical.rewardTerms,
+      status: 'PENDING_FULFILLMENT',
+      earnedAt: iso,
+    },
+  };
+  mockCallable.mockResolvedValueOnce({ data: result });
+  await expect(approveContract(input)).resolves.toEqual(result);
+  expect(mockHttpsCallable).toHaveBeenLastCalledWith(
+    expect.anything(),
+    'approveContract',
+  );
+  for (const patch of [
+    { contract: { ...result.contract, id: 'another' } },
+    { review: { ...result.review, cycle: 1 } },
+  ]) {
+    mockCallable.mockResolvedValueOnce({ data: { ...result, ...patch } });
+    await expect(approveContract(input)).rejects.toMatchObject({
+      code: 'UNKNOWN_CONTRACT_FAILURE',
+    });
+  }
+  await expect(
+    approveContract({ ...input, cycle: 0 } as never),
+  ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+  mockCallable.mockRejectedValueOnce({ details: { code: 'INVALID_STATE' } });
+  await expect(approveContract(input)).rejects.toMatchObject({
+    code: 'INVALID_STATE',
+  });
+  mockCallable.mockRejectedValueOnce({ code: 'functions/unavailable' });
+  await expect(approveContract(input)).rejects.toMatchObject({
+    code: 'NETWORK_UNAVAILABLE',
+  });
+});
+it('review queue retains scoped queries, cache metadata and cleanup', () => {
+  const callback = jest.fn();
+  const stop = observeReadyForReviewContracts('family-1', callback, jest.fn());
+  const ref = mockListen.mock.calls[0][0];
+  expect(ref.constraints).toEqual(
+    expect.arrayContaining([
+      { where: ['familyId', '==', 'family-1'] },
+      { where: ['participantUids', 'array-contains', 'child-1'] },
+      { where: ['status', '==', 'READY_FOR_REVIEW'] },
+    ]),
+  );
+  mockSnapshot({
+    docs: [
+      {
+        id: 'contract-1',
+        data: () => ({ ...contractData, status: 'READY_FOR_REVIEW' }),
+      },
+    ],
+    metadata: { fromCache: true },
+  });
+  expect(callback).toHaveBeenCalledWith({
+    data: [expect.objectContaining({ status: 'READY_FOR_REVIEW' })],
+    fromCache: true,
+  });
+  stop();
+  expect(mockStop).toHaveBeenCalled();
 });

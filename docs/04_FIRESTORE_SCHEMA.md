@@ -214,7 +214,7 @@ Tasks are copied from accepted terms into:
 }
 ```
 
-The authenticated, idempotent `acceptOffer` command requires the Offer's active Child participant, the exact current Parent-proposed revision, `AWAITING_CHILD`, and a future revision deadline according to server time. In one transaction it moves the Offer to `ACCEPTED`, creates one deterministic `ACTIVE` Contract, copies the immutable reward terms and deadline, creates deterministic Contract tasks at `completedCount: 0`, initializes `reviewCycle: 0`, writes one `OFFER_ACCEPTED` activity event, and completes the server-only idempotency record. No Reward entity exists until Contract approval. The value `reviewCycle: 0` is only the initial value and does not resolve the later increment semantics in OPEN-012.
+The authenticated, idempotent `acceptOffer` command requires the Offer's active Child participant, the exact current Parent-proposed revision, `AWAITING_CHILD`, and a future revision deadline according to server time. In one transaction it moves the Offer to `ACCEPTED`, creates one deterministic `ACTIVE` Contract, copies the immutable reward terms and deadline, creates deterministic Contract tasks at `completedCount: 0`, initializes `reviewCycle: 0`, writes one `OFFER_ACCEPTED` activity event, and completes the server-only idempotency record. No Reward entity exists until Contract approval. ADR-043 defines zero-based review rounds; first submission and Parent decisions preserve this value.
 
 The authenticated, idempotent `rejectOffer` command retains its Child branch: the Offer's active Child participant rejects the exact current Parent-proposed revision in `AWAITING_CHILD`. Its Parent branch requires `AWAITING_PARENT`, the Offer's active Parent participant, and the exact current revision proposed by the Offer's active Child participant. Both paths use the existing `currentRevisionId` and idempotency key, atomically move the Offer to `REJECTED`, write one `OFFER_REJECTED` event with the authenticated actor UID and role, and complete server-only idempotency state. Same-key retries return the canonical rejected Offer without duplicate events. No revision is rewritten or deleted, and no Contract, Contract task, or Reward is created.
 
@@ -268,13 +268,15 @@ See [Phase 3 Slice 2 verification](PHASE_3_SLICE_2_ACCEPTANCE.md).
 {
   "familyId": "familyId",
   "contractId": "contractId",
-  "cycle": 1,
+  "cycle": 0,
   "reviewerUid": "parentUid",
   "decision": "REQUEST_CHANGES",
   "note": "Please finish the last task.",
   "createdAt": "serverTimestamp"
 }
 ```
+
+ADR-043 requires zero-based round numbering. Approval records use deterministic `review_{sha256(contractId + ":" + reviewCycle)}` IDs, shared by either Parent decision type, preventing duplicate decisions for one round. Prior records are immutable.
 
 ## 10. Rewards
 
@@ -304,6 +306,14 @@ where parentUid == currentUid
 where status == PENDING_FULFILLMENT
 orderBy earnedAt desc
 ```
+
+### Approval persistence
+
+`approveContract` accepts only `{ contractId, idempotencyKey }`. The transaction loads authoritative Contract and active Parent membership; it requires the actor to equal `parentUid` and be a participant. New approval requires READY_FOR_REVIEW and absent round-review/Contract-Reward records.
+
+Atomically it creates `/contracts/{contractId}/reviews/review_{sha256(contractId + ":" + reviewCycle)}` with APPROVE/current cycle/reviewer/server timestamp; updates only Contract status, approvedAt and updatedAt; creates `/rewards/reward_{sha256(contractId)}` with the shape above and frozen Contract rewardTerms; creates one Parent CONTRACT_APPROVED activity event with Contract, review and Reward IDs; and completes actor/command/key-scoped idempotency state storing the canonical `{ contract, review, reward }` receipt. No fulfillment fields are present. Same-key receipts are historical responses, including after later Reward changes, and do not replace realtime state.
+
+Direct client writes remain denied. This slice reads only Contract/task state, so it does not introduce client review/Reward reads or broader Rules. The Ready-for-Review list reuses the existing family/participant/status/createdAt index and native metadata-aware listeners.
 
 ## 11. Auctions
 

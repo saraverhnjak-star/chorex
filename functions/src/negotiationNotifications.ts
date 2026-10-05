@@ -1,3 +1,4 @@
+import { contractReviewId, contractRewardId } from './approveContract';
 import { randomUUID } from 'node:crypto';
 import {
   negotiationNotificationDataSchema,
@@ -88,6 +89,36 @@ export function negotiationNotificationIntent(
   };
 }
 
+export function approvalNotificationIntent(
+  event: DocumentData,
+  contract: DocumentData,
+): NotificationIntent | undefined {
+  if (
+    event.type !== 'CONTRACT_APPROVED' ||
+    event.entityType !== 'CONTRACT' ||
+    event.familyId !== contract.familyId ||
+    event.actorType !== 'PARENT' ||
+    event.actorUid !== contract.parentUid ||
+    contract.status !== 'APPROVED' ||
+    typeof contract.childUid !== 'string'
+  )
+    return;
+  const data = negotiationNotificationDataSchema.safeParse({
+    type: event.type,
+    entityType: 'CONTRACT',
+    entityId: event.entityId,
+    familyId: contract.familyId,
+  });
+  if (!data.success) return;
+  return {
+    recipientUid: contract.childUid,
+    recipientRole: 'CHILD',
+    title: 'Reward earned',
+    body: 'You earned your promised reward. Delivery is still pending.',
+    data: data.data,
+  };
+}
+
 export async function sendExpoMessages(
   messages: readonly ExpoMessage[],
 ): Promise<readonly ExpoTicket[]> {
@@ -139,9 +170,12 @@ export async function dispatchNegotiationNotification(
     const event = eventSnapshot.data();
     if (
       !event ||
-      !['OFFER_PUBLISHED', 'OFFER_COUNTERED', 'OFFER_ACCEPTED'].includes(
-        event.type,
-      )
+      ![
+        'OFFER_PUBLISHED',
+        'OFFER_COUNTERED',
+        'OFFER_ACCEPTED',
+        'CONTRACT_APPROVED',
+      ].includes(event.type)
     )
       return;
     const effect = effectSnapshot.data();
@@ -157,53 +191,100 @@ export async function dispatchNegotiationNotification(
       tx.set(effectRef, { status: 'FAILED', updatedAt: now }, { merge: true });
       return;
     }
-    if (
-      typeof event.entityId !== 'string' ||
-      typeof event.revisionId !== 'string'
-    )
-      return;
-    const offerRef = firestore.doc(`offers/${event.entityId}`);
-    const [offerSnapshot, revisionSnapshot] = await Promise.all([
-      tx.get(offerRef),
-      tx.get(offerRef.collection('revisions').doc(event.revisionId)),
-    ]);
-    const offer = offerSnapshot.data();
-    const revision = revisionSnapshot.data();
-    if (!offer || !revision) return;
-    const resolved = negotiationNotificationIntent(event, offer);
-    if (!resolved) return;
-    // Historical committed revisions remain valid even if later negotiation has advanced.
-    const expectedProposer =
-      event.type === 'OFFER_ACCEPTED'
-        ? event.actorType === 'PARENT'
-          ? offer.childUid
-          : offer.parentUid
-        : event.actorUid;
-    if (
-      revision.proposedByUid !== expectedProposer ||
-      revision.proposedByRole !==
-        (expectedProposer === offer.parentUid ? 'PARENT' : 'CHILD')
-    )
-      return;
-    if (event.type === 'OFFER_ACCEPTED') {
+    let resolved: NotificationIntent | undefined;
+    let familyId: string;
+    if (event.type === 'CONTRACT_APPROVED') {
+      if (
+        typeof event.entityId !== 'string' ||
+        !event.entityId ||
+        event.entityId.includes('/')
+      )
+        return;
       const contract = (
-        await tx.get(firestore.doc(`contracts/${event.contractId}`))
+        await tx.get(firestore.doc(`contracts/${event.entityId}`))
       ).data();
       if (
         !contract ||
-        contract.familyId !== offer.familyId ||
-        contract.parentUid !== offer.parentUid ||
-        contract.childUid !== offer.childUid ||
-        contract.source?.offerId !== event.entityId ||
-        contract.source?.revisionId !== event.revisionId
+        !Number.isInteger(contract.reviewCycle) ||
+        contract.reviewCycle < 0
       )
         return;
+      const reviewId = contractReviewId(event.entityId, contract.reviewCycle);
+      const rewardId = contractRewardId(event.entityId);
+      if (event.reviewId !== reviewId || event.rewardId !== rewardId) return;
+      const [reviewSnapshot, rewardSnapshot] = await Promise.all([
+        tx.get(
+          firestore.doc(`contracts/${event.entityId}/reviews/${reviewId}`),
+        ),
+        tx.get(firestore.doc(`rewards/${rewardId}`)),
+      ]);
+      const review = reviewSnapshot.data(),
+        reward = rewardSnapshot.data();
+      if (
+        !review ||
+        !reward ||
+        review.decision !== 'APPROVE' ||
+        review.cycle !== contract.reviewCycle ||
+        review.reviewerUid !== contract.parentUid ||
+        review.familyId !== contract.familyId ||
+        review.contractId !== event.entityId ||
+        reward.familyId !== contract.familyId ||
+        reward.contractId !== event.entityId ||
+        reward.parentUid !== contract.parentUid ||
+        reward.childUid !== contract.childUid
+      )
+        return;
+      resolved = approvalNotificationIntent(event, contract);
+      if (!resolved) return;
+      familyId = contract.familyId;
+    } else {
+      if (
+        typeof event.entityId !== 'string' ||
+        typeof event.revisionId !== 'string'
+      )
+        return;
+      const offerRef = firestore.doc(`offers/${event.entityId}`);
+      const [offerSnapshot, revisionSnapshot] = await Promise.all([
+        tx.get(offerRef),
+        tx.get(offerRef.collection('revisions').doc(event.revisionId)),
+      ]);
+      const offer = offerSnapshot.data();
+      const revision = revisionSnapshot.data();
+      if (!offer || !revision) return;
+      resolved = negotiationNotificationIntent(event, offer);
+      if (!resolved) return;
+      // Historical committed revisions remain valid even if later negotiation has advanced.
+      const expectedProposer =
+        event.type === 'OFFER_ACCEPTED'
+          ? event.actorType === 'PARENT'
+            ? offer.childUid
+            : offer.parentUid
+          : event.actorUid;
+      if (
+        revision.proposedByUid !== expectedProposer ||
+        revision.proposedByRole !==
+          (expectedProposer === offer.parentUid ? 'PARENT' : 'CHILD')
+      )
+        return;
+      if (event.type === 'OFFER_ACCEPTED') {
+        const contract = (
+          await tx.get(firestore.doc(`contracts/${event.contractId}`))
+        ).data();
+        if (
+          !contract ||
+          contract.familyId !== offer.familyId ||
+          contract.parentUid !== offer.parentUid ||
+          contract.childUid !== offer.childUid ||
+          contract.source?.offerId !== event.entityId ||
+          contract.source?.revisionId !== event.revisionId
+        )
+          return;
+      }
+      familyId = offer.familyId;
     }
     const member = (
       await tx.get(
-        firestore.doc(
-          `families/${offer.familyId}/members/${resolved.recipientUid}`,
-        ),
+        firestore.doc(`families/${familyId}/members/${resolved.recipientUid}`),
       )
     ).data();
     if (

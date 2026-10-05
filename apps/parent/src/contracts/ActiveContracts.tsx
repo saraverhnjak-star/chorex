@@ -1,18 +1,48 @@
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useActiveContracts } from '@chorex/firebase-client';
+import {
+  useActiveContracts,
+  useReadyForReviewContracts,
+  type ActiveContractsState,
+} from '@chorex/firebase-client';
 import { Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
 
+type ContractListProps = {
+  familyId: string;
+  authUid: string;
+  childNames?: Readonly<Record<string, string>>;
+};
 export function ActiveContracts({
   familyId,
   authUid,
   childNames = {},
-}: {
-  familyId: string;
-  authUid: string;
-  childNames?: Readonly<Record<string, string>>;
-}) {
+}: ContractListProps) {
   const state = useActiveContracts(familyId, authUid);
+  return (
+    <ContractList
+      state={state}
+      childNames={childNames}
+      readyForReview={false}
+    />
+  );
+}
+export function ReadyForReviewContracts({
+  familyId,
+  authUid,
+  childNames = {},
+}: ContractListProps) {
+  const state = useReadyForReviewContracts(familyId, authUid);
+  return <ContractList state={state} childNames={childNames} readyForReview />;
+}
+function ContractList({
+  state,
+  childNames,
+  readyForReview,
+}: {
+  state: ActiveContractsState;
+  childNames: Readonly<Record<string, string>>;
+  readyForReview: boolean;
+}) {
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   return (
@@ -23,7 +53,7 @@ export function ActiveContracts({
         className="font-bold text-text"
         style={styles.title}
       >
-        Active Contracts
+        {readyForReview ? 'Ready for Review' : 'Active Contracts'}
       </Text>
       {state.status === 'loading' ? (
         <Text
@@ -56,8 +86,12 @@ export function ActiveContracts({
               style={styles.body}
             >
               {state.fromCache
-                ? 'No active Contracts are saved on this device yet.'
-                : 'No active Contracts yet.'}
+                ? readyForReview
+                  ? 'No Contracts awaiting review are saved on this device yet.'
+                  : 'No active Contracts are saved on this device yet.'
+                : readyForReview
+                  ? 'No Contracts awaiting review.'
+                  : 'No active Contracts yet.'}
             </Text>
           ) : (
             state.contracts.map((contract) => (

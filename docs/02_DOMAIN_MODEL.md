@@ -126,6 +126,7 @@ export interface Reward {
   id: string;
   familyId: string;
   contractId: string;
+  parentUid: string;
   childUid: string;
   terms: RewardTerms; // frozen snapshot
   status: 'PENDING_FULFILLMENT' | 'FULFILLED' | 'CANCELLED';
@@ -227,6 +228,8 @@ Undo semantics are intentionally unresolved (see `DECISIONS.md`, OPEN-010). Unti
 
 ## 9. Review
 
+ADR-043 defines zero-based review rounds. `Contract.reviewCycle` starts at `0`; first submission leaves it unchanged. A Parent review copies that value into `ContractReview.cycle` and does not increment it. Only a future successful resubmission increments it. One immutable Parent decision is allowed per Contract/cycle. OPEN-009 remains unresolved.
+
 ```ts
 export interface ContractReview {
   id: string;
@@ -297,3 +300,7 @@ export interface ActivityEvent {
 ```
 
 Do not put secrets, pairing codes, auth tokens, or sensitive free-form payloads in activity metadata.
+
+## Implemented approval boundary
+
+`approveContract({ contractId, idempotencyKey })` is the active Parent participant's server command from exactly `READY_FOR_REVIEW`. It atomically creates an immutable APPROVE review at the existing zero-based cycle, marks the Contract APPROVED, and creates its single earned Reward in PENDING_FULFILLMENT. Terms come only from the frozen Contract. No approval note or fulfillment command is introduced. The current shared Reward output schema covers this pending earned boundary; other Reward lifecycle commands remain future work.

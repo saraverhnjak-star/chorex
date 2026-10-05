@@ -1,4 +1,8 @@
 import {
+  executeApproveContract,
+  ApproveContractCommandError,
+} from './approveContract';
+import {
   executeSubmitContractForReview,
   SubmitContractForReviewCommandError,
 } from './submitContractForReview';
@@ -53,6 +57,7 @@ const pairingRateLimitHmacSecret = defineSecret(
 
 function callableError(
   error:
+    | ApproveContractCommandError
     | SubmitContractForReviewCommandError
     | RecordTaskCompletionCommandError
     | CreateFamilyCommandError
@@ -354,6 +359,20 @@ export const submitContractForReview = onCall(async (request) => {
     );
   } catch (error) {
     if (error instanceof SubmitContractForReviewCommandError)
+      throw callableError(error);
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const approveContract = onCall(async (request) => {
+  try {
+    return await executeApproveContract(
+      firestore,
+      request.auth?.uid,
+      request.data,
+    );
+  } catch (error) {
+    if (error instanceof ApproveContractCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
   }

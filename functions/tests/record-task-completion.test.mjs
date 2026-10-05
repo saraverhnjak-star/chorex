@@ -702,3 +702,276 @@ test('submission preserves an existing reviewCycle without choosing numbering se
     false,
   );
 });
+
+const approval = require('../lib/approveContract.js');
+const approvalInput = {
+  contractId: 'contract',
+  idempotencyKey: 'approval-key-001',
+};
+const approve = (f, actor = 'parent', value = approvalInput) =>
+  approval.executeApproveContract(f.firestore, actor, value);
+const approvalFixture = () => {
+  const f = fixture();
+  f.contract().status = 'READY_FOR_REVIEW';
+  return f;
+};
+const reviewRecords = (f) =>
+  [...f.documents].filter(([p]) => p.includes('/reviews/'));
+const rewardRecords = (f) =>
+  [...f.documents].filter(([p]) => p.startsWith('rewards/'));
+const approvalCode = (code, operation) =>
+  assert.rejects(
+    operation,
+    (e) => e instanceof approval.ApproveContractCommandError && e.code === code,
+  );
+for (const cycle of [0, 2])
+  test(`approval freezes reward and writes one immutable decision at round ${cycle}`, async () => {
+    const f = approvalFixture();
+    f.contract().reviewCycle = cycle;
+    const before = clone(f.contract());
+    assert.equal(rewardRecords(f).length, 0);
+    const result = await approve(f);
+    assert.equal(result.contract.status, 'APPROVED');
+    assert.equal(result.contract.reviewCycle, cycle);
+    assert.equal(result.review.cycle, cycle);
+    assert.equal(result.review.decision, 'APPROVE');
+    assert.equal(result.review.reviewerUid, 'parent');
+    assert.equal(result.reward.status, 'PENDING_FULFILLMENT');
+    assert.deepEqual(result.reward.terms, before.rewardTerms);
+    assert.equal('fulfilledAt' in result.reward, false);
+    assert.equal('fulfilledByUid' in result.reward, false);
+    assert.deepEqual(f.contract(), {
+      ...before,
+      status: 'APPROVED',
+      approvedAt: f.contract().approvedAt,
+      updatedAt: f.contract().updatedAt,
+    });
+    assert.deepEqual(await approve(f), result);
+    assert.equal(reviewRecords(f).length, 1);
+    assert.equal(rewardRecords(f).length, 1);
+    assert.equal(f.events().length, 1);
+    assert.equal(f.events()[0][1].type, 'CONTRACT_APPROVED');
+    assert.equal(f.events()[0][1].actorType, 'PARENT');
+    assert.equal(f.events()[0][1].actorUid, 'parent');
+    await approvalCode('IDEMPOTENCY_CONFLICT', () =>
+      approve(f, 'parent', { ...approvalInput, contractId: 'other' }),
+    );
+    await approvalCode('INVALID_STATE', () =>
+      approve(f, 'parent', {
+        ...approvalInput,
+        idempotencyKey: 'approval-new-key',
+      }),
+    );
+  });
+for (const [label, actor, prepare, code] of [
+  ['unauthenticated', undefined, () => {}, 'AUTH_REQUIRED'],
+  ['Child', 'child', () => {}, 'WRONG_ACTOR_ROLE'],
+  ['other family', 'outside', () => {}, 'FAMILY_MEMBERSHIP_REQUIRED'],
+  [
+    'wrong Parent',
+    'other',
+    (f) =>
+      f.documents.set('families/family/members/other', {
+        role: 'PARENT',
+        status: 'ACTIVE',
+      }),
+    'FORBIDDEN',
+  ],
+  [
+    'inactive Parent',
+    'parent',
+    (f) =>
+      (f.documents.get('families/family/members/parent').status = 'DISABLED'),
+    'FAMILY_MEMBERSHIP_REQUIRED',
+  ],
+  [
+    'nonmember',
+    'parent',
+    (f) => f.documents.delete('families/family/members/parent'),
+    'FAMILY_MEMBERSHIP_REQUIRED',
+  ],
+  [
+    'unlisted Parent',
+    'parent',
+    (f) => (f.contract().participantUids = ['child']),
+    'FORBIDDEN',
+  ],
+  [
+    'wrong family Contract',
+    'parent',
+    (f) => (f.contract().familyId = 'another'),
+    'FAMILY_MEMBERSHIP_REQUIRED',
+  ],
+  [
+    'missing Contract',
+    'parent',
+    (f) => f.documents.delete('contracts/contract'),
+    'CONTRACT_NOT_FOUND',
+  ],
+])
+  test(`approval ${label} fails without any side effect`, async () => {
+    const f = approvalFixture();
+    prepare(f);
+    const before = clone([...f.documents]);
+    await approvalCode(code, () =>
+      approval.executeApproveContract(f.firestore, actor, approvalInput),
+    );
+    assert.deepEqual([...f.documents], before);
+  });
+for (const status of [
+  'ACTIVE',
+  'CHANGES_REQUESTED',
+  'APPROVED',
+  'CANCELLED',
+  'EXPIRED',
+])
+  test(`approval rejects ${status}`, async () => {
+    const f = approvalFixture();
+    f.contract().status = status;
+    const before = clone([...f.documents]);
+    await approvalCode('INVALID_STATE', () => approve(f));
+    assert.deepEqual([...f.documents], before);
+  });
+test('approval strict API and linked Review/Reward schemas reject client authority and inconsistent output', async () => {
+  const {
+    approveContractInputSchema: schema,
+    approveContractOutputSchema: output,
+    contractReviewSchema,
+    rewardSchema,
+  } = require('@chorex/domain');
+  for (const field of [
+    'parentUid',
+    'childUid',
+    'familyId',
+    'role',
+    'cycle',
+    'reviewCycle',
+    'rewardId',
+    'status',
+    'note',
+  ])
+    assert.equal(
+      schema.safeParse({ ...approvalInput, [field]: 'untrusted' }).success,
+      false,
+    );
+  for (const patch of [{ contractId: '../bad' }, { idempotencyKey: 'short' }])
+    assert.equal(
+      schema.safeParse({ ...approvalInput, ...patch }).success,
+      false,
+    );
+  const result = await approve(approvalFixture());
+  assert.equal(output.safeParse(result).success, true);
+  assert.equal(
+    output.safeParse({ ...result, review: { ...result.review, cycle: 1 } })
+      .success,
+    false,
+  );
+  assert.equal(
+    contractReviewSchema.safeParse({ ...result.review, cycle: -1 }).success,
+    false,
+  );
+  assert.equal(
+    rewardSchema.safeParse({
+      ...result.reward,
+      fulfilledAt: result.reward.earnedAt,
+    }).success,
+    false,
+  );
+  assert.equal(
+    output.safeParse({
+      ...result,
+      reward: { ...result.reward, terms: { title: 'Changed', type: 'CUSTOM' } },
+    }).success,
+    false,
+  );
+});
+test('approval same/different-key races commit one review, reward and event', async () => {
+  for (const same of [true, false]) {
+    const f = approvalFixture();
+    const results = await Promise.allSettled([
+      approve(f),
+      approve(f, 'parent', {
+        ...approvalInput,
+        idempotencyKey: same
+          ? approvalInput.idempotencyKey
+          : 'approval-other-key',
+      }),
+    ]);
+    assert.equal(
+      results.filter((r) => r.status === 'fulfilled').length,
+      same ? 2 : 1,
+    );
+    if (same) assert.deepEqual(results[0].value, results[1].value);
+    else
+      assert.equal(
+        results.find((r) => r.status === 'rejected').reason.code,
+        'INVALID_STATE',
+      );
+    assert.equal(reviewRecords(f).length, 1);
+    assert.equal(rewardRecords(f).length, 1);
+    assert.equal(f.events().length, 1);
+    assert.equal(f.contract().reviewCycle, 0);
+  }
+});
+test('existing round decision or Reward blocks approval atomically; review identity is shared across decision types', async () => {
+  for (const conflict of ['review', 'reward']) {
+    const f = approvalFixture();
+    const path =
+      conflict === 'review'
+        ? `contracts/contract/reviews/${approval.contractReviewId('contract', 0)}`
+        : `rewards/${approval.contractRewardId('contract')}`;
+    f.documents.set(path, { decision: 'REQUEST_CHANGES' });
+    const before = clone([...f.documents]);
+    await approvalCode('INVALID_STATE', () => approve(f));
+    assert.deepEqual([...f.documents], before);
+  }
+});
+test('approval transaction failure after staged writes rolls back every side effect', async () => {
+  const f = approvalFixture();
+  const before = clone([...f.documents]);
+  const real = f.firestore.runTransaction;
+  f.firestore.runTransaction = (fn) =>
+    real(async (tx) => {
+      await fn(tx);
+      throw new Error('INJECTED_COMMIT_FAILURE');
+    });
+  await assert.rejects(approve(f), /INJECTED_COMMIT_FAILURE/);
+  assert.deepEqual([...f.documents], before);
+});
+test('approval retry checks current access and retains original reward receipt after fulfillment', async () => {
+  const f = approvalFixture();
+  const first = await approve(f);
+  f.documents.get(rewardRecords(f)[0][0]).status = 'FULFILLED';
+  assert.deepEqual(await approve(f), first);
+  f.documents.get('families/family/members/parent').status = 'DISABLED';
+  await approvalCode('FAMILY_MEMBERSHIP_REQUIRED', () => approve(f));
+});
+
+test('approval preserves earlier reviews and all execution history; revoked or wrong-role membership fails', async () => {
+  const f = approvalFixture();
+  f.contract().reviewCycle = 2;
+  f.documents.set('contracts/contract/reviews/previous-immutable', {
+    cycle: 1,
+    decision: 'REQUEST_CHANGES',
+    note: 'Historical',
+  });
+  const previous = clone(
+    f.documents.get('contracts/contract/reviews/previous-immutable'),
+  );
+  const task = clone(f.task());
+  await approve(f);
+  assert.deepEqual(
+    f.documents.get('contracts/contract/reviews/previous-immutable'),
+    previous,
+  );
+  assert.deepEqual(f.task(), task);
+  for (const [field, value, code] of [
+    ['status', 'INACTIVE', 'FAMILY_MEMBERSHIP_REQUIRED'],
+    ['role', 'CHILD', 'WRONG_ACTOR_ROLE'],
+  ]) {
+    const denied = approvalFixture();
+    denied.documents.get('families/family/members/parent')[field] = value;
+    await approvalCode(code, () => approve(denied));
+    assert.equal(denied.events().length, 0);
+  }
+});

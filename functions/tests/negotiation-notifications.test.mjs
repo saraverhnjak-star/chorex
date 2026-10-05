@@ -128,3 +128,51 @@ test('Expo transport batches at 100 and validates tickets without live networkin
     globalThis.fetch = original;
   }
 });
+
+test('approval intent targets authoritative Child with minimal Contract routing and earned/pending copy', () => {
+  const {
+    approvalNotificationIntent,
+  } = require('../lib/negotiationNotifications.js');
+  const event = {
+    type: 'CONTRACT_APPROVED',
+    entityType: 'CONTRACT',
+    entityId: 'contract',
+    familyId: 'family',
+    actorUid: 'parent',
+    actorType: 'PARENT',
+    recipientUid: 'attacker',
+  };
+  const contract = {
+    ...offer,
+    status: 'APPROVED',
+    rewardTerms: { title: 'private reward' },
+  };
+  const intent = approvalNotificationIntent(event, contract);
+  assert.equal(intent.recipientUid, 'child');
+  assert.equal(intent.recipientRole, 'CHILD');
+  assert.deepEqual(intent.data, {
+    type: 'CONTRACT_APPROVED',
+    entityType: 'CONTRACT',
+    entityId: 'contract',
+    familyId: 'family',
+  });
+  assert.match(intent.body, /earned/);
+  assert.match(intent.body, /pending/);
+  assert.equal(JSON.stringify(intent).includes('private'), false);
+  for (const patch of [
+    { actorUid: 'attacker' },
+    { actorType: 'CHILD' },
+    { familyId: 'wrong' },
+  ])
+    assert.equal(
+      approvalNotificationIntent({ ...event, ...patch }, contract),
+      undefined,
+    );
+  assert.equal(
+    approvalNotificationIntent(event, {
+      ...contract,
+      status: 'READY_FOR_REVIEW',
+    }),
+    undefined,
+  );
+});

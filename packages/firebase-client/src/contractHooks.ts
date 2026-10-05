@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { Contract, ContractTask } from '@chorex/domain';
-import { observeContract, observeTasks, observeActiveContracts } from './index';
+import {
+  observeContract,
+  observeTasks,
+  observeActiveContracts,
+  observeReadyForReviewContracts,
+} from './index';
 import { ContractReadError, type ReadSnapshot } from './contractReadModel';
 
 export type ContractDetailState =
@@ -112,7 +117,20 @@ export function useActiveContracts(
   familyId: string,
   authUid: string,
 ): ActiveContractsState {
-  const key = JSON.stringify([familyId, authUid]);
+  return useContractsInState(familyId, authUid, 'ACTIVE');
+}
+export function useReadyForReviewContracts(
+  familyId: string,
+  authUid: string,
+): ActiveContractsState {
+  return useContractsInState(familyId, authUid, 'READY_FOR_REVIEW');
+}
+function useContractsInState(
+  familyId: string,
+  authUid: string,
+  status: 'ACTIVE' | 'READY_FOR_REVIEW',
+): ActiveContractsState {
+  const key = JSON.stringify([familyId, authUid, status]);
   const [result, setResult] = useState<{
     key: string;
     state: ActiveContractsState;
@@ -124,7 +142,11 @@ export function useActiveContracts(
     };
     let stop: (() => void) | undefined;
     try {
-      stop = observeActiveContracts(
+      stop = (
+        status === 'ACTIVE'
+          ? observeActiveContracts
+          : observeReadyForReviewContracts
+      )(
         familyId,
         (snapshot) =>
           emit({
@@ -141,6 +163,6 @@ export function useActiveContracts(
       active = false;
       stop?.();
     };
-  }, [familyId, authUid, key]);
+  }, [familyId, authUid, key, status]);
   return result?.key === key ? result.state : { status: 'loading' };
 }

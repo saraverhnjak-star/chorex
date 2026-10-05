@@ -146,8 +146,12 @@ export function isNotificationRegistrationError(
   return error instanceof NotificationRegistrationError;
 }
 
-/** Phase 2 has inbox/home surfaces; Contract details remain Phase 3. */
-export function negotiationNotificationRoute(data: unknown): '/' | undefined {
+export function negotiationNotificationRoute(
+  data: unknown,
+): '/' | `/contracts/${string}` | undefined {
   const parsed = negotiationNotificationDataSchema.safeParse(data);
-  return parsed.success ? '/' : undefined;
+  if (!parsed.success) return;
+  return parsed.data.type === 'CONTRACT_APPROVED'
+    ? `/contracts/${encodeURIComponent(parsed.data.entityId)}`
+    : '/';
 }
