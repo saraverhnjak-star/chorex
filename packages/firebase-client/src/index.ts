@@ -854,7 +854,7 @@ export async function readCurrentParentFamily(): Promise<ParentFamilyHome | null
           query(
             collection(firestore, 'families', familyId, 'members'),
             where('role', '==', 'CHILD'),
-            where('status', '==', status),
+            where('status', '==', 'ACTIVE'),
           ),
         ),
       ]);

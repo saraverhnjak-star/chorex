@@ -1,4 +1,5 @@
 import {
+  readCurrentParentFamily,
   requestContractChanges,
   observeCurrentContractReview,
   approveContract,
@@ -16,6 +17,8 @@ const mockHttpsCallable = jest.fn(
   (_service: unknown, _name: string) => mockCallable,
 );
 const mockStop = jest.fn();
+const mockGetDoc = jest.fn();
+const mockGetDocs = jest.fn();
 let mockSnapshot: (value: unknown) => void;
 let mockFailure: (error: unknown) => void;
 const mockListen = jest.fn((_ref, _options, callback, failure) => {
@@ -30,6 +33,8 @@ jest.mock('@react-native-firebase/functions', () => ({
     mockHttpsCallable(service, name),
 }));
 jest.mock('@react-native-firebase/firestore', () => ({
+  getDoc: (ref: unknown) => mockGetDoc(ref),
+  getDocs: (ref: unknown) => mockGetDocs(ref),
   collection: (_db: unknown, ...path: string[]) => path.join('/'),
   doc: (_db: unknown, ...path: string[]) => path.join('/'),
   where: (...args: unknown[]) => ({ where: args }),
@@ -73,6 +78,46 @@ beforeEach(() => {
 afterAll(() =>
   Reflect.deleteProperty(globalThis, '__chorexDevelopmentFirebase'),
 );
+it('loads the Parent family using an explicit active Child membership query', async () => {
+  const dataByPath: Record<string, unknown> = {
+    'users/child-1': {
+      displayName: 'Parent',
+      accountType: 'PARENT',
+      familyIds: ['family-1'],
+      createdAt: timestamp,
+    },
+    'families/family-1': {
+      name: 'Family',
+      createdBy: 'child-1',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    'families/family-1/members/child-1': {
+      role: 'PARENT',
+      displayName: 'Parent',
+      status: 'ACTIVE',
+      joinedAt: timestamp,
+    },
+  };
+  mockGetDoc.mockImplementation((path: string) =>
+    Promise.resolve({ exists: () => true, data: () => dataByPath[path] }),
+  );
+  mockGetDocs.mockResolvedValue({ docs: [] });
+
+  await expect(readCurrentParentFamily()).resolves.toEqual(
+    expect.objectContaining({
+      family: expect.objectContaining({ id: 'family-1' }),
+      children: [],
+    }),
+  );
+  expect(mockGetDocs).toHaveBeenCalledWith({
+    path: 'families/family-1/members',
+    constraints: [
+      { where: ['role', '==', 'CHILD'] },
+      { where: ['status', '==', 'ACTIVE'] },
+    ],
+  });
+});
 it('uses one Contract document listener with cache metadata and canonical deserialization', () => {
   const callback = jest.fn();
   const failure = jest.fn();
