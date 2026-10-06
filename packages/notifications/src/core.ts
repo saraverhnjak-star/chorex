@@ -1,5 +1,3 @@
-import { negotiationNotificationDataSchema } from '@chorex/domain';
-
 export const notificationRegistrationErrorCodes = {
   authRequired: 'AUTH_REQUIRED',
   configurationMissing: 'NOTIFICATION_CONFIGURATION_MISSING',
@@ -146,18 +144,4 @@ export function isNotificationRegistrationError(
   return error instanceof NotificationRegistrationError;
 }
 
-export function negotiationNotificationRoute(
-  data: unknown,
-): '/' | `/contracts/${string}` | `/rewards/${string}` | undefined {
-  const parsed = negotiationNotificationDataSchema.safeParse(data);
-  if (!parsed.success) return;
-  if (parsed.data.type === 'REWARD_FULFILLED')
-    return `/rewards/${encodeURIComponent(parsed.data.entityId)}`;
-  return [
-    'CONTRACT_APPROVED',
-    'CONTRACT_CHANGES_REQUESTED',
-    'CONTRACT_SUBMITTED',
-  ].includes(parsed.data.type)
-    ? `/contracts/${encodeURIComponent(parsed.data.entityId)}`
-    : '/';
-}
+export * from './responseRouting';

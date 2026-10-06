@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import {
   configureForegroundNotifications,
-  listenForNegotiationNotificationResponses,
+  listenForNotificationResponses,
+  updateNotificationRoutingReadiness,
 } from '@chorex/notifications';
 import '../global.css';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
+import { resolveParentNotificationRoute } from '../src/notifications/routing';
 import { Screen, amberAuroraColors, useDynamicTypeStyles } from '@chorex/ui';
 import { configureFirebase } from '../src/firebase';
 import { ParentSessionProvider, useParentSession } from '../src/auth/session';
@@ -64,15 +66,24 @@ function SessionErrorScreen() {
 function ParentNavigator() {
   const session = useParentSession();
   const router = useRouter();
+  const routerReady = Boolean(useRootNavigationState()?.key);
   useEffect(() => {
     configureForegroundNotifications();
   }, []);
   useEffect(() => {
-    if (!session.user) return;
-    return listenForNegotiationNotificationResponses((route) =>
-      router.replace(route),
-    );
-  }, [session.user, router]);
+    updateNotificationRoutingReadiness({
+      authStatus: session.status,
+      uid: session.user?.uid ?? null,
+      routerReady,
+    });
+  }, [session.status, session.user?.uid, routerReady]);
+  useEffect(
+    () =>
+      listenForNotificationResponses((intent) =>
+        router.replace(resolveParentNotificationRoute(intent)),
+      ),
+    [router],
+  );
 
   if (session.status === 'loading') return <SessionLoadingScreen />;
   if (session.status === 'error') return <SessionErrorScreen />;

@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest --config ../../jest.config.cjs --rootDir . --passWithNoTests --runInBand"
+    "test": "pnpm --filter @chorex/domain build && node --test tests/*.test.cjs"
   },
   "devDependencies": {
     "@chorex/config": "workspace:*",

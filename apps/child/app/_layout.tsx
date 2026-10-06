@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import {
   configureForegroundNotifications,
-  listenForNegotiationNotificationResponses,
+  listenForNotificationResponses,
+  updateNotificationRoutingReadiness,
 } from '@chorex/notifications';
 import '../global.css';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState } from 'expo-router';
+import { resolveChildNotificationRoute } from '../src/notifications/routing';
 import { Screen, amberAuroraColors, useDynamicTypeStyles } from '@chorex/ui';
 import { configureFirebase } from '../src/firebase';
 import { ChildSessionProvider, useChildSession } from '../src/auth/session';
@@ -13,15 +15,24 @@ import { ChildSessionProvider, useChildSession } from '../src/auth/session';
 function ChildNavigator() {
   const session = useChildSession();
   const router = useRouter();
+  const routerReady = Boolean(useRootNavigationState()?.key);
   useEffect(() => {
     configureForegroundNotifications();
   }, []);
   useEffect(() => {
-    if (!session.user) return;
-    return listenForNegotiationNotificationResponses((route) =>
-      router.replace(route),
-    );
-  }, [session.user, router]);
+    updateNotificationRoutingReadiness({
+      authStatus: session.status,
+      uid: session.user?.uid ?? null,
+      routerReady,
+    });
+  }, [session.status, session.user?.uid, routerReady]);
+  useEffect(
+    () =>
+      listenForNotificationResponses((intent) =>
+        router.replace(resolveChildNotificationRoute(intent)),
+      ),
+    [router],
+  );
   const dynamicType = useDynamicTypeStyles();
 
   if (session.status === 'loading') {

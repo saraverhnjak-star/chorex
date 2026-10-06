@@ -1,6 +1,17 @@
 import { z } from 'zod';
 
-const id = z.string().min(1).max(128);
+const id = z
+  .string()
+  .min(1)
+  .max(128)
+  .refine(
+    (value) =>
+      value === value.trim() &&
+      !/[\/\\?#\u0000-\u001f\u007f]/u.test(value) &&
+      value !== '.' &&
+      value !== '..',
+    'Expected one document ID.',
+  );
 export const negotiationNotificationDataSchema = z
   .strictObject({
     type: z.enum([

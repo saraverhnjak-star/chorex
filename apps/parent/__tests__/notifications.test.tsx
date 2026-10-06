@@ -1,10 +1,16 @@
+import { resolveParentNotificationRoute } from '../src/notifications/routing';
+import { parseNotificationRoutingIntent } from '@chorex/notifications/core';
 import {
   getOrCreateInstallationIdWithDependencies,
-  negotiationNotificationRoute,
   registerCurrentDeviceWithDependencies,
   removeCurrentDeviceRegistrationWithDependencies,
   type NotificationRegistrationDependencies,
 } from '@chorex/notifications/core';
+
+const negotiationNotificationRoute = (data: unknown) => {
+  const intent = parseNotificationRoutingIntent(data);
+  return intent ? resolveParentNotificationRoute(intent) : undefined;
+};
 
 function createDependencies(
   overrides: Partial<NotificationRegistrationDependencies> = {},
@@ -97,7 +103,7 @@ it('removes only the signed-in account registration during sign-out cleanup', as
   );
 });
 
-it('routes only minimal negotiation metadata to existing Phase 2 home surfaces', () => {
+it('routes Offer metadata to inbox and acceptance to the existing Contract surface', () => {
   for (const type of ['OFFER_PUBLISHED', 'OFFER_COUNTERED', 'OFFER_ACCEPTED']) {
     expect(
       negotiationNotificationRoute({
@@ -106,7 +112,7 @@ it('routes only minimal negotiation metadata to existing Phase 2 home surfaces',
         entityId: 'entity',
         familyId: 'family',
       }),
-    ).toBe('/');
+    ).toBe(type === 'OFFER_ACCEPTED' ? '/contracts/entity' : '/');
   }
   expect(
     negotiationNotificationRoute({
