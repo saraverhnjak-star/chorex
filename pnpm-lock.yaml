@@ -603,6 +603,10 @@ importers:
         version: 6.0.3
 
   packages/ui:
+    dependencies:
+      '@chorex/domain':
+        specifier: workspace:*
+        version: link:../domain
     devDependencies:
       '@chorex/config':
         specifier: workspace:*

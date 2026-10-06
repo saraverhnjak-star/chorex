@@ -34,7 +34,8 @@
     "emulators:verify:submit-contract-for-review": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 node firebase/verify-record-task-completion.mjs\"",
     "emulators:verify:approve-contract": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_APPROVAL=1 node firebase/verify-record-task-completion.mjs\"",
     "emulators:verify:request-contract-changes": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_REQUEST_CHANGES=1 node firebase/verify-record-task-completion.mjs\"",
-    "emulators:verify:resubmit-contract-for-review": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_REQUEST_CHANGES=1 CHOREX_VERIFY_RESUBMISSION=1 node firebase/verify-record-task-completion.mjs\""
+    "emulators:verify:resubmit-contract-for-review": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_REQUEST_CHANGES=1 CHOREX_VERIFY_RESUBMISSION=1 node firebase/verify-record-task-completion.mjs\"",
+    "emulators:verify:fulfill-reward": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_REQUEST_CHANGES=1 CHOREX_VERIFY_RESUBMISSION=1 CHOREX_VERIFY_FULFILLMENT=1 node firebase/verify-record-task-completion.mjs\""
   },
   "devDependencies": {
     "eslint": "9.39.5",

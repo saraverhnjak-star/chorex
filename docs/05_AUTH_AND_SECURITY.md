@@ -292,3 +292,9 @@ Do not add proof media to MVP unless it is necessary to validate the core concep
 ## Child correction/resubmission authorization
 
 ADR-044 extends submitContractForReview through its existing authenticated active Child membership and exact Contract participant checks. Status, review cycle and current REQUEST_CHANGES decision come only from transaction reads; input remains Contract ID/idempotency key. Direct status/cycle/review/task/completion/activity/Reward writes remain denied. Existing current-round feedback queries remain read-only and family/participant scoped. No offline command queue is introduced.
+
+## Reward read and fulfillment authorization
+
+Reward get/list access requires authenticated active membership in the Reward family and exact parentUid/childUid ownership. Parent list queries additionally constrain the authenticated parentUid and PENDING_FULFILLMENT; Child queries constrain authenticated childUid. Unscoped family lists are not authorized by Rules. All Reward and activity-event client writes remain denied, including status/fulfilledAt/fulfilledBy.
+
+The trusted fulfillReward callable derives family and participants from persisted Reward state, validates active PARENT membership and exact owning Parent UID, and checks the deterministic approved-Contract relationship before committing. Child, another Parent, other-family, inactive/disabled/non-member and unauthenticated requests fail. Same-key retries revalidate current membership/ownership before returning the original receipt. Backend-unavailable failures do not imply success or create a client-side write queue.

@@ -1,3 +1,4 @@
+import { deserializeReward } from './rewardReadModel';
 import {
   ContractReadError,
   deserializeContract,
@@ -41,6 +42,13 @@ import {
   httpsCallable,
 } from '@react-native-firebase/functions';
 import {
+  fulfillRewardInputSchema,
+  fulfillRewardOutputSchema,
+  rewardCommandErrorCodes,
+  type RewardCommandErrorCode,
+  type FulfillRewardInputValue,
+  type FulfillRewardOutput,
+  type EarnedReward,
   requestContractChangesInputSchema,
   requestContractChangesOutputSchema,
   type RequestContractChangesInputValue,
@@ -1391,6 +1399,148 @@ export function observeCurrentContractReview(
             ? deserializeContractReview(item.id, item.data(), contract)
             : null;
           callback({ data: review, fromCache: snapshot.metadata.fromCache });
+        } catch (error) {
+          onError(translateContractReadError(error));
+        }
+      },
+      (error) => onError(translateContractReadError(error)),
+    );
+  } catch (error) {
+    throw translateContractReadError(error);
+  }
+}
+
+export { RewardReadError, deserializeReward } from './rewardReadModel';
+export {
+  usePendingRewards,
+  useEarnedRewards,
+  useRewardDetail,
+  type RewardListState,
+  type RewardDetailState,
+} from './rewardHooks';
+export class RewardClientError extends Error {
+  constructor(
+    readonly code:
+      RewardCommandErrorCode | 'NETWORK_UNAVAILABLE' | 'UNKNOWN_REWARD_FAILURE',
+  ) {
+    super(code);
+    this.name = 'RewardClientError';
+  }
+}
+export async function fulfillReward(
+  rawInput: FulfillRewardInputValue,
+): Promise<FulfillRewardOutput> {
+  if (!getInitializedAuth().currentUser)
+    throw new RewardClientError('AUTH_REQUIRED');
+  const input = fulfillRewardInputSchema.safeParse(rawInput);
+  if (!input.success) throw new RewardClientError('INVALID_INPUT');
+  try {
+    const response = await httpsCallable<typeof input.data, unknown>(
+      getInitializedFunctions(),
+      'fulfillReward',
+    )(input.data);
+    const output = fulfillRewardOutputSchema.parse(response.data);
+    if (output.reward.id !== input.data.rewardId)
+      throw new RewardClientError('UNKNOWN_REWARD_FAILURE');
+    return output;
+  } catch (error) {
+    if (error instanceof RewardClientError) throw error;
+    const stable = readCallableDetailsCode(error);
+    if (
+      stable &&
+      Object.values(rewardCommandErrorCodes).some((code) => code === stable)
+    )
+      throw new RewardClientError(stable as RewardCommandErrorCode);
+    const provider = readProviderErrorCode(error);
+    if (provider === 'functions/unauthenticated')
+      throw new RewardClientError('AUTH_REQUIRED');
+    if (provider === 'functions/permission-denied')
+      throw new RewardClientError('FORBIDDEN');
+    if (
+      [
+        'functions/unavailable',
+        'functions/deadline-exceeded',
+        'auth/network-request-failed',
+      ].includes(provider ?? '')
+    )
+      throw new RewardClientError('NETWORK_UNAVAILABLE');
+    throw new RewardClientError('UNKNOWN_REWARD_FAILURE');
+  }
+}
+export function observeReward(
+  rewardId: string,
+  callback: (snapshot: ReadSnapshot<EarnedReward | null>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(rewardId);
+  try {
+    return onSnapshot(
+      doc(getInitializedFirestore(), 'rewards', rewardId),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          const reward = snapshot.exists()
+            ? deserializeReward(snapshot.id, snapshot.data()!)
+            : null;
+          if (reward && reward.parentUid !== uid && reward.childUid !== uid)
+            throw new ContractReadError('FORBIDDEN');
+          callback({ data: reward, fromCache: snapshot.metadata.fromCache });
+        } catch (error) {
+          onError(translateContractReadError(error));
+        }
+      },
+      (error) => onError(translateContractReadError(error)),
+    );
+  } catch (error) {
+    throw translateContractReadError(error);
+  }
+}
+export function observePendingRewards(
+  familyId: string,
+  callback: (snapshot: ReadSnapshot<readonly EarnedReward[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  return observeRewards(familyId, true, callback, onError);
+}
+export function observeEarnedRewards(
+  familyId: string,
+  callback: (snapshot: ReadSnapshot<readonly EarnedReward[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  return observeRewards(familyId, false, callback, onError);
+}
+function observeRewards(
+  familyId: string,
+  pending: boolean,
+  callback: (snapshot: ReadSnapshot<readonly EarnedReward[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(familyId);
+  const constraints = [
+    where('familyId', '==', familyId),
+    where(pending ? 'parentUid' : 'childUid', '==', uid),
+    ...(pending ? [where('status', '==', 'PENDING_FULFILLMENT')] : []),
+    orderBy('earnedAt', 'desc'),
+  ];
+  try {
+    return onSnapshot(
+      query(collection(getInitializedFirestore(), 'rewards'), ...constraints),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          const rewards = snapshot.docs.map((item) =>
+            deserializeReward(item.id, item.data()),
+          );
+          if (
+            rewards.some(
+              (reward) =>
+                reward.familyId !== familyId ||
+                (pending ? reward.parentUid : reward.childUid) !== uid ||
+                (pending && reward.status !== 'PENDING_FULFILLMENT'),
+            )
+          )
+            throw new ContractReadError('MALFORMED_DATA');
+          callback({ data: rewards, fromCache: snapshot.metadata.fromCache });
         } catch (error) {
           onError(translateContractReadError(error));
         }

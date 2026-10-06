@@ -23,8 +23,7 @@ export const contractReviewSchema = z.strictObject({
   note: taskTermsSchema.shape.description,
   createdAt: utcIsoDateTimeSchema,
 });
-// This slice models the earned, unfulfilled Reward boundary only.
-export const rewardSchema = z.strictObject({
+export const pendingRewardSchema = z.strictObject({
   id: documentId,
   familyId: documentId,
   contractId: documentId,
@@ -34,6 +33,49 @@ export const rewardSchema = z.strictObject({
   status: z.literal('PENDING_FULFILLMENT'),
   earnedAt: utcIsoDateTimeSchema,
 });
+export const fulfilledRewardSchema = pendingRewardSchema
+  .extend({
+    status: z.literal('FULFILLED'),
+    fulfilledAt: utcIsoDateTimeSchema,
+    fulfilledBy: documentId,
+  })
+  .superRefine((reward, ctx) => {
+    if (
+      reward.fulfilledBy !== reward.parentUid ||
+      reward.fulfilledAt < reward.earnedAt
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fulfilledBy'],
+        message: 'Fulfillment must identify the Parent after earning.',
+      });
+  });
+export const rewardSchema = z.discriminatedUnion('status', [
+  pendingRewardSchema,
+  fulfilledRewardSchema,
+]);
+export const fulfillRewardInputSchema = z.strictObject({
+  rewardId: documentId,
+  idempotencyKey: idempotencyKeySchema,
+});
+export const fulfillRewardOutputSchema = z.strictObject({
+  reward: fulfilledRewardSchema,
+});
+export const rewardCommandErrorCodes = {
+  authRequired: 'AUTH_REQUIRED',
+  invalidInput: 'INVALID_INPUT',
+  forbidden: 'FORBIDDEN',
+  familyMembershipRequired: 'FAMILY_MEMBERSHIP_REQUIRED',
+  wrongActorRole: 'WRONG_ACTOR_ROLE',
+  invalidState: 'INVALID_STATE',
+  rewardNotFound: 'REWARD_NOT_FOUND',
+  rewardAlreadyFulfilled: 'REWARD_ALREADY_FULFILLED',
+  idempotencyConflict: 'IDEMPOTENCY_CONFLICT',
+} as const;
+export type RewardCommandErrorCode =
+  (typeof rewardCommandErrorCodes)[keyof typeof rewardCommandErrorCodes];
+export type FulfillRewardInputValue = z.input<typeof fulfillRewardInputSchema>;
+export type FulfillRewardOutput = z.output<typeof fulfillRewardOutputSchema>;
 export const approveContractInputSchema = z.strictObject({
   contractId: documentId,
   idempotencyKey: idempotencyKeySchema,
@@ -45,7 +87,7 @@ export const approveContractOutputSchema = z
       approvedAt: utcIsoDateTimeSchema,
     }),
     review: contractReviewSchema.extend({ decision: z.literal('APPROVE') }),
-    reward: rewardSchema,
+    reward: pendingRewardSchema,
   })
   .superRefine(({ contract, review, reward }, ctx) => {
     if (

@@ -250,3 +250,47 @@ test('submission and resubmission intent resolves active Parent routing without 
       undefined,
     );
 });
+
+test('fulfilled Reward targets Child with delivery copy and minimal Reward route', () => {
+  const {
+    fulfillmentNotificationIntent,
+  } = require('../lib/negotiationNotifications.js');
+  const event = {
+    type: 'REWARD_FULFILLED',
+    entityType: 'REWARD',
+    entityId: 'reward',
+    familyId: 'family',
+    actorType: 'PARENT',
+    actorUid: 'parent',
+    terms: 'Private reward',
+  };
+  const reward = { ...offer, status: 'FULFILLED', fulfilledBy: 'parent' };
+  const intent = fulfillmentNotificationIntent(event, reward);
+  assert.equal(intent.recipientUid, 'child');
+  assert.equal(intent.recipientRole, 'CHILD');
+  assert.match(intent.body, /marked as delivered/);
+  assert.deepEqual(intent.data, {
+    type: 'REWARD_FULFILLED',
+    entityType: 'REWARD',
+    entityId: 'reward',
+    familyId: 'family',
+  });
+  assert.equal(JSON.stringify(intent).includes('Private'), false);
+  for (const patch of [
+    { actorUid: 'other' },
+    { actorType: 'CHILD' },
+    { entityType: 'CONTRACT' },
+    { familyId: 'other' },
+  ])
+    assert.equal(
+      fulfillmentNotificationIntent({ ...event, ...patch }, reward),
+      undefined,
+    );
+  assert.equal(
+    fulfillmentNotificationIntent(event, {
+      ...reward,
+      status: 'PENDING_FULFILLMENT',
+    }),
+    undefined,
+  );
+});

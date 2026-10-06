@@ -28,5 +28,8 @@
     "react-native": "0.86.3",
     "nativewind": "4.2.7",
     "react-native-css-interop": "0.2.7"
+  },
+  "dependencies": {
+    "@chorex/domain": "workspace:*"
   }
 }

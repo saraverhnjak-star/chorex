@@ -89,6 +89,37 @@ export function negotiationNotificationIntent(
   };
 }
 
+export function fulfillmentNotificationIntent(
+  event: DocumentData,
+  reward: DocumentData,
+): NotificationIntent | undefined {
+  if (
+    event.type !== 'REWARD_FULFILLED' ||
+    event.entityType !== 'REWARD' ||
+    event.familyId !== reward.familyId ||
+    event.actorType !== 'PARENT' ||
+    event.actorUid !== reward.parentUid ||
+    reward.status !== 'FULFILLED' ||
+    reward.fulfilledBy !== reward.parentUid ||
+    typeof reward.childUid !== 'string'
+  )
+    return;
+  const data = negotiationNotificationDataSchema.safeParse({
+    type: event.type,
+    entityType: 'REWARD',
+    entityId: event.entityId,
+    familyId: reward.familyId,
+  });
+  if (!data.success) return;
+  return {
+    recipientUid: reward.childUid,
+    recipientRole: 'CHILD',
+    title: 'Reward delivered',
+    body: 'Your reward was marked as delivered.',
+    data: data.data,
+  };
+}
+
 export function approvalNotificationIntent(
   event: DocumentData,
   contract: DocumentData,
@@ -235,6 +266,7 @@ export async function dispatchNegotiationNotification(
         'CONTRACT_APPROVED',
         'CONTRACT_CHANGES_REQUESTED',
         'CONTRACT_SUBMITTED',
+        'REWARD_FULFILLED',
       ].includes(event.type)
     )
       return;
@@ -253,7 +285,39 @@ export async function dispatchNegotiationNotification(
     }
     let resolved: NotificationIntent | undefined;
     let familyId: string;
-    if (event.type === 'CONTRACT_SUBMITTED') {
+    if (event.type === 'REWARD_FULFILLED') {
+      if (
+        typeof event.entityId !== 'string' ||
+        !event.entityId ||
+        event.entityId.includes('/')
+      )
+        return;
+      const reward = (
+        await tx.get(firestore.doc(`rewards/${event.entityId}`))
+      ).data();
+      if (
+        !reward ||
+        typeof reward.contractId !== 'string' ||
+        reward.contractId.includes('/') ||
+        !(reward.fulfilledAt instanceof Timestamp) ||
+        event.entityId !== contractRewardId(reward.contractId)
+      )
+        return;
+      const contract = (
+        await tx.get(firestore.doc(`contracts/${reward.contractId}`))
+      ).data();
+      if (
+        !contract ||
+        contract.status !== 'APPROVED' ||
+        contract.familyId !== reward.familyId ||
+        contract.parentUid !== reward.parentUid ||
+        contract.childUid !== reward.childUid
+      )
+        return;
+      resolved = fulfillmentNotificationIntent(event, reward);
+      if (!resolved) return;
+      familyId = reward.familyId;
+    } else if (event.type === 'CONTRACT_SUBMITTED') {
       if (
         typeof event.entityId !== 'string' ||
         !event.entityId ||

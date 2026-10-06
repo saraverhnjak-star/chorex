@@ -1478,3 +1478,326 @@ test('failed resubmission transaction commits no transition/event/receipt', asyn
   );
   assert.deepEqual([...f.documents], before);
 });
+
+const fulfillment = require('../lib/fulfillReward.js');
+const fulfillCode = (code, operation) =>
+  assert.rejects(
+    operation,
+    (e) =>
+      e instanceof fulfillment.FulfillRewardCommandError && e.code === code,
+  );
+async function earnedFixture() {
+  const f = fixture(1);
+  await executeRecordTaskCompletion(f.firestore, 'child', input);
+  await submit(f);
+  const approved = await approve(f);
+  f.documents.set('offers/offer/revisions/revision', {
+    tasks: [{ title: 'Frozen' }],
+    reward: { title: 'Frozen' },
+  });
+  return {
+    ...f,
+    rewardId: approved.reward.id,
+    reward: () => f.documents.get(`rewards/${approved.reward.id}`),
+  };
+}
+const fulfill = (f, actor = 'parent', patch = {}) =>
+  fulfillment.executeFulfillReward(f.firestore, actor, {
+    rewardId: f.rewardId,
+    idempotencyKey: 'fulfillment-key-001',
+    ...patch,
+  });
+test('fulfillment preserves every frozen/history record and audits one Parent delivery with canonical retry', async () => {
+  const f = await earnedFixture(),
+    before = clone([...f.documents]);
+  const result = await fulfill(f);
+  assert.equal(result.reward.status, 'FULFILLED');
+  assert.equal(result.reward.fulfilledBy, 'parent');
+  assert.ok(f.reward().fulfilledAt instanceof Timestamp);
+  for (const [path, data] of before)
+    assert.deepEqual(
+      f.documents.get(path),
+      path === `rewards/${f.rewardId}`
+        ? {
+            ...data,
+            status: 'FULFILLED',
+            fulfilledAt: f.reward().fulfilledAt,
+            fulfilledBy: 'parent',
+          }
+        : data,
+    );
+  assert.deepEqual(await fulfill(f), result);
+  assert.equal(rewardRecords(f).length, 1);
+  assert.equal(reviewRecords(f).length, 1);
+  assert.equal(f.contract().status, 'APPROVED');
+  const events = f.events().filter(([, e]) => e.type === 'REWARD_FULFILLED');
+  assert.equal(events.length, 1);
+  assert.deepEqual(events[0][1], {
+    familyId: 'family',
+    actorUid: 'parent',
+    actorType: 'PARENT',
+    type: 'REWARD_FULFILLED',
+    entityType: 'REWARD',
+    entityId: f.rewardId,
+    createdAt: f.reward().fulfilledAt,
+  });
+  await fulfillCode('REWARD_ALREADY_FULFILLED', () =>
+    fulfill(f, 'parent', { idempotencyKey: 'fulfillment-new-key' }),
+  );
+  await fulfillCode('IDEMPOTENCY_CONFLICT', () =>
+    fulfill(f, 'parent', { rewardId: 'other' }),
+  );
+  f.documents.get('families/family/members/parent').status = 'DISABLED';
+  await fulfillCode('FAMILY_MEMBERSHIP_REQUIRED', () => fulfill(f));
+});
+for (const [label, actor, mutate, code] of [
+  ['unauthenticated', undefined, () => {}, 'AUTH_REQUIRED'],
+  ['Child', 'child', () => {}, 'WRONG_ACTOR_ROLE'],
+  [
+    'wrong Parent',
+    'other',
+    (f) =>
+      f.documents.set('families/family/members/other', {
+        status: 'ACTIVE',
+        role: 'PARENT',
+      }),
+    'FORBIDDEN',
+  ],
+  ['wrong family', 'outside', () => {}, 'FAMILY_MEMBERSHIP_REQUIRED'],
+  [
+    'inactive',
+    'parent',
+    (f) => {
+      f.documents.get('families/family/members/parent').status = 'INACTIVE';
+    },
+    'FAMILY_MEMBERSHIP_REQUIRED',
+  ],
+  [
+    'disabled',
+    'parent',
+    (f) => {
+      f.documents.get('families/family/members/parent').status = 'DISABLED';
+    },
+    'FAMILY_MEMBERSHIP_REQUIRED',
+  ],
+  [
+    'nonmember',
+    'parent',
+    (f) => f.documents.delete('families/family/members/parent'),
+    'FAMILY_MEMBERSHIP_REQUIRED',
+  ],
+  [
+    'missing Reward',
+    'parent',
+    (f) => f.documents.delete(`rewards/${f.rewardId}`),
+    'REWARD_NOT_FOUND',
+  ],
+  [
+    'cancelled',
+    'parent',
+    (f) => {
+      f.reward().status = 'CANCELLED';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'invalid alias',
+    'parent',
+    (f) => {
+      f.reward().status = 'DELIVERED';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'nonapproved Contract',
+    'parent',
+    (f) => {
+      f.contract().status = 'READY_FOR_REVIEW';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'missing Contract',
+    'parent',
+    (f) => f.documents.delete('contracts/contract'),
+    'INVALID_STATE',
+  ],
+  [
+    'wrong Contract family',
+    'parent',
+    (f) => {
+      f.contract().familyId = 'other';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'wrong Contract Parent',
+    'parent',
+    (f) => {
+      f.contract().parentUid = 'other';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'wrong Contract Child',
+    'parent',
+    (f) => {
+      f.contract().childUid = 'other';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'wrong participants',
+    'parent',
+    (f) => {
+      f.contract().participantUids = ['parent'];
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'wrong Reward terms',
+    'parent',
+    (f) => {
+      f.reward().terms.title = 'Changed';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'wrong earning timestamp',
+    'parent',
+    (f) => {
+      f.reward().earnedAt = Timestamp.fromMillis(0);
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'invalid Reward terms',
+    'parent',
+    (f) => {
+      f.reward().terms = {};
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'wrong Contract reference',
+    'parent',
+    (f) => {
+      f.reward().contractId = 'other';
+    },
+    'INVALID_STATE',
+  ],
+  [
+    'pending with fulfillment fields',
+    'parent',
+    (f) => {
+      f.reward().fulfilledBy = 'parent';
+    },
+    'INVALID_STATE',
+  ],
+])
+  test(`fulfillReward rejects ${label} without any writes`, async () => {
+    const f = await earnedFixture();
+    mutate(f);
+    const before = clone([...f.documents]);
+    await fulfillCode(code, () =>
+      fulfillment.executeFulfillReward(f.firestore, actor, {
+        rewardId: f.rewardId,
+        idempotencyKey: 'fulfillment-key-001',
+      }),
+    );
+    assert.deepEqual([...f.documents], before);
+  });
+test('fulfillment strict schema and canonical Reward states reject aliases/client authority and preserve approval receipt', async () => {
+  const {
+    fulfillRewardInputSchema,
+    fulfillRewardOutputSchema,
+    rewardSchema,
+    approveContractOutputSchema,
+  } = require('@chorex/domain');
+  for (const field of [
+    'parentUid',
+    'childUid',
+    'familyId',
+    'role',
+    'contractId',
+    'status',
+    'fulfilledAt',
+    'fulfilledBy',
+  ])
+    assert.equal(
+      fulfillRewardInputSchema.safeParse({
+        rewardId: 'reward',
+        idempotencyKey: 'fulfillment-key-001',
+        [field]: 'untrusted',
+      }).success,
+      false,
+    );
+  for (const patch of [{ rewardId: '../bad' }, { idempotencyKey: 'short' }])
+    assert.equal(
+      fulfillRewardInputSchema.safeParse({
+        rewardId: 'reward',
+        idempotencyKey: 'fulfillment-key-001',
+        ...patch,
+      }).success,
+      false,
+    );
+  const f = await earnedFixture(),
+    old = await approve(f),
+    result = await fulfill(f);
+  assert.equal(rewardSchema.safeParse(old.reward).success, true);
+  assert.equal(rewardSchema.safeParse(result.reward).success, true);
+  assert.equal(fulfillRewardOutputSchema.safeParse(result).success, true);
+  for (const patch of [
+    { fulfilledBy: 'child' },
+    { fulfilledAt: undefined },
+    { status: 'DELIVERED' },
+    { status: 'EARNED' },
+    { status: 'CANCELLED' },
+  ])
+    assert.equal(
+      rewardSchema.safeParse({ ...result.reward, ...patch }).success,
+      false,
+    );
+  assert.equal(
+    approveContractOutputSchema.safeParse({ ...old, reward: result.reward })
+      .success,
+    false,
+  );
+  assert.deepEqual(await approve(f), old); // canonical pending receipt remains valid after delivery
+});
+test('fulfillment same/different-key races produce one timestamp/event; aborted transaction commits nothing', async () => {
+  for (const same of [true, false]) {
+    const f = await earnedFixture();
+    const results = await Promise.allSettled([
+      fulfill(f),
+      fulfill(f, 'parent', {
+        idempotencyKey: same ? 'fulfillment-key-001' : 'fulfillment-competing',
+      }),
+    ]);
+    assert.equal(
+      results.filter((r) => r.status === 'fulfilled').length,
+      same ? 2 : 1,
+    );
+    if (same) assert.deepEqual(results[0].value, results[1].value);
+    else
+      assert.equal(
+        results.find((r) => r.status === 'rejected').reason.code,
+        'REWARD_ALREADY_FULFILLED',
+      );
+    assert.equal(
+      f.events().filter(([, e]) => e.type === 'REWARD_FULFILLED').length,
+      1,
+    );
+    assert.equal(rewardRecords(f).length, 1);
+  }
+  const f = await earnedFixture(),
+    before = clone([...f.documents]),
+    run = f.firestore.runTransaction;
+  f.firestore.runTransaction = (op) =>
+    run(async (tx) => {
+      await op(tx);
+      throw new Error('INJECTED_ABORT');
+    });
+  await assert.rejects(() => fulfill(f), /INJECTED_ABORT/);
+  assert.deepEqual([...f.documents], before);
+});

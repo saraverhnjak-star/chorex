@@ -1,3 +1,4 @@
+import { EarnedRewards } from '../src/rewards/EarnedRewards';
 import { ActiveContracts } from '../src/contracts/ActiveContracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -176,6 +177,10 @@ export default function HomeScreen() {
                 </Text>
               </View>
 
+              <EarnedRewards
+                familyId={familyState.home.family.id}
+                authUid={session.user.uid}
+              />
               <ActiveContracts
                 familyId={familyState.home.family.id}
                 authUid={session.user.uid}

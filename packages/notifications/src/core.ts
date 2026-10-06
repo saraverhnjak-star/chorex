@@ -148,9 +148,11 @@ export function isNotificationRegistrationError(
 
 export function negotiationNotificationRoute(
   data: unknown,
-): '/' | `/contracts/${string}` | undefined {
+): '/' | `/contracts/${string}` | `/rewards/${string}` | undefined {
   const parsed = negotiationNotificationDataSchema.safeParse(data);
   if (!parsed.success) return;
+  if (parsed.data.type === 'REWARD_FULFILLED')
+    return `/rewards/${encodeURIComponent(parsed.data.entityId)}`;
   return [
     'CONTRACT_APPROVED',
     'CONTRACT_CHANGES_REQUESTED',

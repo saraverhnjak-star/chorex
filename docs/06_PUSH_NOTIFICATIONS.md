@@ -56,7 +56,7 @@ Do not let clients send notifications directly to other users.
 
 ### Implemented Phase 2 dispatcher
 
-`notifyOfferNegotiation` is a Firestore document-created trigger on `/activityEvents/{eventId}`. The Phase 2 paths dispatch `OFFER_PUBLISHED`, `OFFER_COUNTERED` (both actor directions), and `OFFER_ACCEPTED` (both actor directions). Phase 4 submission/resubmission dispatch CONTRACT_SUBMITTED to the active Parent; review decisions additionally dispatch `CONTRACT_APPROVED` and `CONTRACT_CHANGES_REQUESTED`. Rejection remains an activity event without a push requirement.
+`notifyOfferNegotiation` is a Firestore document-created trigger on `/activityEvents/{eventId}`. The Phase 2 paths dispatch `OFFER_PUBLISHED`, `OFFER_COUNTERED` (both actor directions), and `OFFER_ACCEPTED` (both actor directions). Phase 4 submission/resubmission dispatch CONTRACT_SUBMITTED to the active Parent; review decisions additionally dispatch `CONTRACT_APPROVED` and `CONTRACT_CHANGES_REQUESTED`; Reward fulfillment dispatches `REWARD_FULFILLED` to the active Child. Rejection remains an activity event without a push requirement.
 
 The dispatcher loads the authoritative Offer, the event's immutable revision, and active recipient membership; acceptance additionally verifies the committed Contract source. Historical committed events may be processed after later revisions become current. It never reads terms into copy or payloads, accepts client-selected recipients, or participates in a command transaction. Only the intended participant's `pushEnabled: true` registrations for the correct app variant are targeted, with identical tokens deduplicated.
 
@@ -90,7 +90,7 @@ Copy is “Changes requested” / “A change was requested before approval.” 
 | Contract submitted   | Parent            | "An agreement is waiting for your review."    |
 | Changes requested    | Child             | "A change was requested before approval."     |
 | Contract approved    | Child             | "You earned: Cinema."                         |
-| Reward fulfilled     | Child             | "Cinema was marked as delivered."             |
+| Reward fulfilled     | Child             | "Your reward was marked as delivered."        |
 | Auction opened       | Eligible children | "New family auction: Cinema."                 |
 | Bid placed/updated   | Parent            | "A new auction bid is ready."                 |
 | Bid selected         | Winner            | "Your bid won. A contract is now active."     |
@@ -214,3 +214,7 @@ Expo's notification client API does not lock ChoreX into Expo Push Service. If t
 ## Submission and resubmission effect
 
 CONTRACT_SUBMITTED uses the existing committed-event dispatcher, effect lease, device filtering and retries. The completed server-only submission receipt verifies the immutable event even after a later Parent decision. Both submission modes notify the active Parent with “Ready for review” / “An agreement is waiting for your review.” Routing contains only type, CONTRACT, Contract ID and family ID; no Parent feedback or terms. Parent taps open the existing Contract detail. Same-key retries create no second event/effect. Transport failure does not undo submission; no receipt polling is added.
+
+## Reward fulfillment committed-event effect
+
+The existing dispatcher validates REWARD_FULFILLED against the persisted FULFILLED Reward (including owning Parent/fulfilledBy), deterministic Reward identity and matching APPROVED Contract. It resolves the active Child, reuses device/token filters and the existing effect lease, bounded retry and completed-effect deduplication. Copy is “Reward delivered” / “Your reward was marked as delivered.” No reward title, description or feedback is included. The four routing fields are type REWARD_FULFILLED, entityType REWARD, entityId Reward ID and familyId. Both apps recognize the stable `/rewards/[rewardId]` detail route; access is still enforced by authenticated reads. Transport failure never rolls back fulfillment. No receipt polling, reminders or new transport is introduced.

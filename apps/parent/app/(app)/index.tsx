@@ -1,3 +1,4 @@
+import { PendingRewards } from '../../src/rewards/PendingRewards';
 import {
   ActiveContracts,
   ReadyForReviewContracts,
@@ -543,6 +544,17 @@ export default function AuthenticatedHomeScreen() {
                 onPress={handleChildSubmit(onCreateChild)}
               />
             </View>
+
+            <PendingRewards
+              familyId={familyState.home.family.id}
+              authUid={user.uid}
+              childNames={Object.fromEntries(
+                familyState.home.children.map((child) => [
+                  child.uid,
+                  child.displayName,
+                ]),
+              )}
+            />
 
             <ReadyForReviewContracts
               familyId={familyState.home.family.id}

@@ -313,7 +313,15 @@ orderBy earnedAt desc
 
 Atomically it creates `/contracts/{contractId}/reviews/review_{sha256(contractId + ":" + reviewCycle)}` with APPROVE/current cycle/reviewer/server timestamp; updates only Contract status, approvedAt and updatedAt; creates `/rewards/reward_{sha256(contractId)}` with the shape above and frozen Contract rewardTerms; creates one Parent CONTRACT_APPROVED activity event with Contract, review and Reward IDs; and completes actor/command/key-scoped idempotency state storing the canonical `{ contract, review, reward }` receipt. No fulfillment fields are present. Same-key receipts are historical responses, including after later Reward changes, and do not replace realtime state.
 
-Direct client writes remain denied. Approval itself reads only Contract/task state. The subsequent request-changes feedback read is scoped to the current review round below; no Reward reads are introduced. The Ready-for-Review list reuses the existing family/participant/status/createdAt index and native metadata-aware listeners.
+Direct client writes remain denied. Approval itself reads only Contract/task state. The request-changes feedback read is scoped to the current review round below; Reward reads use the separate ownership-scoped surfaces described next. The Ready-for-Review list reuses the existing family/participant/status/createdAt index and native metadata-aware listeners.
+
+### Fulfillment persistence and Reward reads
+
+`fulfillReward` accepts only `{ rewardId, idempotencyKey }`. Active Parent membership and exact Reward parentUid are required. Transaction reads validate PENDING_FULFILLMENT, deterministic Reward identity, an APPROVED Contract with matching family/participants, identical frozen terms and native approvedAt equal to earnedAt. No client-supplied ownership or lifecycle fields are accepted.
+
+One atomic transaction updates only Reward status to FULFILLED, native fulfilledAt and fulfilledBy (authenticated Parent UID), creates one REWARD_FULFILLED event with actorType PARENT/entityType REWARD, and completes the established actor/command/key-scoped idempotency record. The Reward is retained. Original earning timestamp, terms and references stay unchanged; no Contract, Review, task, completion or revision is written. Same-key retries return the original canonical `{ reward }` receipt without rewriting timestamps/events. Conflicting input fails IDEMPOTENCY_CONFLICT; new different-key fulfillment fails REWARD_ALREADY_FULFILLED.
+
+Parent pending queries constrain familyId, authenticated parentUid and PENDING_FULFILLMENT, ordered earnedAt descending. Child earned queries constrain familyId and authenticated childUid, ordered earnedAt descending, including both pending and fulfilled records. Equal timestamps use Firestore's implicit document-ID ordering. The two concrete composite indexes below support these queries. Detail reads address the stable Reward ID. Rules permit reads only to active family members named as Reward Parent/Child, and deny all client writes. Native metadata-aware listeners expose cache state, clean up on scope/session changes and converge after reconnect; no custom persistence or offline command queue is added.
 
 ### Request-changes persistence and feedback reads
 

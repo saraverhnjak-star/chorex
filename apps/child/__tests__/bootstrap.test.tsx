@@ -162,6 +162,7 @@ const mockRemoveCurrentDeviceRegistration = jest
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 
 jest.mock('@chorex/firebase-client', () => ({
+  useEarnedRewards: () => ({ status: 'ready', rewards: [], fromCache: false }),
   useActiveContracts: () => ({
     status: 'ready',
     contracts: [],

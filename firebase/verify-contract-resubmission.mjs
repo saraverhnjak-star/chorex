@@ -202,6 +202,11 @@ export async function verifyContractResubmission(ctx) {
       1,
     );
   });
+  if (process.env.CHOREX_VERIFY_FULFILLMENT === '1') {
+    const { verifyRewardFulfillment } =
+      await import('./verify-reward-fulfillment.mjs');
+    await verifyRewardFulfillment(ctx);
+  }
   await verifyResubmissionTransactions();
   console.info(
     'PASS: full correction loop, cycle 0 -> 1, bilateral realtime/Parent queue re-entry, unchanged tasks/completions/review, same-key retry, one Parent notification effect, denied writes, later approval round 1 earns exactly one Reward',

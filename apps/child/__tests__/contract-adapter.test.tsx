@@ -1,4 +1,9 @@
 import {
+  fulfillReward,
+  RewardClientError,
+  observeReward,
+  observePendingRewards,
+  observeEarnedRewards,
   readCurrentParentFamily,
   requestContractChanges,
   observeCurrentContractReview,
@@ -523,4 +528,139 @@ it('current review query scopes family/Contract/round, bounds records and valida
   }
   stop();
   expect(mockStop).toHaveBeenCalled();
+});
+
+const rewardData = {
+  familyId: 'family-1',
+  contractId: 'contract-1',
+  parentUid: 'parent-1',
+  childUid: 'child-1',
+  terms: { title: 'Cinema', type: 'EXPERIENCE' },
+  status: 'PENDING_FULFILLMENT',
+  earnedAt: timestamp,
+};
+it('Reward queries scope family and authenticated ownership, pending status and deterministic earned order', () => {
+  observePendingRewards('family-1', jest.fn(), jest.fn());
+  expect(mockListen.mock.calls[0][0]).toEqual({
+    path: 'rewards',
+    constraints: [
+      { where: ['familyId', '==', 'family-1'] },
+      { where: ['parentUid', '==', 'child-1'] },
+      { where: ['status', '==', 'PENDING_FULFILLMENT'] },
+      { orderBy: ['earnedAt', 'desc'] },
+    ],
+  });
+  const receive = jest.fn(),
+    failure = jest.fn();
+  observeEarnedRewards('family-1', receive, failure);
+  expect(mockListen.mock.calls[1][0]).toEqual({
+    path: 'rewards',
+    constraints: [
+      { where: ['familyId', '==', 'family-1'] },
+      { where: ['childUid', '==', 'child-1'] },
+      { orderBy: ['earnedAt', 'desc'] },
+    ],
+  });
+  mockSnapshot({
+    docs: [{ id: 'reward-1', data: () => rewardData }],
+    metadata: { fromCache: true },
+  });
+  expect(receive).toHaveBeenCalledWith({
+    data: [
+      expect.objectContaining({
+        id: 'reward-1',
+        earnedAt: iso,
+        status: 'PENDING_FULFILLMENT',
+      }),
+    ],
+    fromCache: true,
+  });
+  mockSnapshot({
+    docs: [
+      { id: 'reward-1', data: () => ({ ...rewardData, childUid: 'other' }) },
+    ],
+    metadata: { fromCache: false },
+  });
+  expect(failure).toHaveBeenCalledWith(
+    expect.objectContaining({ code: 'MALFORMED_DATA' }),
+  );
+});
+it('Reward detail listener parses fulfilled timestamps, denies unrelated ownership and translates provider errors', () => {
+  const receive = jest.fn(),
+    failure = jest.fn();
+  const stop = observeReward('reward-1', receive, failure);
+  expect(mockListen.mock.calls[0].slice(0, 2)).toEqual([
+    'rewards/reward-1',
+    { includeMetadataChanges: true },
+  ]);
+  mockSnapshot({
+    id: 'reward-1',
+    exists: () => true,
+    data: () => ({
+      ...rewardData,
+      status: 'FULFILLED',
+      fulfilledAt: timestamp,
+      fulfilledBy: 'parent-1',
+    }),
+    metadata: { fromCache: false },
+  });
+  expect(receive).toHaveBeenCalledWith({
+    data: expect.objectContaining({
+      status: 'FULFILLED',
+      fulfilledAt: iso,
+      fulfilledBy: 'parent-1',
+    }),
+    fromCache: false,
+  });
+  mockSnapshot({
+    id: 'reward-1',
+    exists: () => true,
+    data: () => ({
+      ...rewardData,
+      childUid: 'other',
+      parentUid: 'other-parent',
+    }),
+    metadata: { fromCache: false },
+  });
+  expect(failure).toHaveBeenLastCalledWith(
+    expect.objectContaining({ code: 'FORBIDDEN' }),
+  );
+  mockFailure({ code: 'firestore/permission-denied' });
+  expect(failure).toHaveBeenLastCalledWith(
+    expect.objectContaining({ code: 'FORBIDDEN' }),
+  );
+  stop();
+  expect(mockStop).toHaveBeenCalled();
+});
+it('fulfillment adapter validates strict identity/receipt and maps stable/connectivity errors', async () => {
+  const input = { rewardId: 'reward-1', idempotencyKey: 'fulfillment-key-001' };
+  const output = {
+    reward: {
+      id: 'reward-1',
+      ...rewardData,
+      earnedAt: iso,
+      status: 'FULFILLED',
+      fulfilledAt: iso,
+      fulfilledBy: 'parent-1',
+    },
+  };
+  mockCallable.mockResolvedValueOnce({ data: output });
+  await expect(fulfillReward(input)).resolves.toEqual(output);
+  expect(mockHttpsCallable).toHaveBeenCalledWith({}, 'fulfillReward');
+  expect(mockCallable).toHaveBeenCalledWith(input);
+  mockCallable.mockResolvedValueOnce({
+    data: { reward: { ...output.reward, id: 'other' } },
+  });
+  await expect(fulfillReward(input)).rejects.toThrow('UNKNOWN_REWARD_FAILURE');
+  mockCallable.mockRejectedValueOnce({
+    details: { code: 'REWARD_ALREADY_FULFILLED' },
+  });
+  await expect(fulfillReward(input)).rejects.toThrow(
+    'REWARD_ALREADY_FULFILLED',
+  );
+  mockCallable.mockRejectedValueOnce({ code: 'functions/unavailable' });
+  await expect(fulfillReward(input)).rejects.toThrow('NETWORK_UNAVAILABLE');
+  await expect(
+    fulfillReward({ ...input, rewardId: '../bad' }),
+  ).rejects.toBeInstanceOf(RewardClientError);
 });

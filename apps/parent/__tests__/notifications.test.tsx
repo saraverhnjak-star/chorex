@@ -168,3 +168,19 @@ it('submission notification opens existing Contract detail', () => {
     }),
   ).toBe('/contracts/contract-1');
 });
+
+it('fulfillment notification opens Reward detail and rejects private payload extensions', () => {
+  const data = {
+    type: 'REWARD_FULFILLED',
+    entityType: 'REWARD',
+    entityId: 'reward-1',
+    familyId: 'family-1',
+  };
+  expect(negotiationNotificationRoute(data)).toBe('/rewards/reward-1');
+  expect(
+    negotiationNotificationRoute({ ...data, note: 'Private' }),
+  ).toBeUndefined();
+  expect(
+    negotiationNotificationRoute({ ...data, entityType: 'CONTRACT' }),
+  ).toBeUndefined();
+});

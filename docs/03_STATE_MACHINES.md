@@ -90,7 +90,9 @@ PENDING_FULFILLMENT -> FULFILLED
           +---------> CANCELLED   # exceptional/admin path only
 ```
 
-The Parent app should expose pending earned rewards as a parent obligation/to-do list.
+The Parent app exposes pending earned rewards as an obligation list. The Child sees both pending and fulfilled Rewards.
+
+`fulfillReward` performs only PENDING_FULFILLMENT -> FULFILLED through the active owning Parent and authoritative approved-Contract relationship. One transaction updates Reward status/fulfilledAt/fulfilledBy, records a Parent REWARD_FULFILLED event and completes idempotency state. Same-key retries preserve the original timestamp and receipt; concurrent different keys permit one winner, with REWARD_ALREADY_FULFILLED for the loser. Contract stays APPROVED and all frozen terms/history remain unchanged. UI success requires backend confirmation; listeners own the displayed Reward state and pending-list removal. Cancellation is not implemented.
 
 ## 4. Repeated tasks
 

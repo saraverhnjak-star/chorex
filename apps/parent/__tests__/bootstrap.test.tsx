@@ -86,6 +86,7 @@ const mockSubscribeToCurrentParentNegotiationInbox = jest.fn(
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 
 jest.mock('@chorex/firebase-client', () => ({
+  usePendingRewards: () => ({ status: 'ready', rewards: [], fromCache: false }),
   useActiveContracts: () => ({
     status: 'ready',
     contracts: [],

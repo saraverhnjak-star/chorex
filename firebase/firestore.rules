@@ -181,6 +181,15 @@ service cloud.firestore {
       }
     }
 
+    match /rewards/{rewardId} {
+      function canReadReward() {
+        return isSignedIn() && isActiveFamilyMember(resource.data.familyId)
+          && (request.auth.uid == resource.data.parentUid || request.auth.uid == resource.data.childUid);
+      }
+      allow get, list: if canReadReward();
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

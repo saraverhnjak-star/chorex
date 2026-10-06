@@ -149,3 +149,14 @@ export {
   type RequestContractChangesInputValue,
   type RequestContractChangesOutput,
 } from './review';
+
+export {
+  pendingRewardSchema,
+  fulfilledRewardSchema,
+  fulfillRewardInputSchema,
+  fulfillRewardOutputSchema,
+  rewardCommandErrorCodes,
+  type RewardCommandErrorCode,
+  type FulfillRewardInputValue,
+  type FulfillRewardOutput,
+} from './review';

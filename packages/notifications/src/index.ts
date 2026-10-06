@@ -117,7 +117,9 @@ export function configureForegroundNotifications(): void {
 
 // Call only after authentication. Opening loads existing authoritative home/inbox listeners.
 export function listenForNegotiationNotificationResponses(
-  navigate: (route: '/' | `/contracts/${string}`) => void,
+  navigate: (
+    route: '/' | `/contracts/${string}` | `/rewards/${string}`,
+  ) => void,
 ): () => void {
   let active = true;
   const handled = new Set<string>();
