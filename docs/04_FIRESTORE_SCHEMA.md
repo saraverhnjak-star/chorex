@@ -452,3 +452,9 @@ Each committed negotiation activity event may own `/activityEvents/{eventId}/not
 ## Correction and resubmission persistence (ADR-044)
 
 The existing submitContractForReview command additionally accepts CHANGES_REQUESTED. It reads the deterministic current-cycle REQUEST_CHANGES review, validates identity/required feedback and absence of a next-cycle decision/Reward, and reads structurally valid scoped tasks without modifying them. One transaction updates status READY_FOR_REVIEW, reviewCycle + 1 and updatedAt, creates the canonical Child CONTRACT_SUBMITTED event (reviewCycle identifies the opened round), and completes the existing idempotency receipt. Initial ACTIVE submission preserves its cycle. No new Review, TaskCompletion or Reward exists on resubmission. Immutable previous reviews and all execution/frozen terms remain unchanged; direct writes remain denied.
+
+## Server-only push receipt work (Phase 5 Slice 1)
+
+`pushReceipts/{workId}` contains minimal operational data: `eventId`, `ticketId`, `registrations[]` (`devicePath`, SHA-256 `tokenHash`, captured native `lastSeenAt` when available), `complete`, `status`, `attempts`, native `createdAt`, `expiresAt`, `nextAttemptAt`; processing adds `leaseId`, `category`, `updatedAt`, `completedAt`, `deleteAfter` as applicable. The work ID deterministically hashes event/ticket/message index. States are PENDING, PROCESSING, SUCCEEDED, DEVICE_INVALID, MESSAGE_ERROR, PROVIDER_ERROR and EXHAUSTED. These are infrastructure states, not domain lifecycle enums.
+
+Records contain no raw token, message body, credential or domain terms. Existing client catch-all denial protects reads and writes. Pending and retention queries use `(complete, nextAttemptAt)` and `(complete, deleteAfter)` indexes. Terminal data is retained seven days; bounded worker deletion requires no separate TTL service. Device cleanup changes only canonical `pushEnabled`; existing device registration schema is unchanged.

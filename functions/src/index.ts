@@ -1,3 +1,5 @@
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { processPushReceipts, getExpoReceipts } from './pushReceipts';
 import {
   executeFulfillReward,
   FulfillRewardCommandError,
@@ -417,3 +419,17 @@ export const fulfillReward = onCall(async (request) => {
     throw new HttpsError('internal', 'INTERNAL');
   }
 });
+
+export const processExpoPushReceipts = onSchedule(
+  {
+    schedule: 'every 15 minutes',
+    timeZone: 'UTC',
+    timeoutSeconds: 120,
+    maxInstances: 1,
+  },
+  async () => {
+    // Local integration explicitly injects deterministic receipt fakes; no live Expo calls.
+    if (process.env.FIRESTORE_EMULATOR_HOST) return;
+    await processPushReceipts(firestore, getExpoReceipts);
+  },
+);

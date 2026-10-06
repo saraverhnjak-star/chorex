@@ -19,7 +19,9 @@ const projectId = 'chorex-dev';
 if (process.env.GCLOUD_PROJECT !== projectId) {
   throw new Error('Emulator guard failed: GCLOUD_PROJECT');
 }
-if (process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8080') {
+if (
+  !/^127\.0\.0\.1:(8080|18080)$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
+) {
   throw new Error('Emulator guard failed: FIRESTORE_EMULATOR_HOST');
 }
 
@@ -50,7 +52,10 @@ function registration(overrides = {}) {
 try {
   environment = await initializeTestEnvironment({
     projectId,
-    firestore: { host: '127.0.0.1', port: 8080 },
+    firestore: {
+      host: '127.0.0.1',
+      port: Number(process.env.FIRESTORE_EMULATOR_HOST.split(':')[1]),
+    },
   });
   const ownerFirestore = environment.authenticatedContext(ownerUid).firestore();
   const otherFirestore = environment.authenticatedContext(otherUid).firestore();

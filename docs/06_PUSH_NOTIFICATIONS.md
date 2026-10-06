@@ -62,7 +62,7 @@ The dispatcher loads the authoritative Offer, the event's immutable revision, an
 
 One server-only `/activityEvents/{eventId}/notificationEffects/expo` record identifies each logical effect. A transaction claims a two-minute lease; concurrent/repeated trigger delivery cannot independently claim the same effect. `COMPLETE` and `SKIPPED` are terminal. Transient failures use event retry/backoff, bounded to three claims; exhaustion records `FAILED`. Effect records contain only operational state, recipient UID, minimal routing metadata and ticket IDs, never push tokens or negotiated content. These are delivery records, not a second domain lifecycle or command idempotency system.
 
-Expo sends are batched at 100. Immediately reported `DeviceNotRegistered` registrations are disabled only if their token has not rotated. `COMPLETE` means tickets accepted or no eligible registrations, not confirmed physical delivery. Expo does not provide an exactly-once send operation: an ambiguous network failure or crash after sending can repeat a physical push, while the committed event still owns one logical effect. Receipt polling/retention and further receipt hardening remain outside this Phase 2 sender slice.
+Expo sends are batched at 100. Immediately reported `DeviceNotRegistered` registrations are disabled only if their token has not rotated. `COMPLETE` means tickets accepted or no eligible registrations, not confirmed physical delivery. Expo does not provide an exactly-once send operation: an ambiguous network failure or crash after sending can repeat a physical push, while the committed event still owns one logical effect. Receipt polling/retention was deferred from Phase 2 and is now implemented by Phase 5 Slice 1 (section 10).
 
 Both apps suppress foreground banners/sounds for this realtime-first workflow. After authentication, notification responses validate shared minimal routing metadata and open the existing home/inbox surface, where Firestore loads authoritative data. Contract payloads identify the committed Contract but also open home until Phase 3 supplies Contract detail screens. No notification handler mutates domain state or requests push permission.
 
@@ -155,16 +155,17 @@ If permission is denied, the app must remain fully usable and show an in-app not
 
 ## 10. Token lifecycle and receipts
 
-The notification sender should:
+Phase 5 Slice 1 extends the existing dispatcher and Expo gateway. Successful tickets create deterministic server-only `pushReceipts/{workId}` records, keyed by a SHA-256 digest of event ID, ticket ID and message index. Records contain the ticket/event identity, registration document paths, SHA-256 token fingerprints and captured `lastSeenAt`, plus processing timestamps/status/attempt count. They never contain raw push tokens, message copy, credentials or domain snapshots. Identical eligible tokens are sent once and bind all matching registrations. Accepted send batches are retained before requesting subsequent batches.
 
-- batch Expo push messages;
-- record ticket IDs temporarily if needed;
-- check push receipts;
-- deactivate tokens reported as invalid/unregistered;
-- never retry permanently invalid tokens;
-- use bounded retry/backoff for transient failures.
+`processExpoPushReceipts` is a Cloud Functions scheduled worker, every 15 minutes UTC. Each run claims at most 100 due records with transactional two-minute leases; only the current lease may finalize work. First lookup is eligible 15 minutes after sending. `nextAttemptAt` doubles as lease expiry so interrupted work is reclaimable without a global lock. Receipt lookup uses Expo's `getReceipts` endpoint and never invokes the sender.
 
-A device may have multiple historical tokens. Only active tokens should be targeted.
+Receipt success means provider handoff, not confirmation of physical device delivery. `DeviceNotRegistered` completes work and disables only registrations whose token fingerprint and registration generation still match, atomically with terminal receipt state. The canonical device field remains `pushEnabled: false`; the document, Auth session/user and membership remain intact. A late receipt cannot invalidate a rotated token or a legitimate later self-registration, including one using the same token. Normal self-registration may activate a refreshed token under unchanged ownership/shape Rules.
+
+Missing receipts, network errors, HTTP 429/5xx, top-level `TOO_MANY_REQUESTS` and `MessageRateExceeded` retry only lookup, at 15/30/60/120-minute delays after the preceding attempt. Work stops after five attempts or 24 hours. `MessageTooBig` is a terminal message failure. `MismatchSenderId`, `InvalidCredentials`, other HTTP request failures, malformed responses and unknown provider errors stop without disabling devices. Unknown raw error strings are normalized rather than logged. Terminal failures log only a stable work ID and category once per effective transition.
+
+Completed/exhausted records retain minimal evidence for seven days, then the same worker deletes at most 100 eligible records per run. Two composite indexes support pending and cleanup queries. Clients have no receipt read/write access under the existing catch-all denial. Receipt processing creates no activity/domain events, rewards or authentication changes. The existing three-attempt event delivery retry remains separate; an ambiguous send failure can still repeat a physical push, as Expo has no exactly-once send operation.
+
+The scheduled callback avoids live Expo calls in the emulator; deterministic integration invokes the same processor with fake Expo transport. See [Phase 5 Slice 1 acceptance](PHASE_5_SLICE_1_ACCEPTANCE.md) and [Expo receipt documentation](https://docs.expo.dev/push-notifications/sending-notifications/).
 
 ## 11. Notification preferences
 

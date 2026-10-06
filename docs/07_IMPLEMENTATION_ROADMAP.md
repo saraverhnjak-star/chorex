@@ -126,6 +126,8 @@ Reward fulfillment is separate from contract approval.
 
 ## Phase 5 - Push hardening and reminders
 
+**Slice 1 implemented and verified:** Expo ticket tracking, bounded scheduled receipt processing and exact-registration invalid-device cleanup. See [acceptance evidence](PHASE_5_SLICE_1_ACCEPTANCE.md). Phase 5 as a whole remains incomplete. Next safe slice: notification deep-link routing hardening; contextual permission/token-lifecycle UX and reminders remain separate work. OPEN-010, OPEN-011 and OPEN-014 remain unresolved.
+
 Build:
 
 - contextual permission onboarding;

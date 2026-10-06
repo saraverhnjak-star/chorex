@@ -1,3 +1,8 @@
+import {
+  bindRegistrations,
+  retainExpoTickets,
+  invalidatePushRegistrations,
+} from './pushReceipts';
 import { contractReviewId, contractRewardId } from './parentReviewDecision';
 import { randomUUID } from 'node:crypto';
 import {
@@ -32,6 +37,7 @@ export interface ExpoTicket {
 }
 export type ExpoTransport = (
   messages: readonly ExpoMessage[],
+  onTickets?: (tickets: readonly ExpoTicket[], offset: number) => Promise<void>,
 ) => Promise<readonly ExpoTicket[]>;
 
 // Terms, notes, names, and caller-supplied recipients never enter push payloads.
@@ -210,6 +216,7 @@ export function changesRequestedNotificationIntent(
 
 export async function sendExpoMessages(
   messages: readonly ExpoMessage[],
+  onTickets?: (tickets: readonly ExpoTicket[], offset: number) => Promise<void>,
 ): Promise<readonly ExpoTicket[]> {
   const tickets: ExpoTicket[] = [];
   for (let offset = 0; offset < messages.length; offset += 100) {
@@ -229,10 +236,15 @@ export async function sendExpoMessages(
       !Array.isArray(result.data) ||
       result.data.length !== chunk.length ||
       result.data.some(
-        (ticket) => ticket.status !== 'ok' && ticket.status !== 'error',
+        (ticket) =>
+          !ticket ||
+          (ticket.status !== 'ok' && ticket.status !== 'error') ||
+          (ticket.status === 'ok' &&
+            (typeof ticket.id !== 'string' || !ticket.id)),
       )
     )
       throw new Error('EXPO_INVALID_RESPONSE');
+    await onTickets?.(result.data, offset);
     tickets.push(...result.data);
   }
   return tickets;
@@ -531,26 +543,40 @@ export async function dispatchNegotiationNotification(
       sound: 'default',
       channelId: 'default',
     }));
-    const tickets = messages.length ? await transport(messages) : [];
-    if (tickets.length !== messages.length)
+    const bindings = tokens.map((token) =>
+      bindRegistrations(
+        devices.docs.filter(
+          (device) =>
+            device.data().appVariant === intent.recipientRole &&
+            device.data().expoPushToken === token,
+        ),
+      ),
+    );
+    const retain = (batch: readonly ExpoTicket[], offset: number) =>
+      retainExpoTickets(
+        firestore,
+        eventId,
+        batch.map((ticket, index) => ({
+          index: offset + index,
+          ticket,
+          registrations: bindings[offset + index],
+        })),
+      );
+    const tickets = messages.length ? await transport(messages, retain) : [];
+    if (
+      tickets.length !== messages.length ||
+      tickets.some(
+        (ticket) => !ticket || !['ok', 'error'].includes(ticket.status),
+      )
+    )
       throw new Error('EXPO_INVALID_RESPONSE');
+    await retain(tickets, 0);
     for (let i = 0; i < tickets.length; i++) {
-      if (tickets[i].details?.error === 'DeviceNotRegistered') {
-        const token = tokens[i];
-        // Disable all duplicate registrations, without disabling a newly rotated token.
-        await firestore.runTransaction(async (tx) => {
-          const matching = devices.docs.filter(
-            (device) => device.data().expoPushToken === token,
-          );
-          const current = await Promise.all(
-            matching.map((device) => tx.get(device.ref)),
-          );
-          current.forEach((device) => {
-            if (device.data()?.expoPushToken === token)
-              tx.update(device.ref, { pushEnabled: false });
-          });
-        });
-      }
+      if (
+        tickets[i].status === 'error' &&
+        tickets[i].details?.error === 'DeviceNotRegistered'
+      )
+        await invalidatePushRegistrations(firestore, bindings[i]);
     }
     if (
       tickets.some(

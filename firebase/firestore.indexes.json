@@ -58,6 +58,22 @@
         { "fieldPath": "contractId", "order": "ASCENDING" },
         { "fieldPath": "cycle", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "pushReceipts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "complete", "order": "ASCENDING" },
+        { "fieldPath": "nextAttemptAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "pushReceipts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "complete", "order": "ASCENDING" },
+        { "fieldPath": "deleteAfter", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

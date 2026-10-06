@@ -302,3 +302,7 @@ The trusted fulfillReward callable derives family and participants from persiste
 ## Immutable Contract review history
 
 Review history expands reads across cycles, not access to new actors. Rules still require authenticated active membership in the Contract family, named participant identity and matching stored Review family/Contract. Unrelated family members/accounts, inactive/disabled/non-members and unauthenticated users cannot read history or a known Review ID. Queries constrain familyId and contractId; unsafely unscoped lists remain denied. Review create/update/delete remain server-only. Current-feedback validation and all authoritative mutation policies are unchanged.
+
+## Push receipt cleanup boundary
+
+Phase 5 Slice 1 receipt work is server-only and inaccessible to clients under existing catch-all Rules. Admin transactions may set `users/{uid}/devices/{installationId}.pushEnabled` false only when the ticket's captured token fingerprint and registration generation still match. This never revokes Firebase refresh tokens, deletes/signs out users or changes family membership. Normal owner registration/update remains shape-restricted and may enable a refreshed registration. OPEN-014 remains unresolved and separate.
