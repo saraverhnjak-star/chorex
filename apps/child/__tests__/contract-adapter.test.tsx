@@ -6,6 +6,7 @@ import {
   observeEarnedRewards,
   readCurrentParentFamily,
   requestContractChanges,
+  observeContractReviews,
   observeCurrentContractReview,
   approveContract,
   observeReadyForReviewContracts,
@@ -663,4 +664,63 @@ it('fulfillment adapter validates strict identity/receipt and maps stable/connec
   await expect(
     fulfillReward({ ...input, rewardId: '../bad' }),
   ).rejects.toBeInstanceOf(RewardClientError);
+});
+
+it('history query reads every round in ascending order with metadata and existing access/error guards', () => {
+  const { participantUids: _participants, ...data } = contractData;
+  const contract = {
+    ...data,
+    id: 'contract-1',
+    deadlineAt: iso,
+    createdAt: iso,
+    updatedAt: iso,
+  } as never;
+  const callback = jest.fn(),
+    error = jest.fn();
+  const stop = observeContractReviews(contract, callback, error);
+  expect(mockListen.mock.calls[0][0]).toEqual({
+    path: 'contracts/contract-1/reviews',
+    constraints: [
+      { where: ['familyId', '==', 'family-1'] },
+      { where: ['contractId', '==', 'contract-1'] },
+      { orderBy: ['cycle', 'asc'] },
+    ],
+  });
+  expect(mockListen.mock.calls[0][1]).toEqual({ includeMetadataChanges: true });
+  mockSnapshot({ docs: [], metadata: { fromCache: false } });
+  expect(callback).toHaveBeenLastCalledWith({ data: [], fromCache: false });
+  const rows = [0, 1, 2].map((cycle) => ({
+    id: `review-${cycle}`,
+    data: () => ({
+      familyId: 'family-1',
+      contractId: 'contract-1',
+      reviewerUid: 'parent-1',
+      cycle,
+      decision: cycle === 2 ? 'APPROVE' : 'REQUEST_CHANGES',
+      ...(cycle === 2 ? {} : { note: `Note ${cycle}` }),
+      createdAt: timestamp,
+    }),
+  }));
+  mockSnapshot({ docs: rows, metadata: { fromCache: true } });
+  expect(
+    callback.mock.calls.at(-1)?.[0].data.map((r: { cycle: number }) => r.cycle),
+  ).toEqual([0, 1, 2]);
+  mockFailure({ code: 'firestore/permission-denied' });
+  expect(error).toHaveBeenLastCalledWith(
+    expect.objectContaining({ code: 'FORBIDDEN' }),
+  );
+  stop();
+  expect(mockStop).toHaveBeenCalled();
+  expect(() =>
+    observeContractReviews(
+      {
+        id: 'contract-1',
+        familyId: 'family-1',
+        parentUid: 'other',
+        childUid: 'another',
+      },
+      callback,
+      error,
+    ),
+  ).toThrow('FORBIDDEN');
 });

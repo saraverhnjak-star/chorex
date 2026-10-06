@@ -162,6 +162,23 @@ export async function verifyContractChanges(ctx) {
   await Promise.all(
     feedback.map((l) => l.wait((s) => s.empty && !s.metadata.fromCache)),
   );
+  if (process.env.CHOREX_VERIFY_REVIEW_HISTORY === '1') {
+    for (const db of [parentDb, childDb]) {
+      assert.equal(
+        (
+          await getDocs(
+            query(
+              collection(db, `${path}/reviews`),
+              where('familyId', '==', familyId),
+              where('contractId', '==', contractId),
+              orderBy('cycle', 'asc'),
+            ),
+          )
+        ).size,
+        0,
+      );
+    }
+  }
   const readRecords = async () => {
     let result;
     await withAdmin(async (db) => {
@@ -323,7 +340,10 @@ export async function verifyContractChanges(ctx) {
       createdAt: Timestamp.now(),
     }),
   );
-  await assertFails(getDoc(doc(childDb, `${path}/reviews/old-cycle`)));
+  assert.equal(
+    (await getDoc(doc(childDb, `${path}/reviews/old-cycle`))).data().cycle,
+    before.reviewCycle + 1,
+  );
   await withAdmin((db) => deleteDoc(doc(db, `${path}/reviews/old-cycle`)));
   await disableNetwork(childDb);
   await feedback[1].wait((s) => s.size === 1 && s.metadata.fromCache);

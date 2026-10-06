@@ -103,8 +103,7 @@ export async function verifyRewardFulfillment(ctx) {
     orderBy('earnedAt', 'desc'),
   );
   const pending = watch(pendingQuery),
-    earned = watch(earnedQuery),
-    detail = watch(doc(childDb, path));
+    earned = watch(earnedQuery);
   await pending.wait((s) => s.size === 2 && !s.metadata.fromCache);
   await earned.wait((s) => s.size === 1 && !s.metadata.fromCache);
   assert.equal(

@@ -5,6 +5,7 @@ import {
   deserializeTasks,
   translateContractReadError,
   deserializeContractReview,
+  deserializeContractReviews,
   type ReadSnapshot,
 } from './contractReadModel';
 import { getApp } from '@react-native-firebase/app';
@@ -1541,6 +1542,49 @@ function observeRewards(
           )
             throw new ContractReadError('MALFORMED_DATA');
           callback({ data: rewards, fromCache: snapshot.metadata.fromCache });
+        } catch (error) {
+          onError(translateContractReadError(error));
+        }
+      },
+      (error) => onError(translateContractReadError(error)),
+    );
+  } catch (error) {
+    throw translateContractReadError(error);
+  }
+}
+
+export { useContractReviews, type ContractReviewsState } from './contractHooks';
+export function observeContractReviews(
+  contract: Pick<Contract, 'id' | 'familyId' | 'parentUid' | 'childUid'>,
+  callback: (snapshot: ReadSnapshot<readonly ContractReview[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(contract.id);
+  if (uid !== contract.parentUid && uid !== contract.childUid)
+    throw new ContractReadError('FORBIDDEN');
+  try {
+    return onSnapshot(
+      query(
+        collection(
+          getInitializedFirestore(),
+          'contracts',
+          contract.id,
+          'reviews',
+        ),
+        where('familyId', '==', contract.familyId),
+        where('contractId', '==', contract.id),
+        orderBy('cycle', 'asc'),
+      ),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          callback({
+            data: deserializeContractReviews(
+              snapshot.docs.map((item) => ({ id: item.id, data: item.data() })),
+              contract,
+            ),
+            fromCache: snapshot.metadata.fromCache,
+          });
         } catch (error) {
           onError(translateContractReadError(error));
         }

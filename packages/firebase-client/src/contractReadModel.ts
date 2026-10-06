@@ -118,10 +118,10 @@ export function deserializeTasks(
   }
 }
 
-export function deserializeContractReview(
+function deserializeReview(
   id: string,
   data: Record<string, unknown>,
-  contract: Contract,
+  contract: Pick<Contract, 'id' | 'familyId' | 'parentUid'>,
 ): ContractReview {
   try {
     const review = contractReviewSchema.parse({
@@ -137,14 +137,43 @@ export function deserializeContractReview(
     if (
       review.familyId !== contract.familyId ||
       review.contractId !== contract.id ||
-      review.cycle !== contract.reviewCycle ||
-      review.reviewerUid !== contract.parentUid ||
-      (contract.status === 'CHANGES_REQUESTED' &&
-        (review.decision !== 'REQUEST_CHANGES' || !review.note))
+      review.reviewerUid !== contract.parentUid
     )
       throw new ContractReadError('MALFORMED_DATA');
     return review;
   } catch {
     throw new ContractReadError('MALFORMED_DATA');
   }
+}
+export function deserializeContractReview(
+  id: string,
+  data: Record<string, unknown>,
+  contract: Contract,
+): ContractReview {
+  const review = deserializeReview(id, data, contract);
+  if (
+    review.cycle !== contract.reviewCycle ||
+    (contract.status === 'CHANGES_REQUESTED' &&
+      (review.decision !== 'REQUEST_CHANGES' || !review.note))
+  )
+    throw new ContractReadError('MALFORMED_DATA');
+  return review;
+}
+export function deserializeContractReviews(
+  documents: readonly { id: string; data: Record<string, unknown> }[],
+  contract: Pick<Contract, 'id' | 'familyId' | 'parentUid'>,
+): ContractReview[] {
+  const cycles = new Set<number>();
+  return documents
+    .map(({ id, data }) => {
+      const review = deserializeReview(id, data, contract);
+      if (
+        cycles.has(review.cycle) ||
+        (review.decision === 'REQUEST_CHANGES' && !review.note)
+      )
+        throw new ContractReadError('MALFORMED_DATA');
+      cycles.add(review.cycle);
+      return review;
+    })
+    .sort((a, b) => a.cycle - b.cycle);
 }

@@ -4,10 +4,12 @@ import { Text, View } from 'react-native';
 import {
   useContractDetail,
   useCurrentContractReview,
+  useContractReviews,
 } from '@chorex/firebase-client';
 import {
   FormMessage,
   ReviewFeedback,
+  ReviewHistory,
   TaskProgress,
   useDynamicTypeStyles,
 } from '@chorex/ui';
@@ -27,6 +29,10 @@ export function ContractDetail({
     state.status === 'ready' && state.contract.status === 'CHANGES_REQUESTED'
       ? state.contract
       : undefined,
+    authUid,
+  );
+  const history = useContractReviews(
+    state.status === 'ready' ? state.contract : undefined,
     authUid,
   );
   if (state.status === 'loading')
@@ -67,12 +73,24 @@ export function ContractDetail({
   return (
     <View className="gap-4">
       {contract.status === 'CHANGES_REQUESTED' ? (
-        <ReviewFeedback
-          loading={feedback.status === 'loading'}
-          error={feedback.status === 'error'}
-          note={feedback.status === 'ready' ? feedback.review?.note : undefined}
-          fromCache={feedback.status === 'ready' && feedback.fromCache}
-        />
+        <View className="gap-2">
+          <Text
+            allowFontScaling={false}
+            accessibilityRole="header"
+            className="font-semibold text-text"
+            style={styles.body}
+          >
+            Current request
+          </Text>
+          <ReviewFeedback
+            loading={feedback.status === 'loading'}
+            error={feedback.status === 'error'}
+            note={
+              feedback.status === 'ready' ? feedback.review?.note : undefined
+            }
+            fromCache={feedback.status === 'ready' && feedback.fromCache}
+          />
+        </View>
       ) : null}
       {contract.status === 'CHANGES_REQUESTED' ? (
         <Text
@@ -199,6 +217,12 @@ export function ContractDetail({
       >
         Deadline: {new Date(contract.deadlineAt).toLocaleString()}
       </Text>
+      <ReviewHistory
+        loading={history.status === 'loading'}
+        error={history.status === 'error'}
+        reviews={history.status === 'ready' ? history.reviews : []}
+        fromCache={history.status === 'ready' && history.fromCache}
+      />
     </View>
   );
 }

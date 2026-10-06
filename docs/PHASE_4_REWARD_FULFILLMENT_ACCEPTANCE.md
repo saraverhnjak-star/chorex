@@ -100,3 +100,7 @@ Review history is **not sufficient**: current feedback reads are bounded to the 
 One small read-only review-history slice remains. It should expose participant-scoped immutable review rounds and adequate Parent/Child history presentation without new mutation semantics. Phase 4 must stay open until that is verified. The next milestone should be that history slice; Phase 5 notification hardening/reminders follows it.
 
 OPEN-009 and OPEN-012 remain resolved by ADR-044 and ADR-043. OPEN-010 and OPEN-011 remain unresolved and unchanged. No additional ADR was needed. Cancellation, expiry, task undo, payment/redemption, partial fulfillment, proof, auctions and Phase 5 behavior were not implemented.
+
+## Subsequent Phase 4 completion
+
+The read-only [Review history slice](PHASE_4_REVIEW_HISTORY_ACCEPTANCE.md) completes the missing participant-facing immutable history deliverable. The historical scope/results above remain unchanged. The complete documented Phase 4 gate is now satisfied; Phase 5 notification hardening/reminders is next. OPEN-010 and OPEN-011 remain unresolved.

@@ -329,7 +329,7 @@ Parent pending queries constrain familyId, authenticated parentUid and PENDING_F
 
 It atomically creates the current-cycle REQUEST_CHANGES review with feedback/native createdAt, updates only Contract status CHANGES_REQUESTED and updatedAt, writes one Parent CONTRACT_CHANGES_REQUESTED event with Contract/review IDs (no feedback content), and completes idempotency state with canonical `{ contract, review }`. It creates no Reward and preserves execution/negotiation history and frozen terms. Approval versus request changes has one transactional winner.
 
-The minimum client feedback query is the Contract's reviews subcollection constrained by familyId, contractId and authoritative current cycle, limited to 2 to detect corrupt duplicate decisions. Rules permit current-round get/bounded list only to active members who are named Contract participants, with matching stored family/Contract/cycle. Older-cycle or unbounded/history reads and every client write remain denied. Adapters reject malformed/mismatched or duplicate current reviews; listeners include native cache metadata and clean up on identity/scope/round changes. There is no alternate note storage or full review-history screen.
+The minimum client feedback query is the Contract's reviews subcollection constrained by familyId, contractId and authoritative current cycle, limited to 2 to detect corrupt duplicate decisions. Rules permit get/list across all committed rounds only to active members who are named Contract participants, with matching stored family/Contract. Every client write remains denied. The current-feedback adapter retains its cycle filter/limit 2 and rejects malformed/mismatched or duplicate current reviews. Complete history uses the same familyId/contractId constraints and orderBy cycle ascending, without a limit or status filter; its adapter validates shared Review fields, Parent author, required REQUEST_CHANGES note and duplicate cycles. One concrete reviews COLLECTION index (familyId, contractId, cycle ascending) supports that query. Listeners include native cache metadata and clean up on identity/scope changes; the history listener survives lifecycle/round changes. Both Contract details expose read-only Review history. No alternate note storage or custom cache is introduced.
 
 ## 11. Auctions
 
@@ -423,6 +423,7 @@ contracts: familyId + childUid + status + updatedAt desc
 contracts: familyId + parentUid + status + updatedAt desc
 rewards:   familyId + parentUid + status + earnedAt desc
 rewards:   familyId + childUid + earnedAt desc
+reviews:   familyId + contractId + cycle asc
 auctions:  familyId + eligibleChildUids(array-contains) + status + biddingEndsAt
 activity:  familyId + createdAt desc
 ```

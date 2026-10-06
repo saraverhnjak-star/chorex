@@ -16,3 +16,5 @@ export { ReviewFeedback } from './ReviewFeedback';
 export { RewardSummary } from './RewardSummary';
 export { RewardList } from './RewardList';
 export { RewardDetailBody } from './RewardDetailBody';
+
+export { ReviewHistory } from './ReviewHistory';

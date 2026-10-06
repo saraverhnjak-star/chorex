@@ -228,7 +228,7 @@ Undo semantics are intentionally unresolved (see `DECISIONS.md`, OPEN-010). Unti
 
 ## 9. Review
 
-ADR-043 defines zero-based review rounds. `Contract.reviewCycle` starts at `0`; first submission leaves it unchanged. A Parent review copies that value into `ContractReview.cycle` and does not increment it. Only a successful CHANGES_REQUESTED resubmission increments it. One immutable Parent decision is allowed per Contract/cycle. ADR-044 resolves OPEN-009 with contract-level remediation.
+ADR-043 defines zero-based review rounds. `Contract.reviewCycle` starts at `0`; first submission leaves it unchanged. A Parent review copies that value into `ContractReview.cycle` and does not increment it. Only a successful CHANGES_REQUESTED resubmission increments it. One immutable Parent decision is allowed per Contract/cycle. ADR-044 resolves OPEN-009 with contract-level remediation. Active Contract participants can read complete immutable review history in cycle order. The apps display cycle + 1 as the human review number; persisted/read-model cycles remain zero-based. History is never inferred from current status, events or array position.
 
 ```ts
 export interface ContractReview {

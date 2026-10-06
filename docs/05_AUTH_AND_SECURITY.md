@@ -168,8 +168,8 @@ Example policy intent:
   write: server only
 
 /contracts/{contractId}/reviews
-  current-round get/bounded list: active Contract participants, matching family/Contract/cycle
-  unbounded/history reads: denied in this slice
+  get/list across committed rounds: active Contract participants, matching family/Contract
+  history query: familyId/contractId equality constraints; cycle ascending
   write: server only
 
 /rewards, auctions, activityEvents
@@ -298,3 +298,7 @@ ADR-044 extends submitContractForReview through its existing authenticated activ
 Reward get/list access requires authenticated active membership in the Reward family and exact parentUid/childUid ownership. Parent list queries additionally constrain the authenticated parentUid and PENDING_FULFILLMENT; Child queries constrain authenticated childUid. Unscoped family lists are not authorized by Rules. All Reward and activity-event client writes remain denied, including status/fulfilledAt/fulfilledBy.
 
 The trusted fulfillReward callable derives family and participants from persisted Reward state, validates active PARENT membership and exact owning Parent UID, and checks the deterministic approved-Contract relationship before committing. Child, another Parent, other-family, inactive/disabled/non-member and unauthenticated requests fail. Same-key retries revalidate current membership/ownership before returning the original receipt. Backend-unavailable failures do not imply success or create a client-side write queue.
+
+## Immutable Contract review history
+
+Review history expands reads across cycles, not access to new actors. Rules still require authenticated active membership in the Contract family, named participant identity and matching stored Review family/Contract. Unrelated family members/accounts, inactive/disabled/non-members and unauthenticated users cannot read history or a known Review ID. Queries constrain familyId and contractId; unsafely unscoped lists remain denied. Review create/update/delete remain server-only. Current-feedback validation and all authoritative mutation policies are unchanged.

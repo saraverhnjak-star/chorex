@@ -12,6 +12,10 @@ const mockSessionUser = { uid: 'child-1' };
 jest.mock('../src/auth/session', () => ({
   useChildSession: () => ({ user: mockSessionUser }),
 }));
+const mockHistoryStop = jest.fn();
+const mockHistoryObserve = jest.fn();
+let mockHistory: (value: unknown) => void;
+let mockHistoryError: (error: unknown) => void;
 const mockReviewStop = jest.fn();
 let mockReview: (value: unknown) => void;
 let mockReviewError: (error: unknown) => void;
@@ -32,6 +36,16 @@ jest.mock('@chorex/firebase-client', () => {
   );
   return {
     ...hooks,
+    observeContractReviews: (
+      _contract: unknown,
+      callback: typeof mockHistory,
+      onError: typeof mockHistoryError,
+    ) => {
+      mockHistoryObserve(_contract);
+      mockHistory = callback;
+      mockHistoryError = onError;
+      return mockHistoryStop;
+    },
     observeCurrentContractReview: (
       _contract: unknown,
       callback: typeof mockReview,
@@ -701,4 +715,121 @@ it('resubmission failure keeps correction state and same-key retry; a new round 
   expect(mockSubmit.mock.calls[2][0].idempotencyKey).not.toBe(
     mockSubmit.mock.calls[0][0].idempotencyKey,
   );
+});
+
+const historicalReviews = [0, 1, 2].map((cycle) => ({
+  id: `review-${cycle}`,
+  familyId: contract.familyId,
+  contractId: contract.id,
+  reviewerUid: contract.parentUid,
+  cycle,
+  decision: cycle === 2 ? 'APPROVE' : 'REQUEST_CHANGES',
+  ...(cycle === 2 ? {} : { note: `Historical feedback ${cycle}` }),
+  createdAt: contract.createdAt,
+}));
+it('shows accessible loading, empty and error history without creating a pending review', () => {
+  render(<ContractDetail {...props} />);
+  emitReady();
+  expect(
+    screen.getByRole('header', { name: 'Review history' }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText('Loading review history…')).toBeOnTheScreen();
+  act(() => mockHistory({ data: [], fromCache: false }));
+  expect(screen.getByText('No reviews yet')).toBeOnTheScreen();
+  expect(screen.queryByText('Review 1: Approved')).not.toBeOnTheScreen();
+  act(() => mockHistoryError(new Error('read failure')));
+  expect(
+    screen.getByText(
+      'Review history could not be loaded. Reopen this Contract to try again.',
+    ),
+  ).toBeOnTheScreen();
+  expect(mockHistoryStop).toHaveBeenCalled();
+  act(() => mockHistory({ data: historicalReviews, fromCache: false }));
+  expect(
+    screen.queryByText('Review 1: Changes requested'),
+  ).not.toBeOnTheScreen();
+});
+it('renders all immutable rounds with one-based labels, notes and realtime final approval', () => {
+  render(<ContractDetail {...props} />);
+  emitReady();
+  act(() =>
+    mockHistory({ data: historicalReviews.slice(0, 2), fromCache: true }),
+  );
+  expect(screen.getByText('Historical feedback 0')).toBeOnTheScreen();
+  expect(screen.getByText('Historical feedback 1')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Showing saved review history. Updates may be pending.'),
+  ).toBeOnTheScreen();
+  act(() => {
+    mockContract({
+      data: {
+        ...contract,
+        status: 'APPROVED',
+        reviewCycle: 2,
+        approvedAt: contract.createdAt,
+      },
+      fromCache: false,
+    });
+    mockHistory({ data: historicalReviews, fromCache: false });
+  });
+  expect(
+    screen.queryByRole('button', { name: 'Approve' }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Mark done' }),
+  ).not.toBeOnTheScreen();
+  const headings = screen
+    .getAllByRole('header')
+    .map((h) => h.props.children)
+    .filter((c) => Array.isArray(c) && c[0] === 'Review ');
+  expect(headings.map((c) => c[1])).toEqual([1, 2, 3]);
+  expect(screen.getByText('Review 3: Approved')).toBeOnTheScreen();
+  expect(historicalReviews.map((r) => r.cycle)).toEqual([0, 1, 2]);
+  expect(
+    screen.queryByText('Showing saved review history. Updates may be pending.'),
+  ).not.toBeOnTheScreen();
+  expect(mockHistoryObserve).toHaveBeenCalledTimes(1);
+});
+it('retains the history listener across cycles/statuses, clears it on identity change and ignores stale callbacks', () => {
+  const view = render(<ContractDetail {...props} />);
+  emitReady();
+  act(() =>
+    mockHistory({ data: historicalReviews.slice(0, 1), fromCache: false }),
+  );
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('Historical feedback 0')).toBeOnTheScreen();
+  expect(mockHistoryObserve).toHaveBeenCalledTimes(1);
+  const old = mockHistory;
+  view.rerender(<ContractDetail contractId="another" authUid="new-user" />);
+  expect(mockHistoryStop).toHaveBeenCalled();
+  act(() => old({ data: historicalReviews, fromCache: false }));
+  expect(screen.queryByText('Historical feedback 0')).not.toBeOnTheScreen();
+});
+it('distinguishes the current request from historical context and adds no history mutation controls', () => {
+  render(<ContractDetail {...props} />);
+  emitReady();
+  act(() =>
+    mockContract({
+      data: { ...contract, status: 'CHANGES_REQUESTED' },
+      fromCache: false,
+    }),
+  );
+  act(() => mockReview({ data: historicalReviews[0], fromCache: false }));
+  act(() =>
+    mockHistory({ data: historicalReviews.slice(0, 1), fromCache: false }),
+  );
+  expect(
+    screen.getByRole('header', { name: 'Current request' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole('header', { name: 'Review history' }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByText('Historical feedback 0')).toHaveLength(2);
+  for (const name of ['Edit feedback', 'Reply', 'Acknowledge', 'Delete review'])
+    expect(screen.queryByRole('button', { name })).not.toBeOnTheScreen();
 });

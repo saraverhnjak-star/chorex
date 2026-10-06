@@ -49,6 +49,15 @@
         { "fieldPath": "childUid", "order": "ASCENDING" },
         { "fieldPath": "earnedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "familyId", "order": "ASCENDING" },
+        { "fieldPath": "contractId", "order": "ASCENDING" },
+        { "fieldPath": "cycle", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

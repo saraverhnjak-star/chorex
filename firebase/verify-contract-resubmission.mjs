@@ -181,35 +181,41 @@ export async function verifyContractResubmission(ctx) {
       updateDoc(doc(db, `${path}/tasks/${tasks[0].id}`), { completedCount: 0 }),
     );
   }
-  const approved = await callFunction(
-    'approveContract',
-    { contractId, idempotencyKey: 'approval-after-resubmit' },
-    parent.idToken,
-  );
-  assert.equal(approved.review.cycle, 1);
-  assert.equal(approved.contract.reviewCycle, 1);
-  await withAdmin(async (db) => {
-    assert.equal((await getDocs(collection(db, `${path}/reviews`))).size, 2);
-    assert.equal(
-      (
-        await getDocs(
-          query(
-            collection(db, 'rewards'),
-            where('contractId', '==', contractId),
-          ),
-        )
-      ).size,
-      1,
+  if (process.env.CHOREX_VERIFY_REVIEW_HISTORY === '1') {
+    const { verifyContractReviewHistory } =
+      await import('./verify-contract-review-history.mjs');
+    await verifyContractReviewHistory(ctx);
+  } else {
+    const approved = await callFunction(
+      'approveContract',
+      { contractId, idempotencyKey: 'approval-after-resubmit' },
+      parent.idToken,
     );
-  });
-  if (process.env.CHOREX_VERIFY_FULFILLMENT === '1') {
-    const { verifyRewardFulfillment } =
-      await import('./verify-reward-fulfillment.mjs');
-    await verifyRewardFulfillment(ctx);
+    assert.equal(approved.review.cycle, 1);
+    assert.equal(approved.contract.reviewCycle, 1);
+    await withAdmin(async (db) => {
+      assert.equal((await getDocs(collection(db, `${path}/reviews`))).size, 2);
+      assert.equal(
+        (
+          await getDocs(
+            query(
+              collection(db, 'rewards'),
+              where('contractId', '==', contractId),
+            ),
+          )
+        ).size,
+        1,
+      );
+    });
+    if (process.env.CHOREX_VERIFY_FULFILLMENT === '1') {
+      const { verifyRewardFulfillment } =
+        await import('./verify-reward-fulfillment.mjs');
+      await verifyRewardFulfillment(ctx);
+    }
   }
   await verifyResubmissionTransactions();
   console.info(
-    'PASS: full correction loop, cycle 0 -> 1, bilateral realtime/Parent queue re-entry, unchanged tasks/completions/review, same-key retry, one Parent notification effect, denied writes, later approval round 1 earns exactly one Reward',
+    'PASS: full correction loop, cycle 0 -> 1, bilateral realtime/Parent queue re-entry, unchanged tasks/completions/review, same-key retry, one Parent notification effect, denied writes, later approval earns exactly one Reward (review-history mode additionally verifies round 2)',
   );
 }
 

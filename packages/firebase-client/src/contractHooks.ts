@@ -3,6 +3,7 @@ import type { Contract, ContractTask, ContractReview } from '@chorex/domain';
 import {
   observeContract,
   observeCurrentContractReview,
+  observeContractReviews,
   observeTasks,
   observeActiveContracts,
   observeReadyForReviewContracts,
@@ -236,6 +237,70 @@ export function useCurrentContractReview(
       stop?.();
     };
   }, [contract, authUid, key]);
+  if (!contract) return { status: 'idle' };
+  return result?.key === key ? result.state : { status: 'loading' };
+}
+
+export type ContractReviewsState =
+  | { status: 'idle' | 'loading' }
+  | { status: 'error'; error: ContractReadError }
+  | { status: 'ready'; reviews: readonly ContractReview[]; fromCache: boolean };
+export function useContractReviews(
+  contract: Contract | undefined,
+  authUid: string | undefined,
+): ContractReviewsState {
+  const id = contract?.id,
+    familyId = contract?.familyId,
+    parentUid = contract?.parentUid,
+    childUid = contract?.childUid;
+  // History scope does not change when a new round opens or lifecycle status changes.
+  const key = JSON.stringify([id, familyId, parentUid, childUid, authUid]);
+  const [result, setResult] = useState<{
+    key: string;
+    state: ContractReviewsState;
+  }>();
+  useEffect(() => {
+    let active = true,
+      failed = false;
+    let stop: (() => void) | undefined;
+    const fail = (error: ContractReadError) => {
+      failed = true;
+      if (active) setResult({ key, state: { status: 'error', error } });
+      stop?.();
+    };
+    if (!id || !familyId || !parentUid || !childUid) return;
+    if (!authUid) fail(new ContractReadError('AUTH_REQUIRED'));
+    else
+      try {
+        // Only identity fields are used by the observer; no current-cycle/status inference.
+        stop = observeContractReviews(
+          { id, familyId, parentUid, childUid },
+          (snapshot) => {
+            if (active && !failed)
+              setResult({
+                key,
+                state: {
+                  status: 'ready',
+                  reviews: snapshot.data,
+                  fromCache: snapshot.fromCache,
+                },
+              });
+          },
+          fail,
+        );
+        if (failed) stop();
+      } catch (error) {
+        fail(
+          error instanceof ContractReadError
+            ? error
+            : new ContractReadError('READ_FAILED'),
+        );
+      }
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, [id, familyId, parentUid, childUid, authUid, key]);
   if (!contract) return { status: 'idle' };
   return result?.key === key ? result.state : { status: 'loading' };
 }

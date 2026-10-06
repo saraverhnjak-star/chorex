@@ -146,17 +146,14 @@ service cloud.firestore {
         function contract() {
           return get(/databases/$(database)/documents/contracts/$(contractId));
         }
-        function canReadCurrentReview() {
+        function canReadReview() {
           return isSignedIn()
             && request.auth.uid in contract().data.participantUids
             && isActiveFamilyMember(contract().data.familyId)
             && resource.data.familyId == contract().data.familyId
-            && resource.data.contractId == contractId
-            && resource.data.cycle == contract().data.reviewCycle;
+            && resource.data.contractId == contractId;
         }
-        allow get: if canReadCurrentReview();
-        allow list: if canReadCurrentReview()
-          && request.query.limit != null && request.query.limit <= 2;
+        allow get, list: if canReadReview();
         allow write: if false;
       }
 

@@ -1,4 +1,5 @@
 import {
+  deserializeContractReviews,
   deserializeContract,
   deserializeTasks,
 } from '../../../packages/firebase-client/src/contractReadModel';
@@ -103,4 +104,60 @@ it('rejects malformed status, timestamps, participant projection and progress', 
       { id: task.id, data: { ...persistedTask(), completedCount: 4 } },
     ]),
   ).toThrow('MALFORMED_DATA');
+});
+
+const reviewRows = [0, 1, 2].map((cycle) => ({
+  id: `review-${cycle}`,
+  data: {
+    familyId: contract.familyId,
+    contractId: contract.id,
+    cycle,
+    reviewerUid: contract.parentUid,
+    decision: cycle === 2 ? 'APPROVE' : 'REQUEST_CHANGES',
+    ...(cycle === 2 ? {} : { note: `Feedback ${cycle}` }),
+    createdAt: timestamp(contract.createdAt),
+  },
+}));
+it('reads complete immutable history in cycle order without inferring rounds or approval notes', () => {
+  const before = JSON.stringify(reviewRows);
+  expect(deserializeContractReviews([], contract)).toEqual([]);
+  const history = deserializeContractReviews(
+    [...reviewRows].reverse(),
+    contract,
+  );
+  expect(history.map((r) => r.cycle)).toEqual([0, 1, 2]);
+  expect(history.map((r) => r.note)).toEqual([
+    'Feedback 0',
+    'Feedback 1',
+    undefined,
+  ]);
+  expect(history[2].createdAt).toBe(contract.createdAt);
+  expect(JSON.stringify(reviewRows)).toBe(before);
+  for (const row of reviewRows)
+    expect(deserializeContractReviews([row], contract)).toHaveLength(1);
+});
+it('rejects duplicate rounds, wrong scope/author, invalid decision/time and absent request feedback', () => {
+  expect(() =>
+    deserializeContractReviews(
+      [reviewRows[0], { ...reviewRows[0], id: 'duplicate' }],
+      contract,
+    ),
+  ).toThrow('MALFORMED_DATA');
+  for (const patch of [
+    { familyId: 'other' },
+    { contractId: 'other' },
+    { reviewerUid: 'other' },
+    { cycle: -1 },
+    { decision: 'PENDING' },
+    { createdAt: 'invalid' },
+    { note: undefined },
+    { note: '' },
+  ]) {
+    expect(() =>
+      deserializeContractReviews(
+        [{ ...reviewRows[0], data: { ...reviewRows[0].data, ...patch } }],
+        contract,
+      ),
+    ).toThrow('MALFORMED_DATA');
+  }
 });
