@@ -1,6 +1,6 @@
 import type { Contract } from '@chorex/domain';
 import { useContractDetail } from '@chorex/firebase-client';
-import { HomeListRow } from '@chorex/ui';
+import { HomeListRow, contractStatusLabel } from '@chorex/ui';
 export function HomeContractRow({
   contract,
   authUid,
@@ -30,7 +30,7 @@ export function HomeContractRow({
     <HomeListRow
       title={contract.rewardTerms.title}
       label={`Open Contract: ${childName ? `${childName} · ` : ''}${contract.rewardTerms.title}`}
-      detail={`${childName ? `${childName} · ` : ''}Due ${new Date(contract.deadlineAt).toLocaleDateString()}${state.status === 'error' ? ' · Progress unavailable' : state.status === 'ready' && state.fromCache ? ' · Saved progress' : ''}`}
+      detail={`${childName ? `${childName} · ` : ''}${contractStatusLabel(contract.status, 'PARENT')} · Due ${new Date(contract.deadlineAt).toLocaleDateString()}${state.status === 'error' ? ' · Progress unavailable' : state.status === 'ready' && state.fromCache ? ' · Saved progress' : ''}`}
       progress={progress}
       onPress={onPress}
     />

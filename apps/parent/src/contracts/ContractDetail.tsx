@@ -6,6 +6,9 @@ import {
   useContractReviews,
 } from '@chorex/firebase-client';
 import {
+  ContractSummary,
+  SurfaceCard,
+  TermsHeading,
   FormMessage,
   ReviewFeedback,
   ReviewHistory,
@@ -23,7 +26,11 @@ export function ContractDetail({
   childNames?: Readonly<Record<string, string>>;
 }) {
   const state = useContractDetail(contractId, authUid);
-  const styles = useDynamicTypeStyles();
+  const type = useDynamicTypeStyles();
+  const styles = {
+    body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
+    small: { ...type.small, lineHeight: Number(type.small.fontSize) * 1.35 },
+  };
   const feedback = useCurrentContractReview(
     state.status === 'ready' && state.contract.status === 'CHANGES_REQUESTED'
       ? state.contract
@@ -39,7 +46,7 @@ export function ContractDetail({
       <Text
         allowFontScaling={false}
         accessibilityLiveRegion="polite"
-        className="text-text-muted"
+        className="text-home-muted"
         style={styles.body}
       >
         Loading Contract…
@@ -60,7 +67,7 @@ export function ContractDetail({
       <Text
         allowFontScaling={false}
         accessibilityLiveRegion="polite"
-        className="text-text-muted"
+        className="text-home-muted"
         style={styles.body}
       >
         {state.fromCache
@@ -72,16 +79,29 @@ export function ContractDetail({
   const childName = childNames[contract.childUid];
   return (
     <View className="gap-4">
+      {fromCache ? (
+        <Text
+          allowFontScaling={false}
+          accessibilityLiveRegion="polite"
+          className="text-home-muted"
+          style={styles.small}
+        >
+          Showing saved data. Updates may be pending.
+        </Text>
+      ) : null}
+      <ContractSummary
+        contract={contract}
+        tasks={tasks}
+        viewer="PARENT"
+        participantName={childName}
+        isParticipant={contract.parentUid === authUid}
+      />
+
       {contract.status === 'CHANGES_REQUESTED' ? (
-        <View className="gap-2">
-          <Text
-            allowFontScaling={false}
-            accessibilityRole="header"
-            className="font-semibold text-text"
-            style={styles.body}
-          >
+        <SurfaceCard>
+          <TermsHeading icon="chatbox-ellipses-outline">
             Current request
-          </Text>
+          </TermsHeading>
           <ReviewFeedback
             loading={feedback.status === 'loading'}
             error={feedback.status === 'error'}
@@ -90,105 +110,59 @@ export function ContractDetail({
             }
             fromCache={feedback.status === 'ready' && feedback.fromCache}
           />
-        </View>
+        </SurfaceCard>
       ) : null}
-      <ApproveContractAction
-        key={`${contract.id}:${authUid}`}
-        contract={contract}
-        authUid={authUid}
-      />
-      {childName ? (
-        <Text
-          allowFontScaling={false}
-          className="font-semibold text-text"
-          style={styles.body}
-        >
-          Agreement with {childName}
-        </Text>
-      ) : null}
-      <Text
-        allowFontScaling={false}
-        accessibilityLabel={`Contract status: ${contract.status.replaceAll('_', ' ')}`}
-        className="text-text"
-        style={styles.body}
-      >
-        Status: {contract.status.replaceAll('_', ' ')}
-      </Text>
-      {fromCache ? (
-        <Text
-          allowFontScaling={false}
-          accessibilityLiveRegion="polite"
-          className="text-text-muted"
-          style={styles.small}
-        >
-          Showing saved data. Updates may be pending.
-        </Text>
-      ) : null}
-      <Text
-        allowFontScaling={false}
-        accessibilityRole="header"
-        className="font-bold text-text"
-        style={styles.body}
-      >
-        Tasks
-      </Text>
+      <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
       {tasks.length === 0 ? (
         <Text
           allowFontScaling={false}
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.body}
         >
           No tasks are available.
         </Text>
       ) : (
         tasks.map((task) => (
-          <TaskProgress
-            key={task.id}
-            title={task.title}
-            description={task.description}
-            completedCount={task.completedCount}
-            targetCount={task.targetCount}
-          />
+          <View key={task.id} className="gap-2">
+            <TaskProgress
+              title={task.title}
+              description={task.description}
+              completedCount={task.completedCount}
+              targetCount={task.targetCount}
+            />
+          </View>
         ))
       )}
-      <Text
-        allowFontScaling={false}
-        accessibilityRole="header"
-        className="font-bold text-text"
-        style={styles.body}
-      >
-        Promised reward
-      </Text>
-      <Text
-        allowFontScaling={false}
-        accessibilityLabel={`Promised reward: ${contract.rewardTerms.title}, ${contract.rewardTerms.type}`}
-        className="text-text"
-        style={styles.body}
-      >
-        {contract.rewardTerms.title} · {contract.rewardTerms.type}
-      </Text>
-      {contract.rewardTerms.description ? (
+      <SurfaceCard>
+        <TermsHeading icon="gift-outline">Promised reward</TermsHeading>
         <Text
           allowFontScaling={false}
-          className="text-text-muted"
+          accessibilityLabel={`Promised reward: ${contract.rewardTerms.title}, ${contract.rewardTerms.type}`}
+          className="text-home-text"
           style={styles.body}
         >
-          {contract.rewardTerms.description}
+          {contract.rewardTerms.title} · {contract.rewardTerms.type}
         </Text>
-      ) : null}
-      <Text
-        allowFontScaling={false}
-        accessibilityLabel={`Deadline: ${new Date(contract.deadlineAt).toLocaleString()}`}
-        className="text-text"
-        style={styles.body}
-      >
-        Deadline: {new Date(contract.deadlineAt).toLocaleString()}
-      </Text>
+        {contract.rewardTerms.description ? (
+          <Text
+            allowFontScaling={false}
+            className="text-home-muted"
+            style={styles.body}
+          >
+            {contract.rewardTerms.description}
+          </Text>
+        ) : null}
+      </SurfaceCard>
       <ReviewHistory
         loading={history.status === 'loading'}
         error={history.status === 'error'}
         reviews={history.status === 'ready' ? history.reviews : []}
         fromCache={history.status === 'ready' && history.fromCache}
+      />
+      <ApproveContractAction
+        key={`${contract.id}:${authUid}`}
+        contract={contract}
+        authUid={authUid}
       />
     </View>
   );

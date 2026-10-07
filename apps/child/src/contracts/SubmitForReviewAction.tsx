@@ -14,7 +14,11 @@ export function SubmitForReviewAction({
   tasks: readonly ContractTask[];
   feedbackAvailable?: boolean;
 }) {
-  const styles = useDynamicTypeStyles();
+  const type = useDynamicTypeStyles();
+  const styles = {
+    body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
+    small: { ...type.small, lineHeight: Number(type.small.fontSize) * 1.35 },
+  };
   const key = useRef<string | undefined>(undefined);
   const inFlight = useRef(false);
   const active = useRef(true);
@@ -77,7 +81,7 @@ export function SubmitForReviewAction({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text"
+          className="text-home-text"
           style={styles.body}
         >
           {resubmitted ? 'Sent back for review' : 'Sent for review'}
@@ -87,7 +91,7 @@ export function SubmitForReviewAction({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.body}
         >
           Your Parent now needs to review this agreement.
@@ -96,7 +100,7 @@ export function SubmitForReviewAction({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.small}
         >
           Waiting for updated Contract status…
@@ -107,7 +111,7 @@ export function SubmitForReviewAction({
           {!canSubmit ? (
             <Text
               allowFontScaling={false}
-              className="text-text-muted"
+              className="text-home-muted"
               style={styles.body}
             >
               Complete all tasks before submitting for review.
@@ -117,7 +121,7 @@ export function SubmitForReviewAction({
               <Text
                 allowFontScaling={false}
                 accessibilityRole="header"
-                className="font-semibold text-text"
+                className="font-semibold text-home-text"
                 style={styles.body}
               >
                 {resubmitting
@@ -126,12 +130,12 @@ export function SubmitForReviewAction({
               </Text>
               <Text
                 allowFontScaling={false}
-                className="text-text"
+                className="text-home-text"
                 style={styles.body}
               >
                 {resubmitting
                   ? 'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.'
-                  : 'Your Parent will review the completed agreement before approving it.'}
+                  : 'Your Parent will review the completed agreement and may approve or request changes.'}
               </Text>
               <Button
                 label={
@@ -142,6 +146,7 @@ export function SubmitForReviewAction({
               />
               <Button
                 label="Keep checking"
+                variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(false)}
               />

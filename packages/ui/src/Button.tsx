@@ -8,6 +8,7 @@ type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger';
 
 interface ButtonProps {
   label: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
@@ -23,6 +24,7 @@ const containerClasses: Record<ButtonVariant, string> = {
 
 export function Button({
   label,
+  accessibilityLabel = label,
   onPress,
   disabled = false,
   loading = false,
@@ -35,7 +37,7 @@ export function Button({
 
   return (
     <Pressable
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: unavailable }}
       className={`active:opacity-80 min-h-12 items-center justify-center rounded-2xl border-2 px-5 py-3 ${
@@ -71,7 +73,10 @@ export function Button({
             variant === 'danger'
               ? { color: amberAuroraColors.danger }
               : home
-                ? { color: homeTokens.text }
+                ? {
+                    color: homeTokens.text,
+                    lineHeight: Number(dynamicType.body.fontSize) * 1.35,
+                  }
                 : undefined,
           ]}
         >

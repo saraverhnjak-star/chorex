@@ -136,7 +136,7 @@ it('renders frozen terms, persisted progress and locale deadline with no mutatio
   );
   expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
   emitReady();
-  expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
   expect(
     screen.getByLabelText('Dishwasher. After dinner. 0 of 3. Not started.'),
   ).toBeOnTheScreen();
@@ -308,7 +308,9 @@ it('approval confirms deliberately, guards duplicate taps, waits for receipt and
   expect(mockApprove).toHaveBeenCalledTimes(1);
   expect(button).toBeDisabled();
   expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
-  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+  ).toBeOnTheScreen();
   await act(async () => resolve({}));
   expect(screen.getByText('Approved — reward earned')).toBeOnTheScreen();
   expect(
@@ -320,7 +322,7 @@ it('approval confirms deliberately, guards duplicate taps, waits for receipt and
       fromCache: false,
     }),
   );
-  expect(screen.getByText('Status: APPROVED')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: APPROVED')).toBeOnTheScreen();
   expect(
     screen.queryByRole('button', { name: 'Approve' }),
   ).not.toBeOnTheScreen();
@@ -340,7 +342,9 @@ it('ambiguous approval failure preserves status and explicit retry uses the same
   await act(async () =>
     fireEvent.press(screen.getByRole('button', { name: 'Confirm approval' })),
   );
-  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+  ).toBeOnTheScreen();
   expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
   expect(
     screen.getByText(
@@ -404,13 +408,9 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
   expect(
     screen.getByRole('header', { name: 'Request changes to this agreement?' }),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole('button', { name: 'Confirm request changes' }),
-  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Send feedback' })).toBeDisabled();
   fireEvent.changeText(screen.getByLabelText('Feedback'), '   ');
-  expect(
-    screen.getByRole('button', { name: 'Confirm request changes' }),
-  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Send feedback' })).toBeDisabled();
   fireEvent.press(screen.getByRole('button', { name: 'Keep reviewing' }));
   expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
@@ -419,12 +419,8 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
     ' Please check again. ',
   );
   await act(async () => {
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Confirm request changes' }),
-    );
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Confirm request changes' }),
-    );
+    fireEvent.press(screen.getByRole('button', { name: 'Send feedback' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Send feedback' }));
   });
   expect(mockRequestChanges).toHaveBeenCalledTimes(1);
   expect(mockRequestChanges).toHaveBeenCalledWith(
@@ -433,11 +429,11 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
       note: 'Please check again.',
     }),
   );
-  expect(
-    screen.getByRole('button', { name: 'Confirm request changes' }),
-  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Send feedback' })).toBeDisabled();
   expect(screen.getByLabelText('Feedback')).toHaveProp('editable', false);
-  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+  ).toBeOnTheScreen();
   expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
   await act(async () => resolve({}));
   expect(screen.getByText('Changes requested')).toBeOnTheScreen();
@@ -450,7 +446,9 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
       fromCache: false,
     }),
   );
-  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+  ).toBeOnTheScreen();
   expect(
     screen.queryByRole('button', { name: 'Approve' }),
   ).not.toBeOnTheScreen();
@@ -474,11 +472,11 @@ it('request changes failure keeps READY_FOR_REVIEW and unchanged normalized feed
   fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
   fireEvent.changeText(screen.getByLabelText('Feedback'), ' Check this. ');
   await act(async () =>
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Confirm request changes' }),
-    ),
+    fireEvent.press(screen.getByRole('button', { name: 'Send feedback' })),
   );
-  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+  ).toBeOnTheScreen();
   expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
   expect(
     screen.getByText(
@@ -488,9 +486,7 @@ it('request changes failure keeps READY_FOR_REVIEW and unchanged normalized feed
   const input = mockRequestChanges.mock.calls[0][0];
   fireEvent.changeText(screen.getByLabelText('Feedback'), 'Check this.');
   await act(async () =>
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Confirm request changes' }),
-    ),
+    fireEvent.press(screen.getByRole('button', { name: 'Send feedback' })),
   );
   expect(mockRequestChanges.mock.calls[1][0]).toEqual(input);
 });

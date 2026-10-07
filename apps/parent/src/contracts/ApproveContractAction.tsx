@@ -70,7 +70,11 @@ export function ApproveContractAction({
   contract: Contract;
   authUid: string | undefined;
 }) {
-  const styles = useDynamicTypeStyles();
+  const type = useDynamicTypeStyles();
+  const styles = {
+    body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
+    small: { ...type.small, lineHeight: Number(type.small.fontSize) * 1.35 },
+  };
   const key = useRef<string | undefined>(undefined),
     inFlight = useRef(false),
     active = useRef(true);
@@ -178,7 +182,7 @@ export function ApproveContractAction({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text"
+          className="text-home-text"
           style={styles.body}
         >
           {confirmed === 'APPROVE'
@@ -191,7 +195,7 @@ export function ApproveContractAction({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.body}
         >
           You approved this agreement. The reward is earned and still needs to
@@ -201,7 +205,7 @@ export function ApproveContractAction({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.small}
         >
           Waiting for updated Contract status…
@@ -214,14 +218,14 @@ export function ApproveContractAction({
               <Text
                 allowFontScaling={false}
                 accessibilityRole="header"
-                className="font-semibold text-text"
+                className="font-semibold text-home-text"
                 style={styles.body}
               >
                 Request changes to this agreement?
               </Text>
               <Text
                 allowFontScaling={false}
-                className="text-text-muted"
+                className="text-home-muted"
                 style={styles.body}
               >
                 Explain what needs attention. Your feedback will be saved and
@@ -243,13 +247,14 @@ export function ApproveContractAction({
                 )}
               />
               <Button
-                label="Confirm request changes"
+                label="Send feedback"
                 loading={pending}
                 disabled={!validNote || pending}
                 onPress={() => void handleSubmit(requestChanges)()}
               />
               <Button
                 label="Keep reviewing"
+                variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(undefined)}
               />
@@ -259,14 +264,14 @@ export function ApproveContractAction({
               <Text
                 allowFontScaling={false}
                 accessibilityRole="header"
-                className="font-semibold text-text"
+                className="font-semibold text-home-text"
                 style={styles.body}
               >
                 Approve this completed agreement?
               </Text>
               <Text
                 allowFontScaling={false}
-                className="text-text"
+                className="text-home-text"
                 style={styles.body}
               >
                 Approval accepts the completed agreement and earns the promised
@@ -280,6 +285,7 @@ export function ApproveContractAction({
               />
               <Button
                 label="Keep reviewing"
+                variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(undefined)}
               />
@@ -292,7 +298,7 @@ export function ApproveContractAction({
               />
               <Button
                 label="Request changes"
-                variant="secondary"
+                variant="outline"
                 onPress={() => {
                   setError(undefined);
                   setConfirming('REQUEST_CHANGES');

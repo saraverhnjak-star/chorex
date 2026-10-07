@@ -3,7 +3,13 @@ import { HomeContractRow } from './HomeContractRow';
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useActiveContracts } from '@chorex/firebase-client';
-import { Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
+import {
+  Button,
+  CountBadge,
+  OfferOutcome,
+  FormMessage,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 
 export function ActiveContracts({
   familyId,
@@ -28,6 +34,9 @@ export function ActiveContracts({
       >
         Active Contracts
       </Text>
+      {state.status === 'ready' ? (
+        <CountBadge count={state.contracts.length} />
+      ) : null}
       {state.status === 'loading' ? (
         <Text
           allowFontScaling={false}
@@ -53,15 +62,11 @@ export function ActiveContracts({
             </Text>
           ) : null}
           {state.contracts.length === 0 ? (
-            <Text
-              allowFontScaling={false}
-              className="text-home-muted"
-              style={styles.body}
-            >
+            <OfferOutcome title="No active agreements">
               {state.fromCache
                 ? 'No active Contracts are saved on this device yet.'
                 : 'No active Contracts yet.'}
-            </Text>
+            </OfferOutcome>
           ) : (
             (expanded ? state.contracts : state.contracts.slice(0, 2)).map(
               (contract) => (

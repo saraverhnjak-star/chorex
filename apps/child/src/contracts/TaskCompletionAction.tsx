@@ -6,7 +6,11 @@ import { Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
 import { getTaskCompletionErrorMessage } from './messages';
 
 export function TaskCompletionAction({ task }: { task: ContractTask }) {
-  const styles = useDynamicTypeStyles();
+  const type = useDynamicTypeStyles();
+  const styles = {
+    body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
+    small: { ...type.small, lineHeight: Number(type.small.fontSize) * 1.35 },
+  };
   const key = useRef<string | undefined>(undefined);
   const inFlight = useRef(false);
   const active = useRef(true);
@@ -56,14 +60,16 @@ export function TaskCompletionAction({ task }: { task: ContractTask }) {
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.small}
         >
           Completion recorded. Waiting for updated progress…
         </Text>
       ) : null}
       <Button
-        label={`${task.targetCount === 1 ? 'Mark done' : 'Mark one done'}: ${task.title}`}
+        label={task.targetCount === 1 ? 'Mark done' : 'Mark one done'}
+        accessibilityLabel={`${task.targetCount === 1 ? 'Mark done' : 'Mark one done'}: ${task.title}`}
+        variant="outline"
         loading={pending}
         disabled={waitingForRead}
         onPress={() => void complete()}

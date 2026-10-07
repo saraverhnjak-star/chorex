@@ -35,6 +35,8 @@ const homeTokens = {
   coral: '#E95240',
   coralSurface: '#FFEAE4',
   mint: '#E7F5EE',
+  attention: '#FFF0D9',
+  attentionText: '#98621D',
   blue: '#E8F1FF',
   lavender: '#F0EAFA',
   border: '#F0E5DD',

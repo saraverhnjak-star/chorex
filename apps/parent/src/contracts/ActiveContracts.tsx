@@ -7,7 +7,13 @@ import {
   useReadyForReviewContracts,
   type ActiveContractsState,
 } from '@chorex/firebase-client';
-import { Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
+import {
+  Button,
+  CountBadge,
+  OfferOutcome,
+  FormMessage,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 
 type ContractListProps = {
   familyId: string;
@@ -68,6 +74,9 @@ function ContractList({
       >
         {readyForReview ? 'Ready for Review' : 'Active Contracts'}
       </Text>
+      {state.status === 'ready' ? (
+        <CountBadge count={state.contracts.length} />
+      ) : null}
       {state.status === 'loading' ? (
         <Text
           allowFontScaling={false}
@@ -93,10 +102,12 @@ function ContractList({
             </Text>
           ) : null}
           {state.contracts.length === 0 ? (
-            <Text
-              allowFontScaling={false}
-              className="text-home-muted"
-              style={styles.body}
+            <OfferOutcome
+              title={
+                readyForReview
+                  ? 'Nothing waiting for review'
+                  : 'No active agreements'
+              }
             >
               {state.fromCache
                 ? readyForReview
@@ -105,7 +116,7 @@ function ContractList({
                 : readyForReview
                   ? 'No Contracts awaiting review.'
                   : 'No active Contracts yet.'}
-            </Text>
+            </OfferOutcome>
           ) : (
             (expanded ? state.contracts : state.contracts.slice(0, 2)).map(
               (contract) => (

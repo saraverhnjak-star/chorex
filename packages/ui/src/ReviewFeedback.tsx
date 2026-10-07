@@ -1,6 +1,8 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { DesignText as Text, homeTokens } from './Home';
 import { FormMessage } from './FormMessage';
-import { useDynamicTypeStyles } from './typography';
+
 export function ReviewFeedback({
   note,
   loading,
@@ -12,13 +14,29 @@ export function ReviewFeedback({
   error: boolean;
   fromCache?: boolean;
 }) {
-  const styles = useDynamicTypeStyles();
+  const styles = {
+    body: { fontSize: 16, color: homeTokens.text },
+    small: { fontSize: 14, color: homeTokens.secondary },
+  };
   return (
-    <View className="gap-2">
+    <View
+      style={{
+        gap: 12,
+        padding: homeTokens.spacing.medium,
+        borderRadius: 16,
+        backgroundColor: homeTokens.attention,
+      }}
+    >
+      <Ionicons
+        accessible={false}
+        name="chatbox-ellipses-outline"
+        size={24}
+        color={homeTokens.attentionText}
+      />
       <Text
         allowFontScaling={false}
         accessibilityLiveRegion="polite"
-        className="text-text"
+        className="text-home-text"
         style={styles.body}
       >
         Changes were requested. The reward has not been earned.
@@ -26,7 +44,7 @@ export function ReviewFeedback({
       <Text
         allowFontScaling={false}
         accessibilityRole="header"
-        className="font-semibold text-text"
+        className="font-semibold text-home-text"
         style={styles.body}
       >
         Parent feedback
@@ -35,7 +53,7 @@ export function ReviewFeedback({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.body}
         >
           Loading feedback…
@@ -46,7 +64,7 @@ export function ReviewFeedback({
         <>
           <Text
             allowFontScaling={false}
-            className="text-text"
+            className="text-home-text"
             style={styles.body}
           >
             {note}
@@ -54,7 +72,7 @@ export function ReviewFeedback({
           {fromCache ? (
             <Text
               allowFontScaling={false}
-              className="text-text-muted"
+              className="text-home-muted"
               style={styles.small}
             >
               Showing saved feedback. Updates may be pending.
@@ -64,7 +82,7 @@ export function ReviewFeedback({
       ) : (
         <Text
           allowFontScaling={false}
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.body}
         >
           {fromCache

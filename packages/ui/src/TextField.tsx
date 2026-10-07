@@ -40,7 +40,12 @@ export function TextField({
         className="mb-2 font-semibold text-text"
         style={[
           dynamicType.body,
-          home ? { color: homeTokens.text } : undefined,
+          home
+            ? {
+                color: homeTokens.text,
+                lineHeight: Number(dynamicType.body.fontSize) * 1.35,
+              }
+            : undefined,
         ]}
       >
         {label}
@@ -84,7 +89,12 @@ export function TextField({
           selectionColor={home ? homeTokens.coral : amberAuroraColors.focus}
           style={[
             dynamicType.body,
-            home ? { color: homeTokens.text } : undefined,
+            home
+              ? {
+                  color: homeTokens.text,
+                  lineHeight: Number(dynamicType.body.fontSize) * 1.35,
+                }
+              : undefined,
           ]}
         />
         {endActionLabel && onEndActionPress ? (
@@ -100,7 +110,12 @@ export function TextField({
               className="font-semibold text-text"
               style={[
                 dynamicType.body,
-                home ? { color: homeTokens.text } : undefined,
+                home
+                  ? {
+                      color: homeTokens.text,
+                      lineHeight: Number(dynamicType.body.fontSize) * 1.35,
+                    }
+                  : undefined,
               ]}
             >
               {endActionLabel}

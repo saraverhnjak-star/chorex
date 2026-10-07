@@ -38,6 +38,8 @@ export const homeTokens: Readonly<{
   coral: string;
   coralSurface: string;
   mint: string;
+  attention: string;
+  attentionText: string;
   blue: string;
   lavender: string;
   border: string;

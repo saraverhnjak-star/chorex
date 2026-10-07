@@ -46,6 +46,15 @@ const HomeContext = createContext({
   jump: (_id: string) => {},
   register: (_id: string, _node: View | null) => {},
 });
+export function DesignThemeProvider({ children }: { children: ReactNode }) {
+  return (
+    <HomeContext.Provider
+      value={{ active: true, jump: () => {}, register: () => {} }}
+    >
+      {children}
+    </HomeContext.Provider>
+  );
+}
 export function useHomeTheme() {
   return useContext(HomeContext).active;
 }

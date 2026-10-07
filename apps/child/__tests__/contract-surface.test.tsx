@@ -138,7 +138,7 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
   const view = render(<ContractDetail {...props} />);
   expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
   emitReady();
-  expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
   expect(
     screen.getByLabelText('Dishwasher. After dinner. 0 of 3. Not started.'),
   ).toBeOnTheScreen();
@@ -465,12 +465,12 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(button).toBeDisabled();
   expect(screen.queryByText('Sent for review')).toBeNull();
-  expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
   await act(async () =>
     resolve({ contract: { ...contract, status: 'READY_FOR_REVIEW' } }),
   );
   expect(screen.getByText('Sent for review')).toBeOnTheScreen();
-  expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
   expect(
     screen.getByText('Waiting for updated Contract status…'),
   ).toBeOnTheScreen();
@@ -480,7 +480,9 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
       fromCache: false,
     }),
   );
-  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+  ).toBeOnTheScreen();
   expect(
     screen.getByText('Your Parent now needs to review this agreement.'),
   ).toBeOnTheScreen();
@@ -518,7 +520,7 @@ it.each([
       ),
     );
     expect(screen.getByText(message)).toBeOnTheScreen();
-    expect(screen.getByText('Status: ACTIVE')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
     expect(screen.queryByText('Sent for review')).toBeNull();
     await act(async () =>
       fireEvent.press(
@@ -555,7 +557,7 @@ it('realtime approval communicates an earned, pending reward without execution a
       fromCache: false,
     });
   });
-  expect(screen.getByText('Status: APPROVED')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: APPROVED')).toBeOnTheScreen();
   expect(
     screen.getByText(
       'Your Parent approved this agreement. Your reward is earned and waiting to be fulfilled.',
@@ -578,7 +580,9 @@ it('realtime requested changes displays authoritative cached feedback and read-o
       fromCache: false,
     }),
   );
-  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+  ).toBeOnTheScreen();
   expect(screen.getByText('Loading feedback…')).toBeOnTheScreen();
   act(() =>
     mockReview({ data: { note: 'Please check the result.' }, fromCache: true }),
@@ -610,7 +614,9 @@ it('feedback listener errors preserve visible Contract state without inventing f
     }),
   );
   act(() => mockReviewError(new Error('denied')));
-  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+  ).toBeOnTheScreen();
   expect(
     screen.getByText(
       'Feedback could not be loaded. Reopen this Contract to try again.',
@@ -662,21 +668,27 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(button).toBeDisabled();
   expect(screen.queryByText('Sent back for review')).toBeNull();
-  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+  ).toBeOnTheScreen();
   await act(async () =>
     resolve({
       contract: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
     }),
   );
   expect(screen.getByText('Sent back for review')).toBeOnTheScreen();
-  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+  ).toBeOnTheScreen();
   act(() =>
     mockContract({
       data: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
       fromCache: false,
     }),
   );
-  expect(screen.getByText('Status: READY FOR REVIEW')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+  ).toBeOnTheScreen();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
   expect(screen.queryByText('Please check the result.')).toBeNull();
   expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
@@ -691,7 +703,9 @@ it('resubmission failure keeps correction state and same-key retry; a new round 
       screen.getByRole('button', { name: 'Confirm resubmission' }),
     ),
   );
-  expect(screen.getByText('Status: CHANGES REQUESTED')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+  ).toBeOnTheScreen();
   expect(screen.queryByText('Sent back for review')).toBeNull();
   await act(async () =>
     fireEvent.press(

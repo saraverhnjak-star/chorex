@@ -32,12 +32,12 @@ export default function ContractScreen() {
   if (!session.user) return <Redirect href="/" />;
   const id = typeof contractId === 'string' ? contractId : '';
   return (
-    <Screen>
+    <Screen design>
       <View className="gap-5">
         <Text
           allowFontScaling={false}
           accessibilityRole="header"
-          className="font-bold text-text"
+          className="font-bold text-home-text"
           style={styles.title}
         >
           Contract
@@ -56,7 +56,7 @@ export default function ContractScreen() {
         />
         <Button
           label="Back to home"
-          variant="secondary"
+          variant="outline"
           onPress={() => router.replace('/')}
         />
       </View>
