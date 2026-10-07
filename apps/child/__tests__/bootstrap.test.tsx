@@ -315,7 +315,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Counter reward' }));
   expect(
-    screen.getByRole('header', { name: 'Counter the reward' }),
+    screen.getByRole('header', { name: 'Make a counteroffer' }),
   ).toBeOnTheScreen();
   fireEvent.changeText(
     screen.getByLabelText('Counteroffer reward title'),

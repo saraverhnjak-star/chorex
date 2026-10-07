@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, Text } from 'react-native';
 import { amberAuroraColors } from './theme';
 import { useDynamicTypeStyles } from './typography';
 
-type ButtonVariant = 'primary' | 'secondary';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger';
 
 interface ButtonProps {
   label: string;
@@ -17,6 +17,8 @@ interface ButtonProps {
 const containerClasses: Record<ButtonVariant, string> = {
   primary: 'bg-primary',
   secondary: 'bg-secondary',
+  outline: 'bg-home-surface',
+  danger: 'bg-home-surface',
 };
 
 export function Button({
@@ -38,7 +40,7 @@ export function Button({
       accessibilityState={{ busy: loading, disabled: unavailable }}
       className={`active:opacity-80 min-h-12 items-center justify-center rounded-2xl border-2 px-5 py-3 ${
         containerClasses[variant]
-      } ${focused ? 'border-focus' : 'border-transparent'} ${
+      } ${focused ? 'border-focus' : variant === 'danger' ? 'border-danger' : variant === 'outline' ? 'border-home-border' : 'border-transparent'} ${
         unavailable ? 'opacity-50' : ''
       }`}
       disabled={unavailable}
@@ -49,7 +51,11 @@ export function Button({
         home
           ? {
               backgroundColor:
-                variant === 'primary' ? homeTokens.coral : homeTokens.blue,
+                variant === 'primary'
+                  ? homeTokens.coral
+                  : variant === 'secondary'
+                    ? homeTokens.blue
+                    : homeTokens.surface,
             }
           : undefined
       }
@@ -62,7 +68,11 @@ export function Button({
           className="text-center font-semibold text-text"
           style={[
             dynamicType.body,
-            home ? { color: homeTokens.text } : undefined,
+            variant === 'danger'
+              ? { color: amberAuroraColors.danger }
+              : home
+                ? { color: homeTokens.text }
+                : undefined,
           ]}
         >
           {label}

@@ -9,6 +9,9 @@ import {
 } from '@chorex/firebase-client';
 import { rewardTypeSchema, type RewardType } from '@chorex/domain';
 import {
+  ProposalTerms,
+  OfferOutcome,
+  ChoiceChip,
   CountBadge,
   Button,
   FormMessage,
@@ -31,10 +34,6 @@ type OfferInboxState =
       items: readonly ChildOfferInboxItem[];
     }
   | { subscriptionKey: string; status: 'error'; message: string };
-
-function formatDeadline(deadlineAt: string): string {
-  return new Date(deadlineAt).toLocaleString();
-}
 
 function newIdempotencyKey(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -305,14 +304,18 @@ export function OfferInbox({
       </View>
 
       {resultMessage ? (
-        <Text
-          allowFontScaling={false}
-          accessibilityLiveRegion="polite"
-          className="font-semibold text-home-text"
-          style={dynamicType.body}
+        <OfferOutcome
+          title={
+            resultMessage === 'Contract is active.'
+              ? 'Agreement reached'
+              : resultMessage === 'Offer rejected.'
+                ? 'Declined'
+                : 'Waiting for parent'
+          }
+          success={resultMessage === 'Contract is active.'}
         >
-          {resultMessage}
-        </Text>
+          {resultMessage === 'Waiting for parent' ? undefined : resultMessage}
+        </OfferOutcome>
       ) : null}
 
       <FormMessage message={actionError} />
@@ -342,85 +345,24 @@ export function OfferInbox({
 
       {displayedState.status === 'ready' &&
       displayedState.items.length === 0 ? (
-        <View>
-          <Text
-            allowFontScaling={false}
-            className="text-home-muted"
-            style={dynamicType.body}
-          >
-            No offers are waiting for you.
-          </Text>
-        </View>
+        <OfferOutcome title="No new offers">
+          No offers are waiting for you.
+        </OfferOutcome>
       ) : null}
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
         <View className="gap-4">
           {displayedState.items.map(({ offer, revision }) => (
             <View
-              className="gap-3 rounded-2xl border border-home-border bg-background p-4"
+              className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
               key={offer.id}
             >
-              <Text
-                allowFontScaling={false}
-                className="font-semibold text-home-text"
-                style={dynamicType.body}
-              >
-                Status: Awaiting child
-              </Text>
-
-              <View className="gap-1">
-                <Text
-                  allowFontScaling={false}
-                  className="font-semibold text-home-text"
-                  style={dynamicType.body}
-                >
-                  Tasks
-                </Text>
-                {revision.tasks.map((task, index) => (
-                  <Text
-                    allowFontScaling={false}
-                    className="text-home-muted"
-                    key={`${offer.id}-task-${index}`}
-                    style={dynamicType.body}
-                  >
-                    {task.title} · {task.targetCount}×
-                  </Text>
-                ))}
-              </View>
-
-              <View className="gap-1">
-                <Text
-                  allowFontScaling={false}
-                  className="font-semibold text-home-text"
-                  style={dynamicType.body}
-                >
-                  Reward
-                </Text>
-                <Text
-                  allowFontScaling={false}
-                  className="text-home-muted"
-                  style={dynamicType.body}
-                >
-                  {revision.reward.title} · {revision.reward.type}
-                </Text>
-                {revision.reward.description ? (
-                  <Text
-                    allowFontScaling={false}
-                    className="text-home-muted"
-                    style={dynamicType.body}
-                  >
-                    {revision.reward.description}
-                  </Text>
-                ) : null}
-              </View>
-
-              <Text
-                allowFontScaling={false}
-                className="text-home-muted"
-                style={dynamicType.body}
-              >
-                Deadline: {formatDeadline(revision.deadlineAt)}
-              </Text>
+              <ProposalTerms
+                revision={revision}
+                status="Your turn"
+                author="Proposed by your Parent"
+                support="Accept to create your agreement, counter the reward, or decline."
+              />
               {rejectionConfirmationOfferId === offer.id ? (
                 <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
                   <Text
@@ -440,6 +382,7 @@ export function OfferInbox({
                   </Text>
                   <Button
                     label="Confirm rejection"
+                    variant="danger"
                     loading={
                       mutation?.offerId === offer.id &&
                       mutation.action === 'reject'
@@ -453,7 +396,7 @@ export function OfferInbox({
                     label="Keep offer"
                     disabled={mutation !== undefined}
                     onPress={() => setRejectionConfirmationOfferId(undefined)}
-                    variant="secondary"
+                    variant="outline"
                   />
                 </View>
               ) : counterOfferForm?.offerId === offer.id ? (
@@ -464,7 +407,11 @@ export function OfferInbox({
                     className="font-semibold text-home-text"
                     style={dynamicType.body}
                   >
-                    Counter the reward
+                    Make a counteroffer
+                  </Text>
+                  <Text className="text-home-muted" style={dynamicType.small}>
+                    Your changes become a new proposal for your Parent to
+                    review. Tasks and deadline stay the same.
                   </Text>
                   <TextField
                     editable={mutation === undefined}
@@ -485,9 +432,9 @@ export function OfferInbox({
                   >
                     Counteroffer reward type
                   </Text>
-                  <View className="gap-2">
+                  <View className="flex-row flex-wrap gap-2">
                     {rewardTypes.map((rewardType) => (
-                      <Button
+                      <ChoiceChip
                         key={rewardType}
                         label={`${counterOfferForm.rewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
                         disabled={mutation !== undefined}
@@ -496,11 +443,7 @@ export function OfferInbox({
                             current ? { ...current, rewardType } : current,
                           )
                         }
-                        variant={
-                          counterOfferForm.rewardType === rewardType
-                            ? 'primary'
-                            : 'secondary'
-                        }
+                        selected={counterOfferForm.rewardType === rewardType}
                       />
                     ))}
                   </View>
@@ -544,7 +487,7 @@ export function OfferInbox({
                       setCounterOfferForm(undefined);
                       setCounterOfferTitleError(undefined);
                     }}
-                    variant="secondary"
+                    variant="outline"
                   />
                 </View>
               ) : (
@@ -564,7 +507,7 @@ export function OfferInbox({
                     label="Counter reward"
                     disabled={mutation !== undefined}
                     onPress={() => openCounterOfferForm({ offer, revision })}
-                    variant="secondary"
+                    variant="outline"
                   />
                   <Button
                     label="Reject offer"
@@ -575,7 +518,7 @@ export function OfferInbox({
                       setCounterOfferForm(undefined);
                       setRejectionConfirmationOfferId(offer.id);
                     }}
-                    variant="secondary"
+                    variant="danger"
                   />
                 </View>
               )}

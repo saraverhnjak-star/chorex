@@ -85,7 +85,7 @@ it('renders realtime Parent counteroffer changes and cleans up subscriptions', (
   ).toBeOnTheScreen();
 
   act(() => emitItems?.([item]));
-  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  expect(screen.getByText('Proposed by Mia')).toBeOnTheScreen();
   expect(screen.getByText('One hour of games · PRIVILEGE')).toBeOnTheScreen();
   expect(screen.getByText('This feels fair.')).toBeOnTheScreen();
   expect(screen.getByText('Load the dishwasher · 2×')).toBeOnTheScreen();
@@ -176,9 +176,9 @@ it('requires confirmation, retains the retry key, and lets realtime remove the a
     }),
   );
   expect(screen.getByText('Contract active')).toBeOnTheScreen();
-  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  expect(screen.getByText('Proposed by Mia')).toBeOnTheScreen();
   act(() => emitItems?.([]));
-  expect(screen.queryByText('Mia')).toBeNull();
+  expect(screen.queryByText('Proposed by Mia')).toBeNull();
   expect(screen.getByText('Contract active')).toBeOnTheScreen();
 });
 
@@ -226,7 +226,7 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
   expect(mockCounter).not.toHaveBeenCalled();
   expect(screen.getByText('Review your counteroffer')).toBeOnTheScreen();
   expect(screen.getByText('Water plants · 3×')).toBeOnTheScreen();
-  expect(screen.getByText('Reward: Museum · EXPERIENCE')).toBeOnTheScreen();
+  expect(screen.getByText('Museum · EXPERIENCE')).toBeOnTheScreen();
   await act(async () =>
     fireEvent.press(screen.getByRole('button', { name: 'Send counteroffer' })),
   );
@@ -260,7 +260,7 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
   ]).toEqual([2099, 9, 11, 17, 30]);
   expect(screen.getByText('Counteroffer sent')).toBeOnTheScreen();
   act(() => emitItems?.([]));
-  expect(screen.queryByText('Mia')).toBeNull();
+  expect(screen.queryByText('Proposed by Mia')).toBeNull();
   expect(screen.getByText('Counteroffer sent')).toBeOnTheScreen();
 });
 
@@ -340,9 +340,9 @@ it('requires deliberate rejection, waits for backend success, and relies on real
   ).toBeDisabled();
   await act(async () => resolveRequest?.());
   expect(screen.getByText('Counteroffer rejected')).toBeOnTheScreen();
-  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  expect(screen.getByText('Proposed by Mia')).toBeOnTheScreen();
   act(() => emitItems?.([]));
-  expect(screen.queryByText('Mia')).toBeNull();
+  expect(screen.queryByText('Proposed by Mia')).toBeNull();
   expect(screen.getByText('Counteroffer rejected')).toBeOnTheScreen();
 });
 

@@ -214,7 +214,7 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(
     screen.getByRole('header', { name: 'Quick actions' }),
   ).toBeOnTheScreen();
-  expect(screen.getAllByText('Mia')).toHaveLength(3);
+  expect(screen.getAllByText('Mia')).toHaveLength(2);
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
   expect(
@@ -239,7 +239,7 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(screen.getByText('Add a child')).toBeOnTheScreen();
   expect(screen.getByText('Create an offer draft')).toBeOnTheScreen();
   expect(screen.getByText('Counteroffers')).toBeOnTheScreen();
-  expect(screen.getByText('Status: Awaiting parent')).toBeOnTheScreen();
+  expect(screen.getByText('Your turn')).toBeOnTheScreen();
   expect(screen.getByText('One hour of games · PRIVILEGE')).toBeOnTheScreen();
   expect(screen.getByText('This feels fair.')).toBeOnTheScreen();
 });

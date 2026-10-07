@@ -9,6 +9,8 @@ import {
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
 import {
+  ProposalTerms,
+  OfferOutcome,
   CountBadge,
   Button,
   FormMessage,
@@ -32,10 +34,6 @@ type ParentNegotiationInboxState =
       items: readonly ParentNegotiationInboxItem[];
     }
   | { subscriptionKey: string; status: 'error'; message: string };
-
-function formatDeadline(deadlineAt: string): string {
-  return new Date(deadlineAt).toLocaleString();
-}
 
 function newIdempotencyKey(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -217,14 +215,18 @@ export function ParentNegotiationInbox({
       </View>
 
       {message ? (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          className="text-home-text"
-          style={dynamicType.body}
+        <OfferOutcome
+          title={
+            message === 'Contract active'
+              ? 'Agreement reached'
+              : message === 'Counteroffer rejected'
+                ? 'Declined'
+                : 'New proposal sent'
+          }
+          success={message === 'Contract active'}
         >
           {message}
-        </Text>
+        </OfferOutcome>
       ) : null}
       {actionError ? <FormMessage message={actionError} /> : null}
       {displayedState.status === 'loading' ? (
@@ -255,13 +257,9 @@ export function ParentNegotiationInbox({
 
       {displayedState.status === 'ready' &&
       displayedState.items.length === 0 ? (
-        <Text
-          allowFontScaling={false}
-          className="text-home-muted"
-          style={dynamicType.body}
-        >
+        <OfferOutcome title="No counteroffers">
           No counteroffers are waiting for you.
-        </Text>
+        </OfferOutcome>
       ) : null}
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
@@ -274,96 +272,15 @@ export function ParentNegotiationInbox({
                 ?.displayName ?? 'Child profile unavailable';
             return (
               <View
-                className="gap-3 rounded-2xl border border-home-border bg-background p-4"
+                className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
                 key={offer.id}
               >
-                <Text
-                  allowFontScaling={false}
-                  className="font-semibold text-home-text"
-                  style={dynamicType.body}
-                >
-                  {childName}
-                </Text>
-                <Text
-                  allowFontScaling={false}
-                  className="font-semibold text-home-text"
-                  style={dynamicType.body}
-                >
-                  Status: Awaiting parent
-                </Text>
-
-                <View className="gap-1">
-                  <Text
-                    allowFontScaling={false}
-                    className="font-semibold text-home-text"
-                    style={dynamicType.body}
-                  >
-                    Proposed reward
-                  </Text>
-                  <Text
-                    allowFontScaling={false}
-                    className="text-home-muted"
-                    style={dynamicType.body}
-                  >
-                    {revision.reward.title} · {revision.reward.type}
-                  </Text>
-                  {revision.reward.description ? (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-home-muted"
-                      style={dynamicType.body}
-                    >
-                      {revision.reward.description}
-                    </Text>
-                  ) : null}
-                </View>
-
-                {revision.note ? (
-                  <View className="gap-1">
-                    <Text
-                      allowFontScaling={false}
-                      className="font-semibold text-home-text"
-                      style={dynamicType.body}
-                    >
-                      Child note
-                    </Text>
-                    <Text
-                      allowFontScaling={false}
-                      className="text-home-muted"
-                      style={dynamicType.body}
-                    >
-                      {revision.note}
-                    </Text>
-                  </View>
-                ) : null}
-
-                <View className="gap-1">
-                  <Text
-                    allowFontScaling={false}
-                    className="font-semibold text-home-text"
-                    style={dynamicType.body}
-                  >
-                    Tasks
-                  </Text>
-                  {revision.tasks.map((task, index) => (
-                    <Text
-                      allowFontScaling={false}
-                      className="text-home-muted"
-                      key={`${offer.id}-task-${index}`}
-                      style={dynamicType.body}
-                    >
-                      {task.title} · {task.targetCount}×
-                    </Text>
-                  ))}
-                </View>
-
-                <Text
-                  allowFontScaling={false}
-                  className="text-home-muted"
-                  style={dynamicType.body}
-                >
-                  Deadline: {formatDeadline(revision.deadlineAt)}
-                </Text>
+                <ProposalTerms
+                  revision={revision}
+                  status="Your turn"
+                  author={`Proposed by ${childName}`}
+                  support={`${childName} made a counteroffer. Review the current terms below.`}
+                />
                 {rejectionConfirmation === identity ? (
                   <View className="gap-3">
                     <Text
@@ -378,12 +295,13 @@ export function ParentNegotiationInbox({
                     </Text>
                     <Button
                       label="Confirm reject counteroffer"
+                      variant="danger"
                       loading={busy}
                       onPress={() => void rejectCounteroffer(item)}
                     />
                     <Button
                       label="Keep negotiating"
-                      variant="secondary"
+                      variant="outline"
                       disabled={busy}
                       onPress={() => setRejectionConfirmation(undefined)}
                     />
@@ -413,7 +331,7 @@ export function ParentNegotiationInbox({
                     />
                     <Button
                       label="Cancel acceptance"
-                      variant="secondary"
+                      variant="outline"
                       disabled={busy}
                       onPress={() => setConfirmation(undefined)}
                     />
@@ -434,7 +352,7 @@ export function ParentNegotiationInbox({
                 confirmation !== identity ? (
                   <Button
                     label="Counteroffer"
-                    variant="secondary"
+                    variant="outline"
                     disabled={busy}
                     onPress={() => {
                       setEditing(identity);
@@ -449,7 +367,7 @@ export function ParentNegotiationInbox({
                 confirmation !== identity ? (
                   <Button
                     label="Reject counteroffer"
-                    variant="secondary"
+                    variant="danger"
                     disabled={busy}
                     onPress={() => {
                       setRejectionConfirmation(identity);

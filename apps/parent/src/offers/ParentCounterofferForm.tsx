@@ -9,6 +9,10 @@ import {
   type RewardType,
 } from '@chorex/domain';
 import {
+  SurfaceCard,
+  ProposalTerms,
+  ChoiceChip,
+  TermsHeading,
   Button,
   FormMessage,
   TextField,
@@ -134,41 +138,26 @@ export function ParentCounterofferForm({
     setError(undefined);
     setProposal(result.data);
   };
-  const text = (value: string) => (
-    <Text
-      allowFontScaling={false}
-      className="text-text"
-      style={dynamicType.body}
-    >
-      {value}
-    </Text>
-  );
   return (
-    <View className="gap-3 rounded-2xl border border-border bg-surface p-4">
+    <SurfaceCard>
       <Text
         allowFontScaling={false}
         accessibilityRole="header"
-        className="font-bold text-text"
+        className="font-bold text-home-text"
         style={dynamicType.body}
       >
         {proposal ? 'Review your counteroffer' : 'Edit counteroffer terms'}
       </Text>
+      <Text className="text-home-muted" style={dynamicType.small}>
+        Your changes become a new proposal for the Child to review.
+      </Text>
       <FormMessage message={error} />
       {proposal ? (
         <>
-          {proposal.tasks.map((task, index) => (
-            <View key={index} className="gap-1">
-              {text(`${task.title} · ${task.targetCount}×`)}
-              {task.description ? text(task.description) : null}
-            </View>
-          ))}
-          {text(`Reward: ${proposal.reward.title} · ${proposal.reward.type}`)}
-          {proposal.reward.description
-            ? text(proposal.reward.description)
-            : null}
-          {text(`Deadline: ${new Date(proposal.deadlineAt).toLocaleString()}`)}
-          {proposal.note ? text(`Note: ${proposal.note}`) : null}
-          {text('The child will need to agree to this new proposal.')}
+          <ProposalTerms revision={proposal} author="Your new proposal" />
+          <Text className="text-home-muted" style={dynamicType.body}>
+            The child will need to agree to this new proposal.
+          </Text>
           <Button
             label="Send counteroffer"
             loading={busy}
@@ -176,13 +165,14 @@ export function ParentCounterofferForm({
           />
           <Button
             label="Edit proposal"
-            variant="secondary"
+            variant="outline"
             disabled={busy}
             onPress={() => setProposal(undefined)}
           />
         </>
       ) : (
         <>
+          <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
           {tasks.map((task, index) => (
             <View key={index} className="gap-3">
               <TextField
@@ -214,7 +204,7 @@ export function ParentCounterofferForm({
               {tasks.length > 1 ? (
                 <Button
                   label={`Remove task ${index + 1}`}
-                  variant="secondary"
+                  variant="outline"
                   disabled={busy}
                   onPress={() =>
                     setTasks((current) => current.filter((_, i) => i !== index))
@@ -226,7 +216,7 @@ export function ParentCounterofferForm({
           {tasks.length < offerValidationBounds.taskCountMax ? (
             <Button
               label="Add task"
-              variant="secondary"
+              variant="outline"
               disabled={busy}
               onPress={() =>
                 setTasks((current) => [
@@ -236,6 +226,7 @@ export function ParentCounterofferForm({
               }
             />
           ) : null}
+          <TermsHeading icon="gift-outline">Reward</TermsHeading>
           <TextField
             label="Reward title"
             value={rewardTitle}
@@ -251,15 +242,18 @@ export function ParentCounterofferForm({
             maxLength={offerValidationBounds.descriptionMaxLength}
             onChangeText={setRewardDescription}
           />
-          {rewardTypeSchema.options.map((type) => (
-            <Button
-              key={type}
-              label={`${rewardType === type ? 'Selected' : 'Select'} ${type.toLowerCase()}`}
-              variant={rewardType === type ? 'primary' : 'secondary'}
-              disabled={busy}
-              onPress={() => setRewardType(type)}
-            />
-          ))}
+          <View className="flex-row flex-wrap gap-2">
+            {rewardTypeSchema.options.map((type) => (
+              <ChoiceChip
+                key={type}
+                label={`${rewardType === type ? 'Selected' : 'Select'} ${type.toLowerCase()}`}
+                selected={rewardType === type}
+                disabled={busy}
+                onPress={() => setRewardType(type)}
+              />
+            ))}
+          </View>
+          <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
           <TextField
             label="Deadline date (YYYY-MM-DD)"
             value={date}
@@ -274,6 +268,7 @@ export function ParentCounterofferForm({
             autoCapitalize="none"
             onChangeText={setTime}
           />
+          <TermsHeading icon="chatbox-outline">Optional note</TermsHeading>
           <TextField
             label="Proposal note (optional)"
             value={note}
@@ -291,10 +286,10 @@ export function ParentCounterofferForm({
       )}
       <Button
         label="Cancel counteroffer"
-        variant="secondary"
+        variant="outline"
         disabled={busy}
         onPress={onCancel}
       />
-    </View>
+    </SurfaceCard>
   );
 }

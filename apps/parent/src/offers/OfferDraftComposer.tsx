@@ -15,6 +15,10 @@ import {
   type PublishOfferOutput,
 } from '@chorex/domain';
 import {
+  SurfaceCard,
+  ProposalTerms,
+  ChoiceChip,
+  TermsHeading,
   Button,
   FormMessage,
   TextField,
@@ -104,49 +108,41 @@ function localDeadlineToUtc(dateText: string, timeText: string): string | null {
 function SavedDraft({
   draft,
   published,
+  childName,
 }: {
   draft: CreateOfferDraftOutput;
   published?: PublishOfferOutput;
+  childName?: string;
 }) {
   const dynamicType = useDynamicTypeStyles();
   return (
-    <View className="gap-3 rounded-2xl border border-border bg-surface p-4">
+    <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
       <Text
         allowFontScaling={false}
         accessibilityLiveRegion="polite"
-        className="font-bold text-text"
+        className="font-bold text-home-text"
         style={dynamicType.body}
       >
         {published ? 'Offer published' : 'Draft saved'}
       </Text>
-      {draft.revision.tasks.map((task, index) => (
-        <Text
-          allowFontScaling={false}
-          className="text-text-muted"
-          key={`${draft.revision.id}-${index}`}
-          style={dynamicType.body}
-        >
-          {task.title} × {task.targetCount}
-        </Text>
-      ))}
-      <Text
-        allowFontScaling={false}
-        className="text-text-muted"
-        style={dynamicType.body}
-      >
-        Reward: {draft.revision.reward.title} ({draft.revision.reward.type})
-      </Text>
-      <Text
-        allowFontScaling={false}
-        className="text-text-muted"
-        style={dynamicType.small}
-      >
-        Due {new Date(draft.revision.deadlineAt).toLocaleString()}
-      </Text>
+      <ProposalTerms
+        revision={draft.revision}
+        author="Your proposal"
+        status={
+          published
+            ? `Waiting for ${childName ?? 'the child'}`
+            : 'Draft · not sent'
+        }
+        support={
+          published
+            ? `${childName ?? 'The child'} can accept, decline or counter the reward.`
+            : 'Save first, then publish when you are ready.'
+        }
+      />
       {published ? (
         <Text
           allowFontScaling={false}
-          className="font-semibold text-text"
+          className="font-semibold text-home-text"
           style={dynamicType.body}
         >
           Waiting for the child response.
@@ -284,17 +280,26 @@ export function OfferDraftComposer({
   };
 
   return (
-    <View className="gap-4 rounded-3xl border border-border bg-surface-warm p-5">
+    <SurfaceCard>
       <Text
         allowFontScaling={false}
-        className="font-bold text-text"
-        style={dynamicType.title}
+        accessibilityRole="header"
+        className="font-bold text-home-text"
+        style={dynamicType.body}
       >
         Create an offer draft
       </Text>
       {savedDraft ? (
         <>
-          <SavedDraft draft={savedDraft} published={publishedOffer} />
+          <SavedDraft
+            draft={savedDraft}
+            published={publishedOffer}
+            childName={
+              activeChildren.find(
+                (child) => child.uid === savedDraft.offer.childUid,
+              )?.displayName
+            }
+          />
           <FormMessage message={publishError} />
           {!publishedOffer ? (
             <Button
@@ -306,13 +311,13 @@ export function OfferDraftComposer({
           <Button
             label="Create another draft"
             onPress={startAnother}
-            variant="secondary"
+            variant="outline"
           />
         </>
       ) : activeChildren.length === 0 ? (
         <Text
           allowFontScaling={false}
-          className="text-text-muted"
+          className="text-home-muted"
           style={dynamicType.body}
         >
           Add a child before creating an offer draft.
@@ -320,24 +325,16 @@ export function OfferDraftComposer({
       ) : (
         <>
           <FormMessage message={errors.root?.offer?.message} />
-          <Text
-            allowFontScaling={false}
-            className="font-semibold text-text"
-            style={dynamicType.body}
-          >
-            Child
-          </Text>
-          <View className="gap-2">
+          <TermsHeading icon="people-outline">Who is this for?</TermsHeading>
+          <View className="flex-row flex-wrap gap-2">
             {activeChildren.map((child) => (
-              <Button
+              <ChoiceChip
                 key={child.uid}
                 label={`${selectedChildUid === child.uid ? 'Selected' : 'Select'} ${child.displayName}`}
                 onPress={() =>
                   setValue('childUid', child.uid, { shouldValidate: true })
                 }
-                variant={
-                  selectedChildUid === child.uid ? 'primary' : 'secondary'
-                }
+                selected={selectedChildUid === child.uid}
               />
             ))}
           </View>
@@ -345,16 +342,10 @@ export function OfferDraftComposer({
             <FormMessage message={errors.childUid.message} />
           ) : null}
 
-          <Text
-            allowFontScaling={false}
-            className="font-semibold text-text"
-            style={dynamicType.body}
-          >
-            Tasks
-          </Text>
+          <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
           {fields.map((field, index) => (
             <View
-              className="gap-3 rounded-2xl border border-border bg-surface p-4"
+              className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
               key={field.id}
             >
               <Controller
@@ -390,7 +381,7 @@ export function OfferDraftComposer({
                 <Button
                   label={`Remove task ${index + 1}`}
                   onPress={() => remove(index)}
-                  variant="secondary"
+                  variant="outline"
                 />
               ) : null}
             </View>
@@ -399,10 +390,11 @@ export function OfferDraftComposer({
             <Button
               label="Add task"
               onPress={() => append({ title: '', targetCount: '1' })}
-              variant="secondary"
+              variant="outline"
             />
           ) : null}
 
+          <TermsHeading icon="gift-outline">Reward</TermsHeading>
           <Controller
             control={control}
             name="rewardTitle"
@@ -417,24 +409,16 @@ export function OfferDraftComposer({
               />
             )}
           />
-          <Text
-            allowFontScaling={false}
-            className="font-semibold text-text"
-            style={dynamicType.body}
-          >
-            Reward type
-          </Text>
-          <View className="gap-2">
+          <TermsHeading icon="gift-outline">Reward type</TermsHeading>
+          <View className="flex-row flex-wrap gap-2">
             {rewardTypes.map((rewardType) => (
-              <Button
+              <ChoiceChip
                 key={rewardType}
                 label={`${selectedRewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
                 onPress={() =>
                   setValue('rewardType', rewardType, { shouldValidate: true })
                 }
-                variant={
-                  selectedRewardType === rewardType ? 'primary' : 'secondary'
-                }
+                selected={selectedRewardType === rewardType}
               />
             ))}
           </View>
@@ -453,6 +437,7 @@ export function OfferDraftComposer({
               />
             )}
           />
+          <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
           <Controller
             control={control}
             name="deadlineDate"
@@ -490,6 +475,6 @@ export function OfferDraftComposer({
           />
         </>
       )}
-    </View>
+    </SurfaceCard>
   );
 }

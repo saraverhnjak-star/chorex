@@ -19,7 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { homeTokens } from './theme';
 export { homeTokens } from './theme';
-function Text({ style, ...props }: TextProps) {
+export function DesignText({ style, ...props }: TextProps) {
   const { fontScale } = useWindowDimensions();
   const flat = StyleSheet.flatten(style) ?? {};
   if (flat.fontSize === undefined)
@@ -39,6 +39,7 @@ function Text({ style, ...props }: TextProps) {
     />
   );
 }
+const Text = DesignText;
 type Icon = React.ComponentProps<typeof Ionicons>['name'];
 const HomeContext = createContext({
   active: false,

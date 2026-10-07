@@ -1,3 +1,4 @@
+import { homeTokens, useHomeTheme } from './Home';
 import { useId, useState } from 'react';
 import {
   Pressable,
@@ -26,6 +27,7 @@ export function TextField({
   onFocus,
   ...inputProps
 }: TextFieldProps) {
+  const home = useHomeTheme();
   const id = useId();
   const [focused, setFocused] = useState(false);
   const dynamicType = useDynamicTypeStyles();
@@ -36,11 +38,26 @@ export function TextField({
         allowFontScaling={false}
         nativeID={`${id}-label`}
         className="mb-2 font-semibold text-text"
-        style={dynamicType.body}
+        style={[
+          dynamicType.body,
+          home ? { color: homeTokens.text } : undefined,
+        ]}
       >
         {label}
       </Text>
       <View
+        style={
+          home
+            ? {
+                backgroundColor: homeTokens.surface,
+                borderColor: error
+                  ? amberAuroraColors.danger
+                  : focused
+                    ? homeTokens.coral
+                    : homeTokens.border,
+              }
+            : undefined
+        }
         className={`flex-row items-center rounded-2xl border-2 bg-surface ${
           error ? 'border-danger' : focused ? 'border-focus' : 'border-border'
         } ${editable ? '' : 'opacity-50'}`}
@@ -61,9 +78,14 @@ export function TextField({
             setFocused(true);
             onFocus?.(event);
           }}
-          placeholderTextColor={amberAuroraColors.textMuted}
-          selectionColor={amberAuroraColors.focus}
-          style={dynamicType.body}
+          placeholderTextColor={
+            home ? homeTokens.secondary : amberAuroraColors.textMuted
+          }
+          selectionColor={home ? homeTokens.coral : amberAuroraColors.focus}
+          style={[
+            dynamicType.body,
+            home ? { color: homeTokens.text } : undefined,
+          ]}
         />
         {endActionLabel && onEndActionPress ? (
           <Pressable
@@ -76,7 +98,10 @@ export function TextField({
             <Text
               allowFontScaling={false}
               className="font-semibold text-text"
-              style={dynamicType.body}
+              style={[
+                dynamicType.body,
+                home ? { color: homeTokens.text } : undefined,
+              ]}
             >
               {endActionLabel}
             </Text>

@@ -36,3 +36,12 @@ export {
   HomeListRow,
   homeTokens,
 } from './Home';
+
+export { DesignText } from './Home';
+export {
+  SurfaceCard,
+  TermsHeading,
+  ProposalTerms,
+  ChoiceChip,
+  OfferOutcome,
+} from './OfferTerms';
