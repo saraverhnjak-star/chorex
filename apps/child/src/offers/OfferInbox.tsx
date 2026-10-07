@@ -9,6 +9,7 @@ import {
 } from '@chorex/firebase-client';
 import { rewardTypeSchema, type RewardType } from '@chorex/domain';
 import {
+  CountBadge,
   Button,
   FormMessage,
   TextField,
@@ -281,19 +282,22 @@ export function OfferInbox({
   };
 
   return (
-    <View className="gap-4 rounded-3xl border border-border bg-surface-warm p-5">
+    <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
       <View className="gap-2">
         <Text
           allowFontScaling={false}
           accessibilityRole="header"
-          className="font-bold text-text"
-          style={dynamicType.title}
+          className="font-bold text-home-text"
+          style={[dynamicType.body, { fontSize: 21 }]}
         >
           Offers
         </Text>
+        {displayedState.status === 'ready' ? (
+          <CountBadge count={displayedState.items.length} />
+        ) : null}
         <Text
           allowFontScaling={false}
-          className="text-text-muted"
+          className="text-home-muted"
           style={dynamicType.body}
         >
           Agreements waiting for your response.
@@ -304,7 +308,7 @@ export function OfferInbox({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="font-semibold text-text"
+          className="font-semibold text-home-text"
           style={dynamicType.body}
         >
           {resultMessage}
@@ -321,7 +325,7 @@ export function OfferInbox({
           />
           <Text
             allowFontScaling={false}
-            className="mt-3 text-text-muted"
+            className="mt-3 text-home-muted"
             style={dynamicType.body}
           >
             Loading offers…
@@ -341,7 +345,7 @@ export function OfferInbox({
         <View>
           <Text
             allowFontScaling={false}
-            className="text-text-muted"
+            className="text-home-muted"
             style={dynamicType.body}
           >
             No offers are waiting for you.
@@ -353,12 +357,12 @@ export function OfferInbox({
         <View className="gap-4">
           {displayedState.items.map(({ offer, revision }) => (
             <View
-              className="gap-3 rounded-2xl border border-border bg-background p-4"
+              className="gap-3 rounded-2xl border border-home-border bg-background p-4"
               key={offer.id}
             >
               <Text
                 allowFontScaling={false}
-                className="font-semibold text-text"
+                className="font-semibold text-home-text"
                 style={dynamicType.body}
               >
                 Status: Awaiting child
@@ -367,7 +371,7 @@ export function OfferInbox({
               <View className="gap-1">
                 <Text
                   allowFontScaling={false}
-                  className="font-semibold text-text"
+                  className="font-semibold text-home-text"
                   style={dynamicType.body}
                 >
                   Tasks
@@ -375,7 +379,7 @@ export function OfferInbox({
                 {revision.tasks.map((task, index) => (
                   <Text
                     allowFontScaling={false}
-                    className="text-text-muted"
+                    className="text-home-muted"
                     key={`${offer.id}-task-${index}`}
                     style={dynamicType.body}
                   >
@@ -387,14 +391,14 @@ export function OfferInbox({
               <View className="gap-1">
                 <Text
                   allowFontScaling={false}
-                  className="font-semibold text-text"
+                  className="font-semibold text-home-text"
                   style={dynamicType.body}
                 >
                   Reward
                 </Text>
                 <Text
                   allowFontScaling={false}
-                  className="text-text-muted"
+                  className="text-home-muted"
                   style={dynamicType.body}
                 >
                   {revision.reward.title} · {revision.reward.type}
@@ -402,7 +406,7 @@ export function OfferInbox({
                 {revision.reward.description ? (
                   <Text
                     allowFontScaling={false}
-                    className="text-text-muted"
+                    className="text-home-muted"
                     style={dynamicType.body}
                   >
                     {revision.reward.description}
@@ -412,24 +416,24 @@ export function OfferInbox({
 
               <Text
                 allowFontScaling={false}
-                className="text-text-muted"
+                className="text-home-muted"
                 style={dynamicType.body}
               >
                 Deadline: {formatDeadline(revision.deadlineAt)}
               </Text>
               {rejectionConfirmationOfferId === offer.id ? (
-                <View className="gap-3 rounded-2xl border border-border bg-surface-warm p-4">
+                <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
                   <Text
                     allowFontScaling={false}
                     accessibilityLiveRegion="polite"
-                    className="font-semibold text-text"
+                    className="font-semibold text-home-text"
                     style={dynamicType.body}
                   >
                     Reject this offer?
                   </Text>
                   <Text
                     allowFontScaling={false}
-                    className="text-text-muted"
+                    className="text-home-muted"
                     style={dynamicType.body}
                   >
                     This will close the offer without creating a contract.
@@ -453,11 +457,11 @@ export function OfferInbox({
                   />
                 </View>
               ) : counterOfferForm?.offerId === offer.id ? (
-                <View className="gap-3 rounded-2xl border border-border bg-surface-warm p-4">
+                <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
                   <Text
                     allowFontScaling={false}
                     accessibilityRole="header"
-                    className="font-semibold text-text"
+                    className="font-semibold text-home-text"
                     style={dynamicType.body}
                   >
                     Counter the reward
@@ -476,7 +480,7 @@ export function OfferInbox({
                   />
                   <Text
                     allowFontScaling={false}
-                    className="font-semibold text-text"
+                    className="font-semibold text-home-text"
                     style={dynamicType.body}
                   >
                     Counteroffer reward type

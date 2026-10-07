@@ -88,6 +88,7 @@ const mockSubscribeToCurrentParentNegotiationInbox = jest.fn(
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 
 jest.mock('@chorex/firebase-client', () => ({
+  useContractDetail: () => ({ status: 'loading' }),
   useReminderPreference: () => ({
     state: { enabled: true, busy: false },
     save: jest.fn(),
@@ -208,14 +209,12 @@ jest.mock('../src/notifications/messages', () => ({
 
 it('renders the parent screen through the public shared UI package', async () => {
   render(<HomeScreen />);
+  expect(screen.getByRole('header', { name: 'ChoreX' })).toBeOnTheScreen();
+  expect(await screen.findByText('Hello, Alex!')).toBeOnTheScreen();
   expect(
-    screen.getByRole('header', { name: 'ChoreX Parent' }),
+    screen.getByRole('header', { name: 'Quick actions' }),
   ).toBeOnTheScreen();
-  expect(await screen.findByText('Rivera Family')).toBeOnTheScreen();
-  expect(
-    screen.getByText('Welcome, Alex. Family setup is complete.'),
-  ).toBeOnTheScreen();
-  expect(screen.getAllByText('Mia')).toHaveLength(2);
+  expect(screen.getAllByText('Mia')).toHaveLength(3);
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
   expect(

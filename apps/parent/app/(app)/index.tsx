@@ -1,9 +1,15 @@
+import { HomeFamilyOverview } from '../../src/family/HomeFamilyOverview';
 import {
+  HomeScreenFrame,
+  HomeSection,
+  HomeHeader,
+  HomeGreeting,
+  QuickActions,
+  SectionHeading,
   ReminderPreferenceCard,
   Button,
   NotificationPermissionCard,
   FormMessage,
-  Screen,
   TextField,
   amberAuroraColors,
   useDynamicTypeStyles,
@@ -64,29 +70,6 @@ const createChildFormSchema = createChildInputSchema.pick({
 
 function newIdempotencyKey(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-}
-
-function ScreenHeading() {
-  const dynamicType = useDynamicTypeStyles();
-  return (
-    <>
-      <Text
-        allowFontScaling={false}
-        className="font-semibold uppercase tracking-widest text-text-muted"
-        style={dynamicType.small}
-      >
-        Parent app
-      </Text>
-      <Text
-        allowFontScaling={false}
-        accessibilityRole="header"
-        className="mt-2 font-bold text-text"
-        style={dynamicType.title}
-      >
-        ChoreX Parent
-      </Text>
-    </>
-  );
 }
 
 export default function AuthenticatedHomeScreen() {
@@ -258,9 +241,15 @@ export default function AuthenticatedHomeScreen() {
   if (!user) return null;
 
   return (
-    <Screen>
-      <View className="py-6">
-        <ScreenHeading />
+    <HomeScreenFrame>
+      <View>
+        <HomeHeader
+          name={
+            familyState.status === 'ready'
+              ? familyState.home.profile.displayName
+              : 'Parent'
+          }
+        />
 
         {familyState.status === 'loading' ? (
           <View className="flex-1 items-center justify-center py-16">
@@ -271,7 +260,7 @@ export default function AuthenticatedHomeScreen() {
             />
             <Text
               allowFontScaling={false}
-              className="mt-4 text-text-muted"
+              className="mt-4 text-home-muted"
               style={dynamicType.body}
             >
               Loading your family…
@@ -347,156 +336,66 @@ export default function AuthenticatedHomeScreen() {
         ) : null}
 
         {familyState.status === 'ready' ? (
-          <View className="mt-8 gap-5">
-            <View className="rounded-3xl border border-border bg-surface-warm p-5">
-              <View className="flex-row items-center">
-                <View
-                  accessible={false}
-                  className="mr-2 h-2.5 w-2.5 rounded-full bg-success"
-                />
-                <Text
-                  allowFontScaling={false}
-                  className="flex-1 font-semibold text-text"
-                  style={dynamicType.body}
-                >
-                  {familyState.home.family.name}
-                </Text>
-              </View>
+          <View className="gap-5">
+            <HomeGreeting name={familyState.home.profile.displayName} />
+            <QuickActions />
+            <HomeSection id="offers">
+              <SectionHeading>Needs your attention</SectionHeading>
+              <ParentNegotiationInbox
+                activeChildren={familyState.home.children}
+                authUid={user.uid}
+                familyId={familyState.home.family.id}
+              />
+            </HomeSection>
+            <HomeSection id="review">
+              <ReadyForReviewContracts
+                familyId={familyState.home.family.id}
+                authUid={user.uid}
+                childNames={Object.fromEntries(
+                  familyState.home.children.map((child) => [
+                    child.uid,
+                    child.displayName,
+                  ]),
+                )}
+              />
+            </HomeSection>
+            <HomeSection id="rewards">
+              <PendingRewards
+                familyId={familyState.home.family.id}
+                authUid={user.uid}
+                childNames={Object.fromEntries(
+                  familyState.home.children.map((child) => [
+                    child.uid,
+                    child.displayName,
+                  ]),
+                )}
+              />
+            </HomeSection>
+            <HomeSection id="family">
+              <HomeFamilyOverview home={familyState.home} authUid={user.uid} />
+            </HomeSection>
+            <HomeSection id="contracts">
+              <ActiveContracts
+                familyId={familyState.home.family.id}
+                authUid={user.uid}
+                childNames={Object.fromEntries(
+                  familyState.home.children.map((child) => [
+                    child.uid,
+                    child.displayName,
+                  ]),
+                )}
+              />
+            </HomeSection>
+            <HomeSection id="create">
+              <OfferDraftComposer
+                activeChildren={familyState.home.children}
+                familyId={familyState.home.family.id}
+              />
+            </HomeSection>
+            <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
               <Text
                 allowFontScaling={false}
-                className="mt-4 text-text-muted"
-                style={dynamicType.body}
-              >
-                Welcome, {familyState.home.profile.displayName}. Family setup is
-                complete.
-              </Text>
-            </View>
-
-            <ReminderPreferenceCard
-              label="Pending reward reminders"
-              enabled={reminder.state.enabled}
-              busy={reminder.state.busy}
-              fromCache={reminder.state.fromCache}
-              error={reminder.state.error}
-              onChange={(enabled) => {
-                void reminder.save(enabled);
-              }}
-            />
-            <NotificationPermissionCard
-              benefit="Get updates when your child responds to an offer or submits work for review."
-              education={education.showEducation}
-              busy={
-                notifications.state.status === 'loading' ||
-                notifications.state.status === 'checking'
-              }
-              registered={notifications.state.status === 'registered'}
-              quiet={notifications.state.permission?.quiet}
-              error={
-                notifications.state.status === 'error'
-                  ? getNotificationErrorMessage(notifications.state.error)
-                  : undefined
-              }
-              settingsRequired={
-                notifications.state.permission?.status === 'denied' &&
-                notifications.state.permission.canAskAgain === false
-              }
-              onEnable={enableNotifications}
-              onSkip={education.skip}
-              onSettings={() => {
-                void Linking.openSettings().catch(() => undefined);
-              }}
-            />
-
-            <View className="rounded-3xl border border-border bg-surface-warm p-5">
-              <Text
-                allowFontScaling={false}
-                className="font-bold text-text"
-                style={dynamicType.title}
-              >
-                Children
-              </Text>
-              {familyState.home.children.length === 0 ? (
-                <Text
-                  allowFontScaling={false}
-                  className="mt-3 text-text-muted"
-                  style={dynamicType.body}
-                >
-                  No child profiles yet.
-                </Text>
-              ) : (
-                <View className="mt-3 gap-2">
-                  {familyState.home.children.map((child) => (
-                    <View
-                      className="gap-3 rounded-2xl border border-border bg-surface p-4"
-                      key={child.uid}
-                    >
-                      <Text
-                        allowFontScaling={false}
-                        className="font-semibold text-text"
-                        style={dynamicType.body}
-                      >
-                        {child.displayName}
-                      </Text>
-                      <Button
-                        label={
-                          pairingState.status === 'ready' &&
-                          pairingState.childUid === child.uid
-                            ? 'Create new token'
-                            : 'Pair device'
-                        }
-                        loading={
-                          pairingState.status === 'loading' &&
-                          pairingState.childUid === child.uid
-                        }
-                        onPress={() => onCreatePairingSession(child.uid)}
-                        variant="secondary"
-                      />
-                      {pairingState.status === 'ready' &&
-                      pairingState.childUid === child.uid ? (
-                        <View className="gap-2 rounded-2xl bg-surface-warm p-4">
-                          {pairingState.token ? (
-                            <Text
-                              allowFontScaling={false}
-                              className="font-bold text-text"
-                              selectable
-                              style={dynamicType.body}
-                            >
-                              {pairingState.token}
-                            </Text>
-                          ) : (
-                            <Text
-                              allowFontScaling={false}
-                              className="text-text-muted"
-                              style={dynamicType.body}
-                            >
-                              This token was already shown. Create a new token
-                              to pair a device.
-                            </Text>
-                          )}
-                          <Text
-                            allowFontScaling={false}
-                            className="text-text-muted"
-                            style={dynamicType.small}
-                          >
-                            Expires{' '}
-                            {new Date(pairingState.expiresAt).toLocaleString()}
-                          </Text>
-                        </View>
-                      ) : null}
-                      {pairingState.status === 'error' &&
-                      pairingState.childUid === child.uid ? (
-                        <FormMessage message={pairingState.message} />
-                      ) : null}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            <View className="gap-4 rounded-3xl border border-border bg-surface-warm p-5">
-              <Text
-                allowFontScaling={false}
-                className="font-bold text-text"
+                className="font-bold text-home-text"
                 style={dynamicType.title}
               >
                 Add a child
@@ -528,50 +427,131 @@ export default function AuthenticatedHomeScreen() {
                 onPress={handleChildSubmit(onCreateChild)}
               />
             </View>
-
-            <PendingRewards
-              familyId={familyState.home.family.id}
-              authUid={user.uid}
-              childNames={Object.fromEntries(
-                familyState.home.children.map((child) => [
-                  child.uid,
-                  child.displayName,
-                ]),
-              )}
-            />
-
-            <ReadyForReviewContracts
-              familyId={familyState.home.family.id}
-              authUid={user.uid}
-              childNames={Object.fromEntries(
-                familyState.home.children.map((child) => [
-                  child.uid,
-                  child.displayName,
-                ]),
-              )}
-            />
-
-            <ActiveContracts
-              familyId={familyState.home.family.id}
-              authUid={user.uid}
-              childNames={Object.fromEntries(
-                familyState.home.children.map((child) => [
-                  child.uid,
-                  child.displayName,
-                ]),
-              )}
-            />
-
-            <ParentNegotiationInbox
-              activeChildren={familyState.home.children}
-              authUid={user.uid}
-              familyId={familyState.home.family.id}
-            />
-
-            <OfferDraftComposer
-              activeChildren={familyState.home.children}
-              familyId={familyState.home.family.id}
-            />
+            <HomeSection id="more">
+              <View>
+                <View className="rounded-3xl border border-home-border bg-home-surface p-5">
+                  <Text
+                    allowFontScaling={false}
+                    className="font-bold text-home-text"
+                    style={dynamicType.title}
+                  >
+                    Children
+                  </Text>
+                  {familyState.home.children.length === 0 ? (
+                    <Text
+                      allowFontScaling={false}
+                      className="mt-3 text-home-muted"
+                      style={dynamicType.body}
+                    >
+                      No child profiles yet.
+                    </Text>
+                  ) : (
+                    <View className="mt-3 gap-2">
+                      {familyState.home.children.map((child) => (
+                        <View
+                          className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
+                          key={child.uid}
+                        >
+                          <Text
+                            allowFontScaling={false}
+                            className="font-semibold text-home-text"
+                            style={dynamicType.body}
+                          >
+                            {child.displayName}
+                          </Text>
+                          <Button
+                            label={
+                              pairingState.status === 'ready' &&
+                              pairingState.childUid === child.uid
+                                ? 'Create new token'
+                                : 'Pair device'
+                            }
+                            loading={
+                              pairingState.status === 'loading' &&
+                              pairingState.childUid === child.uid
+                            }
+                            onPress={() => onCreatePairingSession(child.uid)}
+                            variant="secondary"
+                          />
+                          {pairingState.status === 'ready' &&
+                          pairingState.childUid === child.uid ? (
+                            <View className="gap-2 rounded-2xl bg-home-surface p-4">
+                              {pairingState.token ? (
+                                <Text
+                                  allowFontScaling={false}
+                                  className="font-bold text-home-text"
+                                  selectable
+                                  style={dynamicType.body}
+                                >
+                                  {pairingState.token}
+                                </Text>
+                              ) : (
+                                <Text
+                                  allowFontScaling={false}
+                                  className="text-home-muted"
+                                  style={dynamicType.body}
+                                >
+                                  This token was already shown. Create a new
+                                  token to pair a device.
+                                </Text>
+                              )}
+                              <Text
+                                allowFontScaling={false}
+                                className="text-home-muted"
+                                style={dynamicType.small}
+                              >
+                                Expires
+                                {new Date(
+                                  pairingState.expiresAt,
+                                ).toLocaleString()}
+                              </Text>
+                            </View>
+                          ) : null}
+                          {pairingState.status === 'error' &&
+                          pairingState.childUid === child.uid ? (
+                            <FormMessage message={pairingState.message} />
+                          ) : null}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
+              <ReminderPreferenceCard
+                label="Pending reward reminders"
+                enabled={reminder.state.enabled}
+                busy={reminder.state.busy}
+                fromCache={reminder.state.fromCache}
+                error={reminder.state.error}
+                onChange={(enabled) => {
+                  void reminder.save(enabled);
+                }}
+              />
+              <NotificationPermissionCard
+                benefit="Get updates when your child responds to an offer or submits work for review."
+                education={education.showEducation}
+                busy={
+                  notifications.state.status === 'loading' ||
+                  notifications.state.status === 'checking'
+                }
+                registered={notifications.state.status === 'registered'}
+                quiet={notifications.state.permission?.quiet}
+                error={
+                  notifications.state.status === 'error'
+                    ? getNotificationErrorMessage(notifications.state.error)
+                    : undefined
+                }
+                settingsRequired={
+                  notifications.state.permission?.status === 'denied' &&
+                  notifications.state.permission.canAskAgain === false
+                }
+                onEnable={enableNotifications}
+                onSkip={education.skip}
+                onSettings={() => {
+                  void Linking.openSettings().catch(() => undefined);
+                }}
+              />
+            </HomeSection>
           </View>
         ) : null}
 
@@ -587,6 +567,6 @@ export default function AuthenticatedHomeScreen() {
           </View>
         ) : null}
       </View>
-    </Screen>
+    </HomeScreenFrame>
   );
 }

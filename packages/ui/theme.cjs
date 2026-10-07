@@ -27,4 +27,20 @@ const amberAuroraColors = Object.freeze({
   focus: amberAuroraPalette.auroraBlue,
 });
 
-module.exports = { amberAuroraColors, amberAuroraPalette };
+const homeTokens = {
+  app: '#FFF9F4',
+  surface: '#FFFDFA',
+  text: '#211A3B',
+  secondary: '#668096',
+  coral: '#E95240',
+  coralSurface: '#FFEAE4',
+  mint: '#E7F5EE',
+  blue: '#E8F1FF',
+  lavender: '#F0EAFA',
+  border: '#F0E5DD',
+  success: '#299D7E',
+  spacing: { small: 8, medium: 12, card: 16, section: 24 },
+  radius: { card: 20, pill: 999 },
+};
+
+module.exports = { amberAuroraColors, amberAuroraPalette, homeTokens };

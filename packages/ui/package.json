@@ -14,22 +14,25 @@
     "test": "jest --config ../../jest.config.cjs --rootDir . --passWithNoTests --runInBand"
   },
   "devDependencies": {
-    "typescript": "6.0.3",
     "@chorex/config": "workspace:*",
+    "@react-native/metro-config": "0.86.3",
+    "@types/react": "19.2.18",
+    "nativewind": "4.2.7",
     "react": "19.2.3",
     "react-native": "0.86.3",
-    "nativewind": "4.2.7",
-    "@types/react": "19.2.18",
-    "@react-native/metro-config": "0.86.3",
-    "react-native-css-interop": "0.2.7"
+    "react-native-css-interop": "0.2.7",
+    "typescript": "6.0.3",
+    "react-native-safe-area-context": "5.7.0"
   },
   "peerDependencies": {
+    "nativewind": "4.2.7",
     "react": "19.2.3",
     "react-native": "0.86.3",
-    "nativewind": "4.2.7",
-    "react-native-css-interop": "0.2.7"
+    "react-native-css-interop": "0.2.7",
+    "react-native-safe-area-context": "5.7.0"
   },
   "dependencies": {
-    "@chorex/domain": "workspace:*"
+    "@chorex/domain": "workspace:*",
+    "@expo/vector-icons": "15.1.1"
   }
 }

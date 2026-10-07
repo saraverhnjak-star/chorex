@@ -163,6 +163,7 @@ const mockRemoveCurrentDeviceRegistration = jest
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 
 jest.mock('@chorex/firebase-client', () => ({
+  useContractDetail: () => ({ status: 'loading' }),
   useReminderPreference: () => ({
     state: { enabled: true, busy: false },
     save: jest.fn(),
@@ -249,10 +250,8 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     'AbCdEfGhIjKlMnOpQrStUw',
   );
   fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
-  expect(await screen.findByText('Rivera Family')).toBeOnTheScreen();
-  expect(
-    screen.getByText('Welcome, Mia. Your family is ready.'),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText('Hi, Mia!')).toBeOnTheScreen();
+  expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen();
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Accept offer' }));
@@ -289,12 +288,8 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
       <HomeScreen />
     </ChildSessionProvider>,
   );
-  await waitFor(() =>
-    expect(screen.getByText('Rivera Family')).toBeOnTheScreen(),
-  );
-  expect(
-    screen.getByText('Welcome, Mia. Your family is ready.'),
-  ).toBeOnTheScreen();
+  await waitFor(() => expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen());
+  expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen();
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));
   expect(screen.getByText('Reject this offer?')).toBeOnTheScreen();

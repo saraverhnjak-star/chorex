@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { HomeContractRow } from './HomeContractRow';
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useActiveContracts } from '@chorex/firebase-client';
@@ -13,15 +15,16 @@ export function ActiveContracts({
   childNames?: Readonly<Record<string, string>>;
 }) {
   const state = useActiveContracts(familyId, authUid);
+  const [expanded, setExpanded] = useState(false);
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   return (
-    <View className="gap-4 rounded-3xl border border-border bg-surface-warm p-5">
+    <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
       <Text
         allowFontScaling={false}
         accessibilityRole="header"
-        className="font-bold text-text"
-        style={styles.title}
+        className="font-bold text-home-text"
+        style={[styles.body, { fontSize: 21 }]}
       >
         Active Contracts
       </Text>
@@ -29,7 +32,7 @@ export function ActiveContracts({
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
-          className="text-text-muted"
+          className="text-home-muted"
           style={styles.body}
         >
           Loading Contracts…
@@ -43,7 +46,7 @@ export function ActiveContracts({
           {state.fromCache ? (
             <Text
               allowFontScaling={false}
-              className="text-text-muted"
+              className="text-home-muted"
               style={styles.small}
             >
               Showing saved data. Updates may be pending.
@@ -52,7 +55,7 @@ export function ActiveContracts({
           {state.contracts.length === 0 ? (
             <Text
               allowFontScaling={false}
-              className="text-text-muted"
+              className="text-home-muted"
               style={styles.body}
             >
               {state.fromCache
@@ -60,20 +63,34 @@ export function ActiveContracts({
                 : 'No active Contracts yet.'}
             </Text>
           ) : (
-            state.contracts.map((contract) => (
-              <Button
-                key={contract.id}
-                label={`Open Contract: ${childNames[contract.childUid] ? `${childNames[contract.childUid]} · ` : ''}${contract.rewardTerms.title}`}
-                variant="secondary"
-                onPress={() =>
-                  router.push({
-                    pathname: '/contracts/[contractId]',
-                    params: { contractId: contract.id },
-                  })
-                }
-              />
-            ))
+            (expanded ? state.contracts : state.contracts.slice(0, 2)).map(
+              (contract) => (
+                <HomeContractRow
+                  key={contract.id}
+                  contract={contract}
+                  authUid={authUid}
+                  childName={childNames[contract.childUid]}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/contracts/[contractId]',
+                      params: { contractId: contract.id },
+                    })
+                  }
+                />
+              ),
+            )
           )}
+          {state.contracts.length > 2 ? (
+            <Button
+              label={
+                expanded
+                  ? 'Show fewer Contracts'
+                  : `View all Contracts (${state.contracts.length})`
+              }
+              variant="secondary"
+              onPress={() => setExpanded((value) => !value)}
+            />
+          ) : null}
         </>
       ) : null}
     </View>

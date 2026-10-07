@@ -833,3 +833,44 @@ it('distinguishes the current request from historical context and adds no histor
   for (const name of ['Edit feedback', 'Reply', 'Acknowledge', 'Delete review'])
     expect(screen.queryByRole('button', { name })).not.toBeOnTheScreen();
 });
+
+it('keeps every Contract reachable when Home shows a compact preview', () => {
+  render(<ActiveContracts familyId="family-1" authUid="child-1" />);
+  const third = {
+    ...contract,
+    id: 'contract-3',
+    rewardTerms: {
+      ...contract.rewardTerms,
+      title: 'A longer family reward title that wraps across the Home row',
+    },
+  };
+  act(() =>
+    mockList({
+      data: [contract, { ...contract, id: 'contract-2' }, third],
+      fromCache: false,
+    }),
+  );
+  expect(
+    screen.queryByRole('button', {
+      name: `Open Contract: ${third.rewardTerms.title}`,
+    }),
+  ).toBeNull();
+  fireEvent.press(
+    screen.getByRole('button', { name: 'View all Contracts (3)' }),
+  );
+  fireEvent.press(
+    screen.getByRole('button', {
+      name: `Open Contract: ${third.rewardTerms.title}`,
+    }),
+  );
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/contracts/[contractId]',
+    params: { contractId: 'contract-3' },
+  });
+  fireEvent.press(screen.getByRole('button', { name: 'Show fewer Contracts' }));
+  expect(
+    screen.queryByRole('button', {
+      name: `Open Contract: ${third.rewardTerms.title}`,
+    }),
+  ).toBeNull();
+});

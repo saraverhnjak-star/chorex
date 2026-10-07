@@ -9,6 +9,7 @@ import {
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
 import {
+  CountBadge,
   Button,
   FormMessage,
   amberAuroraColors,
@@ -193,19 +194,22 @@ export function ParentNegotiationInbox({
       : { subscriptionKey, status: 'loading' };
 
   return (
-    <View className="gap-4 rounded-3xl border border-border bg-surface-warm p-5">
+    <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
       <View className="gap-2">
         <Text
           allowFontScaling={false}
           accessibilityRole="header"
-          className="font-bold text-text"
-          style={dynamicType.title}
+          className="font-bold text-home-text"
+          style={[dynamicType.body, { fontSize: 21 }]}
         >
           Counteroffers
         </Text>
+        {displayedState.status === 'ready' ? (
+          <CountBadge count={displayedState.items.length} />
+        ) : null}
         <Text
           allowFontScaling={false}
-          className="text-text-muted"
+          className="text-home-muted"
           style={dynamicType.body}
         >
           Reward changes waiting for your response.
@@ -216,7 +220,7 @@ export function ParentNegotiationInbox({
         <Text
           accessibilityRole="alert"
           accessibilityLiveRegion="polite"
-          className="text-text"
+          className="text-home-text"
           style={dynamicType.body}
         >
           {message}
@@ -231,7 +235,7 @@ export function ParentNegotiationInbox({
           />
           <Text
             allowFontScaling={false}
-            className="mt-3 text-text-muted"
+            className="mt-3 text-home-muted"
             style={dynamicType.body}
           >
             Loading counteroffers…
@@ -253,7 +257,7 @@ export function ParentNegotiationInbox({
       displayedState.items.length === 0 ? (
         <Text
           allowFontScaling={false}
-          className="text-text-muted"
+          className="text-home-muted"
           style={dynamicType.body}
         >
           No counteroffers are waiting for you.
@@ -270,19 +274,19 @@ export function ParentNegotiationInbox({
                 ?.displayName ?? 'Child profile unavailable';
             return (
               <View
-                className="gap-3 rounded-2xl border border-border bg-background p-4"
+                className="gap-3 rounded-2xl border border-home-border bg-background p-4"
                 key={offer.id}
               >
                 <Text
                   allowFontScaling={false}
-                  className="font-semibold text-text"
+                  className="font-semibold text-home-text"
                   style={dynamicType.body}
                 >
                   {childName}
                 </Text>
                 <Text
                   allowFontScaling={false}
-                  className="font-semibold text-text"
+                  className="font-semibold text-home-text"
                   style={dynamicType.body}
                 >
                   Status: Awaiting parent
@@ -291,14 +295,14 @@ export function ParentNegotiationInbox({
                 <View className="gap-1">
                   <Text
                     allowFontScaling={false}
-                    className="font-semibold text-text"
+                    className="font-semibold text-home-text"
                     style={dynamicType.body}
                   >
                     Proposed reward
                   </Text>
                   <Text
                     allowFontScaling={false}
-                    className="text-text-muted"
+                    className="text-home-muted"
                     style={dynamicType.body}
                   >
                     {revision.reward.title} · {revision.reward.type}
@@ -306,7 +310,7 @@ export function ParentNegotiationInbox({
                   {revision.reward.description ? (
                     <Text
                       allowFontScaling={false}
-                      className="text-text-muted"
+                      className="text-home-muted"
                       style={dynamicType.body}
                     >
                       {revision.reward.description}
@@ -318,14 +322,14 @@ export function ParentNegotiationInbox({
                   <View className="gap-1">
                     <Text
                       allowFontScaling={false}
-                      className="font-semibold text-text"
+                      className="font-semibold text-home-text"
                       style={dynamicType.body}
                     >
                       Child note
                     </Text>
                     <Text
                       allowFontScaling={false}
-                      className="text-text-muted"
+                      className="text-home-muted"
                       style={dynamicType.body}
                     >
                       {revision.note}
@@ -336,7 +340,7 @@ export function ParentNegotiationInbox({
                 <View className="gap-1">
                   <Text
                     allowFontScaling={false}
-                    className="font-semibold text-text"
+                    className="font-semibold text-home-text"
                     style={dynamicType.body}
                   >
                     Tasks
@@ -344,7 +348,7 @@ export function ParentNegotiationInbox({
                   {revision.tasks.map((task, index) => (
                     <Text
                       allowFontScaling={false}
-                      className="text-text-muted"
+                      className="text-home-muted"
                       key={`${offer.id}-task-${index}`}
                       style={dynamicType.body}
                     >
@@ -355,7 +359,7 @@ export function ParentNegotiationInbox({
 
                 <Text
                   allowFontScaling={false}
-                  className="text-text-muted"
+                  className="text-home-muted"
                   style={dynamicType.body}
                 >
                   Deadline: {formatDeadline(revision.deadlineAt)}
@@ -366,7 +370,7 @@ export function ParentNegotiationInbox({
                       allowFontScaling={false}
                       accessibilityRole="alert"
                       accessibilityLiveRegion="assertive"
-                      className="text-text"
+                      className="text-home-text"
                       style={dynamicType.body}
                     >
                       Rejecting this counteroffer ends this Offer negotiation.
@@ -396,7 +400,7 @@ export function ParentNegotiationInbox({
                   <View className="gap-3">
                     <Text
                       accessibilityLiveRegion="polite"
-                      className="text-text"
+                      className="text-home-text"
                       style={dynamicType.body}
                     >
                       Accept these tasks, reward and deadline? This creates an

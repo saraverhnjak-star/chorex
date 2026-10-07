@@ -1,8 +1,7 @@
 import { Text, View } from 'react-native';
 import type { EarnedReward } from '@chorex/domain';
-import { Button } from './Button';
 import { FormMessage } from './FormMessage';
-import { RewardSummary } from './RewardSummary';
+import { HomeListRow, SectionHeading } from './Home';
 import { useDynamicTypeStyles } from './typography';
 export function RewardList({
   title,
@@ -25,15 +24,8 @@ export function RewardList({
 }) {
   const styles = useDynamicTypeStyles();
   return (
-    <View className="gap-4 rounded-3xl border border-border bg-surface-warm p-5">
-      <Text
-        allowFontScaling={false}
-        accessibilityRole="header"
-        style={styles.title}
-        className="font-bold text-text"
-      >
-        {title}
-      </Text>
+    <View className="gap-4 rounded-3xl border border-border bg-home-surface p-5">
+      <SectionHeading>{title}</SectionHeading>
       {loading ? (
         <Text
           allowFontScaling={false}
@@ -66,17 +58,14 @@ export function RewardList({
         </Text>
       ) : null}
       {rewards.map((reward) => (
-        <View key={reward.id} className="gap-2">
-          <RewardSummary
-            reward={reward}
-            childName={childNames[reward.childUid]}
-          />
-          <Button
-            variant="secondary"
-            label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
-            onPress={() => onSelect(reward.id)}
-          />
-        </View>
+        <HomeListRow
+          icon="gift-outline"
+          key={reward.id}
+          title={reward.terms.title}
+          detail={`${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.status === 'FULFILLED' ? 'Fulfilled — receipt confirmed' : reward.status === 'AWAITING_CHILD_CONFIRMATION' ? 'Parent reported delivery — waiting for child confirmation' : 'Earned — waiting for Parent delivery'}`}
+          label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
+          onPress={() => onSelect(reward.id)}
+        />
       ))}
     </View>
   );

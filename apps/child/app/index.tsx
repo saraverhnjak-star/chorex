@@ -1,4 +1,9 @@
+import { ChildHomeSummary } from '../src/ChildHomeSummary';
 import {
+  HomeScreenFrame,
+  HomeSection,
+  HomeHeader,
+  HomeGreeting,
   ReminderPreferenceCard,
   Button,
   NotificationPermissionCard,
@@ -114,24 +119,16 @@ export default function HomeScreen() {
 
   if (session.user) {
     return (
-      <Screen>
-        <View className="flex-1 justify-center py-12">
-          <Text
-            allowFontScaling={false}
-            className="font-semibold uppercase tracking-widest text-text-muted"
-            style={dynamicType.small}
-          >
-            Child app
-          </Text>
-          <Text
-            allowFontScaling={false}
-            accessibilityRole="header"
-            className="mt-2 font-bold text-text"
-            style={dynamicType.title}
-          >
-            ChoreX Child
-          </Text>
-
+      <HomeScreenFrame child>
+        <View>
+          <HomeHeader
+            child
+            name={
+              familyState.status === 'ready'
+                ? familyState.home.profile.displayName
+                : 'Child'
+            }
+          />
           {familyState.status === 'loading' ? (
             <View className="items-center py-12">
               <ActivityIndicator
@@ -141,7 +138,7 @@ export default function HomeScreen() {
               />
               <Text
                 allowFontScaling={false}
-                className="mt-4 text-text-muted"
+                className="mt-4 text-home-muted"
                 style={dynamicType.body}
               >
                 Loading your family…
@@ -157,73 +154,67 @@ export default function HomeScreen() {
           ) : null}
 
           {familyState.status === 'ready' ? (
-            <View className="mt-8 gap-5">
-              <View className="rounded-3xl border border-border bg-surface-warm p-5">
-                <Text
-                  allowFontScaling={false}
-                  className="font-bold text-text"
-                  style={dynamicType.title}
-                >
-                  {familyState.home.family.name}
-                </Text>
-                <Text
-                  allowFontScaling={false}
-                  className="mt-3 text-text-muted"
-                  style={dynamicType.body}
-                >
-                  Welcome, {familyState.home.profile.displayName}. Your family
-                  is ready.
-                </Text>
-              </View>
-
-              <EarnedRewards
-                familyId={familyState.home.family.id}
-                authUid={session.user.uid}
-              />
-              <ActiveContracts
+            <View className="gap-5">
+              <HomeGreeting child name={familyState.home.profile.displayName} />
+              <ChildHomeSummary
                 familyId={familyState.home.family.id}
                 authUid={session.user.uid}
               />
 
-              <OfferInbox
-                authUid={session.user.uid}
-                familyId={familyState.home.family.id}
-              />
-
-              <ReminderPreferenceCard
-                label="Deadline reminders"
-                enabled={reminder.state.enabled}
-                busy={reminder.state.busy}
-                fromCache={reminder.state.fromCache}
-                error={reminder.state.error}
-                onChange={(enabled) => {
-                  void reminder.save(enabled);
-                }}
-              />
-              <NotificationPermissionCard
-                benefit="Get updates when you receive new offers or your Parent reviews your work."
-                education={education.showEducation}
-                busy={
-                  notifications.state.status === 'loading' ||
-                  notifications.state.status === 'checking'
-                }
-                registered={notifications.state.status === 'registered'}
-                quiet={notifications.state.permission?.quiet}
-                error={
-                  notifications.state.status === 'error'
-                    ? getNotificationErrorMessage(notifications.state.error)
-                    : undefined
-                }
-                settingsRequired={
-                  notifications.state.permission?.status === 'denied' &&
-                  notifications.state.permission.canAskAgain === false
-                }
-                onEnable={enableNotifications}
-                onSkip={education.skip}
-                onSettings={() => {
-                  void Linking.openSettings().catch(() => undefined);
-                }}
-              />
+              <HomeSection id="contracts">
+                <ActiveContracts
+                  familyId={familyState.home.family.id}
+                  authUid={session.user.uid}
+                />
+              </HomeSection>
+              <HomeSection id="offers">
+                <OfferInbox
+                  authUid={session.user.uid}
+                  familyId={familyState.home.family.id}
+                />
+              </HomeSection>
+              <HomeSection id="rewards">
+                <EarnedRewards
+                  familyId={familyState.home.family.id}
+                  authUid={session.user.uid}
+                />
+              </HomeSection>
+              <HomeSection id="more">
+                <ReminderPreferenceCard
+                  label="Deadline reminders"
+                  enabled={reminder.state.enabled}
+                  busy={reminder.state.busy}
+                  fromCache={reminder.state.fromCache}
+                  error={reminder.state.error}
+                  onChange={(enabled) => {
+                    void reminder.save(enabled);
+                  }}
+                />
+                <NotificationPermissionCard
+                  benefit="Get updates when you receive new offers or your Parent reviews your work."
+                  education={education.showEducation}
+                  busy={
+                    notifications.state.status === 'loading' ||
+                    notifications.state.status === 'checking'
+                  }
+                  registered={notifications.state.status === 'registered'}
+                  quiet={notifications.state.permission?.quiet}
+                  error={
+                    notifications.state.status === 'error'
+                      ? getNotificationErrorMessage(notifications.state.error)
+                      : undefined
+                  }
+                  settingsRequired={
+                    notifications.state.permission?.status === 'denied' &&
+                    notifications.state.permission.canAskAgain === false
+                  }
+                  onEnable={enableNotifications}
+                  onSkip={education.skip}
+                  onSettings={() => {
+                    void Linking.openSettings().catch(() => undefined);
+                  }}
+                />
+              </HomeSection>
             </View>
           ) : null}
 
@@ -237,7 +228,7 @@ export default function HomeScreen() {
             />
           </View>
         </View>
-      </Screen>
+      </HomeScreenFrame>
     );
   }
 

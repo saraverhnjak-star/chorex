@@ -43,7 +43,9 @@ beforeEach(() => jest.clearAllMocks());
 it('earned Rewards distinguish pending from delivered and update without Child mutations', () => {
   render(<EarnedRewards familyId="family-1" authUid="child-1" />);
   act(() => mockList({ data: [reward], fromCache: true }));
-  expect(screen.getByText('Earned — waiting for Parent')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Earned — waiting for Parent delivery'),
+  ).toBeOnTheScreen();
   expect(screen.queryByText('Fulfilled — receipt confirmed')).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Open reward: Cinema' }));
   expect(mockPush).toHaveBeenCalledWith({
@@ -72,9 +74,7 @@ it('earned Rewards distinguish pending from delivered and update without Child m
     screen.queryByRole('button', { name: 'Mark as fulfilled' }),
   ).toBeNull();
   expect(
-    screen.getByText(
-      `Fulfilled: ${new Date(reward.earnedAt).toLocaleString()}`,
-    ),
+    screen.getByRole('button', { name: 'Open reward: Cinema' }),
   ).toBeOnTheScreen();
 });
 it('empty/error/cache state and scoped listener cleanup cannot retain another family Reward', () => {

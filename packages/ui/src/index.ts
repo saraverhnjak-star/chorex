@@ -23,3 +23,16 @@ export { NotificationPermissionCard } from './NotificationPermissionCard';
 export { ReminderPreferenceCard } from './ReminderPreferenceCard';
 
 export { RewardTransitionAction } from './RewardTransitionAction';
+
+export {
+  CountBadge,
+  HomeScreenFrame,
+  HomeSection,
+  HomeHeader,
+  HomeGreeting,
+  QuickActions,
+  SectionHeading,
+  SummaryMetric,
+  HomeListRow,
+  homeTokens,
+} from './Home';

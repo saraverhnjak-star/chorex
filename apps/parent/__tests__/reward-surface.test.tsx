@@ -88,9 +88,15 @@ it('renders multiple obligations and empty/cache/error states; realtime removes 
   expect(
     screen.getByRole('header', { name: 'Rewards to deliver' }),
   ).toBeOnTheScreen();
-  expect(screen.getByText('Reward for Mia')).toBeOnTheScreen();
-  expect(screen.getByText('Reward for Leo')).toBeOnTheScreen();
-  expect(screen.getAllByText('Earned — waiting for Parent')).toHaveLength(2);
+  expect(
+    screen.getByRole('button', { name: 'Open reward: Mia · Cinema' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'Open reward: Leo · Park' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getAllByText(/Earned — waiting for Parent delivery/),
+  ).toHaveLength(2);
   fireEvent.press(
     screen.getByRole('button', { name: 'Open reward: Mia · Cinema' }),
   );

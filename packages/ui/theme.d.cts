@@ -29,3 +29,19 @@ export type AmberAuroraColors = Readonly<{
 
 export const amberAuroraPalette: AmberAuroraPalette;
 export const amberAuroraColors: AmberAuroraColors;
+
+export const homeTokens: Readonly<{
+  app: string;
+  surface: string;
+  text: string;
+  secondary: string;
+  coral: string;
+  coralSurface: string;
+  mint: string;
+  blue: string;
+  lavender: string;
+  border: string;
+  success: string;
+  spacing: { small: number; medium: number; card: number; section: number };
+  radius: { card: number; pill: number };
+}>;
