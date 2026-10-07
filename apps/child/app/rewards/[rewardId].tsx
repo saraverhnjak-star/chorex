@@ -15,13 +15,16 @@ export default function RewardScreen() {
   if (!session.user) return <Redirect href="/" />;
   const id = typeof rewardId === 'string' ? rewardId : '';
   return (
-    <Screen>
+    <Screen design>
       <View className="gap-5">
         <Text
           allowFontScaling={false}
           accessibilityRole="header"
-          className="font-bold text-text"
-          style={styles.title}
+          className="font-bold text-home-text"
+          style={{
+            ...styles.title,
+            lineHeight: Number(styles.title.fontSize) * 1.35,
+          }}
         >
           Reward
         </Text>
@@ -32,7 +35,7 @@ export default function RewardScreen() {
         />
         <Button
           label="Back to home"
-          variant="secondary"
+          variant="outline"
           onPress={() => router.replace('/')}
         />
       </View>

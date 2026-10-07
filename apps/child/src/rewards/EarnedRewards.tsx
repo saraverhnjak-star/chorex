@@ -13,7 +13,7 @@ export function EarnedRewards({
   return (
     <RewardList
       title="Earned rewards"
-      empty="No earned rewards yet"
+      empty="No rewards yet"
       loading={state.status === 'loading'}
       error={state.status === 'error'}
       fromCache={state.status === 'ready' && state.fromCache}

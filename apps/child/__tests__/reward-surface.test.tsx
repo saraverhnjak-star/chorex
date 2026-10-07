@@ -42,11 +42,34 @@ const reward = {
 beforeEach(() => jest.clearAllMocks());
 it('earned Rewards distinguish pending from delivered and update without Child mutations', () => {
   render(<EarnedRewards familyId="family-1" authUid="child-1" />);
-  act(() => mockList({ data: [reward], fromCache: true }));
+  act(() =>
+    mockList({
+      data: [
+        reward,
+        {
+          ...reward,
+          id: 'reward-2',
+          terms: { ...reward.terms, title: 'Park' },
+          status: 'AWAITING_CHILD_CONFIRMATION',
+          deliveredAt: reward.earnedAt,
+          deliveredBy: 'parent-1',
+        },
+      ],
+      fromCache: true,
+    }),
+  );
+  expect(screen.getByText('Waiting for Parent delivery')).toBeOnTheScreen();
+  expect(screen.queryByText('Received')).toBeNull();
   expect(
-    screen.getByText('Earned — waiting for Parent delivery'),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText('Fulfilled — receipt confirmed')).toBeNull();
+    screen
+      .getAllByRole('button')
+      .map((button) => button.props.accessibilityLabel),
+  ).toEqual(['Open reward: Park', 'Open reward: Cinema']);
+  fireEvent.press(screen.getByRole('button', { name: 'Open reward: Park' }));
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: '/rewards/[rewardId]',
+    params: { rewardId: 'reward-2' },
+  });
   fireEvent.press(screen.getByRole('button', { name: 'Open reward: Cinema' }));
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/rewards/[rewardId]',
@@ -68,7 +91,7 @@ it('earned Rewards distinguish pending from delivered and update without Child m
       fromCache: false,
     }),
   );
-  expect(screen.getByText('Fulfilled — receipt confirmed')).toBeOnTheScreen();
+  expect(screen.getAllByText('Received').length).toBeGreaterThan(0);
   expect(screen.queryByText('Earned — waiting for Parent')).toBeNull();
   expect(
     screen.queryByRole('button', { name: 'Mark as fulfilled' }),
@@ -80,7 +103,7 @@ it('earned Rewards distinguish pending from delivered and update without Child m
 it('empty/error/cache state and scoped listener cleanup cannot retain another family Reward', () => {
   const view = render(<EarnedRewards familyId="family-1" authUid="child-1" />);
   act(() => mockList({ data: [], fromCache: false }));
-  expect(screen.getByText('No earned rewards yet')).toBeOnTheScreen();
+  expect(screen.getByText('No rewards yet')).toBeOnTheScreen();
   const old = mockList;
   view.rerender(<EarnedRewards familyId="family-2" authUid="child-2" />);
   expect(mockStop).toHaveBeenCalled();
@@ -112,7 +135,7 @@ it('Child detail shows frozen terms/status/timestamps and never exposes Parent c
       fromCache: false,
     }),
   );
-  expect(screen.getByText('Fulfilled — receipt confirmed')).toBeOnTheScreen();
+  expect(screen.getAllByText('Received').length).toBeGreaterThan(0);
 });
 
 it('assigned Child explicitly confirms receipt, preserves retry key and waits for backend', async () => {
