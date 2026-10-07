@@ -160,3 +160,5 @@ export {
   type FulfillRewardInputValue,
   type FulfillRewardOutput,
 } from './review';
+
+export * from './device';

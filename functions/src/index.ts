@@ -1,3 +1,4 @@
+import { generateContractDeadlineReminders } from './contractDeadlineReminders';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { processPushReceipts, getExpoReceipts } from './pushReceipts';
 import {
@@ -25,7 +26,7 @@ import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { createHmac } from 'node:crypto';
-import { defineSecret } from 'firebase-functions/params';
+import { defineBoolean, defineSecret } from 'firebase-functions/params';
 import { warn } from 'firebase-functions/logger';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import {
@@ -431,5 +432,23 @@ export const processExpoPushReceipts = onSchedule(
     // Local integration explicitly injects deterministic receipt fakes; no live Expo calls.
     if (process.env.FIRESTORE_EMULATOR_HOST) return;
     await processPushReceipts(firestore, getExpoReceipts);
+  },
+);
+
+// Operational release gate, not a user preference/default. Policy remains undecided.
+const deadlineRemindersEnabled = defineBoolean(
+  'CONTRACT_DEADLINE_REMINDERS_ENABLED',
+  { default: false },
+);
+export const generateDeadlineReminders = onSchedule(
+  {
+    schedule: 'every 60 minutes',
+    timeZone: 'UTC',
+    timeoutSeconds: 120,
+    maxInstances: 1,
+  },
+  async () => {
+    if (!deadlineRemindersEnabled.value()) return;
+    await generateContractDeadlineReminders(firestore);
   },
 );

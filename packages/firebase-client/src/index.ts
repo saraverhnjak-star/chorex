@@ -1,3 +1,4 @@
+import { pushDeviceMetadataSchema } from '@chorex/domain';
 import { deserializeReward } from './rewardReadModel';
 import {
   ContractReadError,
@@ -20,6 +21,8 @@ import {
   type User,
 } from '@react-native-firebase/auth';
 import {
+  runTransaction,
+  serverTimestamp,
   collection,
   connectFirestoreEmulator,
   doc,
@@ -1594,4 +1597,53 @@ export function observeContractReviews(
   } catch (error) {
     throw translateContractReadError(error);
   }
+}
+
+// The documented exception: strict self-owned auxiliary push registrations.
+function currentPushDeviceReference(
+  expectedUid: string,
+  installationId: string,
+) {
+  if (getInitializedAuth().currentUser?.uid !== expectedUid)
+    throw new Error('AUTH_REQUIRED');
+  if (!/^[A-Za-z0-9_-]{1,128}$/u.test(installationId))
+    throw new Error('INVALID_DEVICE_ID');
+  return doc(
+    getInitializedFirestore(),
+    'users',
+    expectedUid,
+    'devices',
+    installationId,
+  );
+}
+export async function upsertCurrentPushDevice(
+  expectedUid: string,
+  installationId: string,
+  metadata: unknown,
+): Promise<void> {
+  const data = pushDeviceMetadataSchema.parse(metadata);
+  const reference = currentPushDeviceReference(expectedUid, installationId);
+  await runTransaction(getInitializedFirestore(), async (transaction) => {
+    const existing = await transaction.get(reference);
+    currentPushDeviceReference(expectedUid, installationId);
+    transaction.set(reference, {
+      ...data,
+      createdAt: existing.exists()
+        ? existing.data().createdAt
+        : serverTimestamp(),
+      lastSeenAt: serverTimestamp(),
+    });
+  });
+}
+export async function deleteCurrentPushDevice(
+  expectedUid: string,
+  installationId: string,
+): Promise<void> {
+  const reference = currentPushDeviceReference(expectedUid, installationId);
+  // A transaction requires backend confirmation rather than a queued offline deletion.
+  await runTransaction(getInitializedFirestore(), async (transaction) => {
+    const existing = await transaction.get(reference);
+    currentPushDeviceReference(expectedUid, installationId);
+    if (existing.exists()) transaction.delete(reference);
+  });
 }

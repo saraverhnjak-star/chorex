@@ -1,3 +1,5 @@
+import { useDeviceRegistrationLifecycle as mockUseDeviceRegistrationLifecycle } from '@chorex/notifications';
+import { useState as mockUseState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { createPairingSession } from '@chorex/firebase-client';
 import HomeScreen from '../app/(app)/index';
@@ -147,6 +149,30 @@ jest.mock('@chorex/firebase-client', () => ({
 }));
 
 jest.mock('@chorex/notifications', () => ({
+  useNotificationEducation: () => {
+    const [showEducation, setShowEducation] = mockUseState(true);
+    return {
+      showEducation,
+      skip: () => setShowEducation(false),
+      revisit: () => setShowEducation(true),
+    };
+  },
+  useDeviceRegistrationLifecycle: (variant: string) => {
+    const [state, setState] = mockUseState({
+      status: 'off',
+      permission: { status: 'undetermined', granted: false },
+    });
+    return {
+      state,
+      enable: async () => {
+        await mockRegisterCurrentDevice(variant);
+        setState({
+          status: 'registered',
+          permission: { status: 'granted', granted: true },
+        });
+      },
+    };
+  },
   registerCurrentDevice: (...args: unknown[]) =>
     mockRegisterCurrentDevice(...args),
 }));
@@ -154,6 +180,7 @@ jest.mock('@chorex/notifications', () => ({
 jest.mock('../src/auth/session', () => ({
   useParentSession: () => ({
     user: { uid: 'parent-test-uid', email: 'parent@example.invalid' },
+    notifications: mockUseDeviceRegistrationLifecycle('PARENT'),
     signOut: jest.fn(),
   }),
 }));
@@ -180,6 +207,17 @@ it('renders the parent screen through the public shared UI package', async () =>
     screen.getByText('Welcome, Alex. Family setup is complete.'),
   ).toBeOnTheScreen();
   expect(screen.getAllByText('Mia')).toHaveLength(2);
+  expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
+  expect(
+    screen.getByText(
+      'Notifications are off. You can keep using ChoreX normally.',
+    ),
+  ).toBeOnTheScreen();
+  expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
+  // Explicit entry shows the explanation again before requesting the OS prompt.
+  fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
+  expect(screen.getByRole('button', { name: 'Not now' })).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('PARENT');
   fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));

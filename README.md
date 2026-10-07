@@ -116,6 +116,18 @@ Xcode/iOS Simulator toolchain or Android SDK/device/emulator; once available,
 configured development client. Generated `ios/`, `android/`, `.expo/`, and `dist/`
 outputs are excluded from Git.
 
+For real Expo push registration, set the existing project IDs in each app's
+`.env.local`: `EXPO_PUBLIC_PARENT_EAS_PROJECT_ID` for Parent and
+`EXPO_PUBLIC_CHILD_EAS_PROJECT_ID` for Child. Both `app.config.ts` files read
+these values into `extra.eas.projectId`. After adding/changing native notification
+configuration, run `pnpm exec expo prebuild --platform ios` and
+`pnpm exec expo run:ios` from each app directory, **one app at a time**. Restarting
+Metro alone does not refresh an installed binary's embedded Expo configuration.
+The existing `expo-notifications` plugin adds the development `aps-environment`
+entitlement during prebuild; its absence causes native APNs token acquisition to
+fail. With existing Metro servers, use `--no-bundler` for the build and open
+Child against port 8082 afterward (the CLI's no-bundler launch defaults to 8081).
+
 Temporary local-development identities (not production identifiers):
 
 | App    | Name          | Slug / scheme | iOS bundle ID / Android package |

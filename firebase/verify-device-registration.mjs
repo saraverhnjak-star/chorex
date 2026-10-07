@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import {
   assertFails,
   assertSucceeds,
@@ -11,9 +13,15 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
+  runTransaction,
   setDoc,
   updateDoc,
 } from 'firebase/firestore';
+
+const loadCore = createRequire(import.meta.url)(
+  '../packages/notifications/tests/load-typescript.cjs',
+);
+const { createRegistrationSessionCoordinator } = loadCore('../src/core.ts');
 
 const projectId = 'chorex-dev';
 if (process.env.GCLOUD_PROJECT !== projectId) {
@@ -124,6 +132,113 @@ try {
     deleteDoc(
       doc(otherFirestore, `users/${ownerUid}/devices/${installationId}`),
     ),
+  );
+  // Exercise the real shared lifecycle with deterministic OS/token dependencies
+  // and authenticated Firestore transactions under the existing owner Rules.
+  let uid = ownerUid;
+  let permission = {
+    status: 'undetermined',
+    granted: false,
+    canAskAgain: true,
+  };
+  let storedId = null;
+  let tokenGeneration = 1;
+  let prompts = 0;
+  const databases = new Map([
+    [ownerUid, ownerFirestore],
+    [otherUid, otherFirestore],
+  ]);
+  const coordinator = createRegistrationSessionCoordinator({
+    getAuthenticatedUid: () => uid,
+    getPermission: async () => permission,
+    requestPermission: async () => {
+      prompts++;
+      permission = { status: 'granted', granted: true, canAskAgain: true };
+      return permission;
+    },
+    prepareAndroidChannel: async () => {},
+    getProjectId: () => 'token-double-dependency',
+    getAppVersion: () => '1.2.3',
+    getPlatform: () => 'ios',
+    getExpoPushToken: async () => `ExpoPushToken[lifecycle-${tokenGeneration}]`,
+    getInstallationId: async () => storedId,
+    createInstallationId: () => installationId,
+    setInstallationId: async (id) => {
+      storedId = id;
+    },
+    upsertDevice: async (expectedUid, id, metadata) => {
+      assert.equal(uid, expectedUid);
+      const database = databases.get(expectedUid);
+      const reference = doc(database, `users/${expectedUid}/devices/${id}`);
+      await runTransaction(database, async (transaction) => {
+        const existing = await transaction.get(reference);
+        assert.equal(uid, expectedUid);
+        transaction.set(reference, {
+          ...metadata,
+          createdAt: existing.exists()
+            ? existing.data().createdAt
+            : serverTimestamp(),
+          lastSeenAt: serverTimestamp(),
+        });
+      });
+    },
+    deleteDevice: async (expectedUid, id) => {
+      assert.equal(uid, expectedUid);
+      const database = databases.get(expectedUid);
+      await runTransaction(database, async (transaction) => {
+        const reference = doc(database, `users/${expectedUid}/devices/${id}`);
+        const existing = await transaction.get(reference);
+        assert.equal(uid, expectedUid);
+        if (existing.exists()) transaction.delete(reference);
+      });
+    },
+  });
+  assert.deepEqual(
+    await coordinator.register('PARENT', { requestPermission: false }),
+    { status: 'denied' },
+  );
+  assert.equal(prompts, 0);
+  assert.equal(storedId, null);
+  assert.deepEqual(await coordinator.register('PARENT'), {
+    status: 'registered',
+  });
+  assert.equal(prompts, 1);
+  const createdAt = (await getDoc(ownerDevice)).data().createdAt;
+  tokenGeneration++;
+  await coordinator.register('PARENT', { requestPermission: false });
+  assert.equal(
+    (await getDocs(collection(ownerFirestore, `users/${ownerUid}/devices`)))
+      .size,
+    1,
+  );
+  assert.ok((await getDoc(ownerDevice)).data().createdAt.isEqual(createdAt));
+  assert.equal(
+    (await getDoc(ownerDevice)).data().expoPushToken,
+    'ExpoPushToken[lifecycle-2]',
+  );
+  permission = { status: 'denied', granted: false, canAskAgain: false };
+  await coordinator.register('PARENT', { requestPermission: false });
+  assert.equal((await getDoc(ownerDevice)).exists(), false);
+  assert.equal(uid, ownerUid);
+  permission = { status: 'granted', granted: true, canAskAgain: true };
+  await coordinator.register('PARENT', { requestPermission: false });
+  assert.equal(storedId, installationId);
+  assert.equal((await getDoc(ownerDevice)).exists(), true);
+  await coordinator.remove(); // complete before Auth account switching
+  assert.equal((await getDoc(ownerDevice)).exists(), false);
+  uid = otherUid;
+  coordinator.resume(uid);
+  await coordinator.register('CHILD', { requestPermission: false });
+  const otherDevice = doc(
+    otherFirestore,
+    `users/${otherUid}/devices/${installationId}`,
+  );
+  assert.equal((await getDoc(otherDevice)).data().appVariant, 'CHILD');
+  assert.equal((await getDoc(ownerDevice)).exists(), false);
+  await assertFails(getDoc(doc(ownerFirestore, otherDevice.path)));
+  await coordinator.remove();
+  console.info(
+    'PASS: shared registration lifecycle, explicit permission, restart identity, token replacement, immutable createdAt, permission revoke/restore and account switching under owner Rules',
   );
   console.info(
     'PASS: device registrations are shape-restricted, self-only, and removable by their owner',

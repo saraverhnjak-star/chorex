@@ -22,6 +22,7 @@ export const negotiationNotificationDataSchema = z
       'CONTRACT_CHANGES_REQUESTED',
       'CONTRACT_SUBMITTED',
       'REWARD_FULFILLED',
+      'CONTRACT_DEADLINE_REMINDER',
     ]),
     entityType: z.enum(['OFFER', 'CONTRACT', 'REWARD']),
     entityId: id,
@@ -37,6 +38,7 @@ export const negotiationNotificationDataSchema = z
               'CONTRACT_APPROVED',
               'CONTRACT_CHANGES_REQUESTED',
               'CONTRACT_SUBMITTED',
+              'CONTRACT_DEADLINE_REMINDER',
             ].includes(data.type)
           ? 'CONTRACT'
           : 'OFFER')

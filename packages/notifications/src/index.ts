@@ -11,17 +11,14 @@ import * as SecureStore from 'expo-secure-store';
 import { getApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
 import {
-  deleteDoc,
-  doc,
-  getFirestore,
-  runTransaction,
-  serverTimestamp,
-} from '@react-native-firebase/firestore';
+  upsertCurrentPushDevice,
+  deleteCurrentPushDevice,
+} from '@chorex/firebase-client';
 import { Platform } from 'react-native';
 import {
+  createRegistrationSessionCoordinator,
   getOrCreateInstallationIdWithDependencies,
   registerCurrentDeviceWithDependencies,
-  removeCurrentDeviceRegistrationWithDependencies,
   type AppVariant,
   type NotificationRegistrationDependencies,
   type NotificationRegistrationResult,
@@ -51,6 +48,22 @@ function configuredProjectId(): string | null {
     : null;
 }
 
+function normalizePermission(
+  permission: Notifications.NotificationPermissionsStatus,
+) {
+  const ios = permission.ios?.status;
+  const quiet = ios === Notifications.IosAuthorizationStatus.PROVISIONAL;
+  return {
+    status: permission.status,
+    canAskAgain: permission.canAskAgain,
+    granted:
+      permission.granted ||
+      quiet ||
+      ios === Notifications.IosAuthorizationStatus.EPHEMERAL,
+    quiet,
+  };
+}
+
 const defaultDependencies: NotificationRegistrationDependencies = {
   getAuthenticatedUid: () => getAuth(getApp()).currentUser?.uid ?? null,
   getInstallationId: () => SecureStore.getItemAsync(installationIdKey),
@@ -59,11 +72,14 @@ const defaultDependencies: NotificationRegistrationDependencies = {
       keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
     }),
   createInstallationId: () => Crypto.randomUUID(),
-  getPermission: () => Notifications.getPermissionsAsync(),
-  requestPermission: () =>
-    Notifications.requestPermissionsAsync({
-      ios: { allowAlert: true, allowBadge: true, allowSound: true },
-    }),
+  getPermission: async () =>
+    normalizePermission(await Notifications.getPermissionsAsync()),
+  requestPermission: async () =>
+    normalizePermission(
+      await Notifications.requestPermissionsAsync({
+        ios: { allowAlert: true, allowBadge: true, allowSound: true },
+      }),
+    ),
   prepareAndroidChannel: async () => {
     if (Platform.OS !== 'android') return;
     await Notifications.setNotificationChannelAsync('default', {
@@ -71,43 +87,55 @@ const defaultDependencies: NotificationRegistrationDependencies = {
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   },
-  getExpoPushToken: async (projectId) =>
-    (await Notifications.getExpoPushTokenAsync({ projectId })).data,
+  getExpoPushToken: async (projectId) => {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        Notifications.getExpoPushTokenAsync({ projectId }).then(
+          (result) => result.data,
+        ),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(
+            () => reject(new Error('TOKEN_TIMEOUT')),
+            15_000,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeout !== undefined) clearTimeout(timeout);
+    }
+  },
   getProjectId: configuredProjectId,
   getAppVersion: () => Constants.expoConfig?.version ?? null,
   getPlatform: () => Platform.OS,
-  createServerTimestamp: () => serverTimestamp(),
-  upsertDevice: async (uid, installationId, registration) => {
-    const firestore = getFirestore(getApp());
-    const reference = doc(firestore, 'users', uid, 'devices', installationId);
-    await runTransaction(firestore, async (transaction) => {
-      const existing = await transaction.get(reference);
-      const createdAt = existing.exists()
-        ? existing.data().createdAt
-        : registration.createdAt;
-      transaction.set(reference, { ...registration, createdAt });
-    });
-  },
-  deleteDevice: async (uid, installationId) => {
-    await deleteDoc(
-      doc(getFirestore(getApp()), 'users', uid, 'devices', installationId),
-    );
-  },
+  upsertDevice: upsertCurrentPushDevice,
+  deleteDevice: deleteCurrentPushDevice,
 };
 
 export function getOrCreateInstallationId(): Promise<string> {
   return getOrCreateInstallationIdWithDependencies(defaultDependencies);
 }
 
+const registrationCoordinator =
+  createRegistrationSessionCoordinator(defaultDependencies);
+export const resumeDeviceRegistration = (uid: string) =>
+  registrationCoordinator.resume(uid);
 export function registerCurrentDevice(
   appVariant: AppVariant,
+  options: Parameters<typeof registerCurrentDeviceWithDependencies>[2] = {},
 ): Promise<NotificationRegistrationResult> {
-  return registerCurrentDeviceWithDependencies(appVariant, defaultDependencies);
+  return registrationCoordinator.register(appVariant, options);
 }
-
-export function removeCurrentDeviceRegistration(): Promise<void> {
-  return removeCurrentDeviceRegistrationWithDependencies(defaultDependencies);
+export const removeCurrentDeviceRegistration = () =>
+  registrationCoordinator.remove();
+export function readNotificationPermission() {
+  return defaultDependencies.getPermission();
 }
+const educationKey = 'chorex.notification-education.v1';
+export const readNotificationEducationSeen = async () =>
+  (await SecureStore.getItemAsync(educationKey)) === 'seen';
+export const markNotificationEducationSeen = () =>
+  SecureStore.setItemAsync(educationKey, 'seen');
 
 export function configureForegroundNotifications(): void {
   Notifications.setNotificationHandler({
@@ -149,3 +177,9 @@ export function listenForNotificationResponses(
     navigate,
   );
 }
+
+export {
+  useDeviceRegistrationLifecycle,
+  useNotificationEducation,
+  type DeviceRegistrationLifecycle,
+} from './lifecycle';

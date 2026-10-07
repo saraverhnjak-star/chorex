@@ -88,7 +88,7 @@ Do not store family role solely on the user document. Membership is family-speci
 }
 ```
 
-`deviceId` should be an app-generated installation identifier stored in SecureStore, not a hardware identifier.
+`deviceId` is the existing opaque, app-generated installation UUID stored in SecureStore, scoped to each binary. The strict client metadata schema lives in `packages/domain`; timestamps are owned by the firebase-client transactional adapter. Updates preserve existing `createdAt` and refresh server `lastSeenAt`. Owner-only deletion represents permission-off/sign-out cleanup; the Admin receipt worker may separately disable `pushEnabled`. No permission history, raw native token, reminder preference or Auth-revocation field is added.
 
 ## 5. Family and membership
 
@@ -458,3 +458,7 @@ The existing submitContractForReview command additionally accepts CHANGES_REQUES
 `pushReceipts/{workId}` contains minimal operational data: `eventId`, `ticketId`, `registrations[]` (`devicePath`, SHA-256 `tokenHash`, captured native `lastSeenAt` when available), `complete`, `status`, `attempts`, native `createdAt`, `expiresAt`, `nextAttemptAt`; processing adds `leaseId`, `category`, `updatedAt`, `completedAt`, `deleteAfter` as applicable. The work ID deterministically hashes event/ticket/message index. States are PENDING, PROCESSING, SUCCEEDED, DEVICE_INVALID, MESSAGE_ERROR, PROVIDER_ERROR and EXHAUSTED. These are infrastructure states, not domain lifecycle enums.
 
 Records contain no raw token, message body, credential or domain terms. Existing client catch-all denial protects reads and writes. Pending and retention queries use `(complete, nextAttemptAt)` and `(complete, deleteAfter)` indexes. Terminal data is retained seven days; bounded worker deletion requires no separate TTL service. Device cleanup changes only canonical `pushEnabled`; existing device registration schema is unchanged.
+
+## Contract deadline reminder work
+
+Hourly server generation writes a deterministic `activityEvents/deadline_<sha256(contractId)>_24h` with `type: CONTRACT_DEADLINE_REMINDER`, `actorType: SYSTEM`, `entityType: CONTRACT`, `entityId`, `familyId`, the frozen `deadlineAt` Timestamp and authoritative `createdAt`. It has no actor UID, private terms or notes. Retain this logical record permanently for deduplication. Delivery uses the existing nested notificationEffects/expo and pushReceipts records. Client read/write access remains denied by existing catch-all Rules; no Contract field is added. A `(status ASC, deadlineAt ASC)` composite index supports future ACTIVE deadlines in the 24-hour range, paged by deadline/document ID. Reminder preference policy is not yet defined; scheduled live generation is operationally disabled pending that decision.

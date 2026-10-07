@@ -27,12 +27,21 @@ export function receiptDatabase() {
     data: () => copy(records.get(path)),
   });
   const number = (v) => (v instanceof Timestamp ? v.toMillis() : v);
-  function query(path, filters = [], sort, count = Infinity) {
+  function query(path, filters = [], sort, count = Infinity, cursor) {
     return {
       doc: (id) => doc(`${path}/${id}`),
-      where: (...filter) => query(path, [...filters, filter], sort, count),
-      orderBy: (field) => query(path, filters, field, count),
-      limit: (limit) => query(path, filters, sort, limit),
+      where: (...filter) =>
+        query(path, [...filters, filter], sort, count, cursor),
+      orderBy: (field) =>
+        query(
+          path,
+          filters,
+          field === '__name__' ? sort : field,
+          count,
+          cursor,
+        ),
+      limit: (limit) => query(path, filters, sort, limit, cursor),
+      startAfter: (snapshot) => query(path, filters, sort, count, snapshot),
       get: async () => {
         let docs = [...records.keys()]
           .filter(
@@ -45,11 +54,15 @@ export function receiptDatabase() {
             filters.every(([field, op, value]) =>
               op === '=='
                 ? snap.data()[field] === value
-                : number(snap.data()[field]) <= number(value),
+                : op === '>'
+                  ? number(snap.data()[field]) > number(value)
+                  : number(snap.data()[field]) <= number(value),
             ),
           );
         if (sort)
           docs.sort((a, b) => number(a.data()[sort]) - number(b.data()[sort]));
+        if (cursor)
+          docs = docs.slice(docs.findIndex((d) => d.id === cursor.id) + 1);
         docs = docs.slice(0, count);
         return { docs, empty: !docs.length, size: docs.length };
       },

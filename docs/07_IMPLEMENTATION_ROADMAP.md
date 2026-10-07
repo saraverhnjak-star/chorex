@@ -126,7 +126,7 @@ Reward fulfillment is separate from contract approval.
 
 ## Phase 5 - Push hardening and reminders
 
-**Slice 1 implemented and verified:** Expo ticket tracking, bounded scheduled receipt processing and exact-registration invalid-device cleanup. See [acceptance evidence](PHASE_5_SLICE_1_ACCEPTANCE.md). **Slice 2 implemented and verified:** validated app-owned notification destinations, Auth/navigation-ready cold-start response handling and process-local response deduplication. See [routing acceptance evidence](PHASE_5_SLICE_2_ACCEPTANCE.md). Phase 5 as a whole remains incomplete. Next safe slice: contextual notification permission onboarding and device-token lifecycle hardening; reminders remain separate work. OPEN-010, OPEN-011 and OPEN-014 remain unresolved.
+**Slice 1 implemented and verified:** Expo ticket tracking, bounded scheduled receipt processing and exact-registration invalid-device cleanup. See [acceptance evidence](PHASE_5_SLICE_1_ACCEPTANCE.md). **Slice 2 implemented and verified:** validated app-owned notification destinations, Auth/navigation-ready cold-start response handling and process-local response deduplication. See [routing acceptance evidence](PHASE_5_SLICE_2_ACCEPTANCE.md). **Slice 3 implemented with automated/emulator verification:** contextual Parent/Child permission education and owner-installation token lifecycle; see [Slice 3 evidence and native verification status](PHASE_5_SLICE_3_ACCEPTANCE.md). Native permission/lifecycle acceptance remains in progress because the isolated Simulator window is unavailable; real Expo token acquisition and physical delivery are separately deferred until the intentionally unavailable EAS IDs are supplied. Phase 5 as a whole remains incomplete. Next safe implementation slice: deadline and pending-Reward reminders with minimal preference controls. OPEN-010, OPEN-011 and OPEN-014 remain unresolved.
 
 Build:
 
@@ -227,3 +227,7 @@ Each task should include:
 - tests required;
 - explicit non-goals;
 - acceptance criteria.
+
+### Phase 5 Slice 4A
+
+Contract deadline reminder infrastructure is implemented with hourly server eligibility checks, deterministic committed intents, transactional race protection and the existing Expo dispatcher/receipts/Child detail routing. See [Slice 4A acceptance](PHASE_5_SLICE_4A_ACCEPTANCE.md). The operational schedule remains disabled pending deadline-reminder preference/activation policy; no product opt-in/opt-out default was invented. Existing EAS IDs now permit verified native registration in both apps (Slice 3 follow-up); physical delivery is still unverified. Phase 5 remains incomplete for preference decisions/controls and pending-Reward reminders. OPEN-010/011/014 remain unresolved.

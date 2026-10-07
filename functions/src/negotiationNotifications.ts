@@ -1,4 +1,8 @@
 import {
+  deadlineReminderId,
+  deadlineWindowMs,
+} from './contractDeadlineReminders';
+import {
   bindRegistrations,
   retainExpoTickets,
   invalidatePushRegistrations,
@@ -279,6 +283,7 @@ export async function dispatchNegotiationNotification(
         'CONTRACT_CHANGES_REQUESTED',
         'CONTRACT_SUBMITTED',
         'REWARD_FULFILLED',
+        'CONTRACT_DEADLINE_REMINDER',
       ].includes(event.type)
     )
       return;
@@ -297,7 +302,53 @@ export async function dispatchNegotiationNotification(
     }
     let resolved: NotificationIntent | undefined;
     let familyId: string;
-    if (event.type === 'REWARD_FULFILLED') {
+    if (event.type === 'CONTRACT_DEADLINE_REMINDER') {
+      if (
+        event.actorType !== 'SYSTEM' ||
+        event.actorUid !== undefined ||
+        typeof event.entityId !== 'string' ||
+        !event.entityId ||
+        event.entityId.includes('/')
+      )
+        return;
+      if (eventId !== deadlineReminderId(event.entityId)) return;
+      const contract = (
+        await tx.get(firestore.doc(`contracts/${event.entityId}`))
+      ).data();
+      if (
+        !contract ||
+        contract.status !== 'ACTIVE' ||
+        !(contract.deadlineAt instanceof Timestamp) ||
+        !(event.deadlineAt instanceof Timestamp) ||
+        !contract.deadlineAt.isEqual(event.deadlineAt) ||
+        contract.deadlineAt.toMillis() <= now.toMillis() ||
+        contract.deadlineAt.toMillis() > now.toMillis() + deadlineWindowMs ||
+        event.familyId !== contract.familyId ||
+        typeof contract.childUid !== 'string'
+      ) {
+        tx.set(effectRef, {
+          status: 'SKIPPED',
+          reason: 'REMINDER_NO_LONGER_ELIGIBLE',
+          updatedAt: now,
+        });
+        return;
+      }
+      const data = negotiationNotificationDataSchema.safeParse({
+        type: event.type,
+        entityType: 'CONTRACT',
+        entityId: event.entityId,
+        familyId: contract.familyId,
+      });
+      if (!data.success) return;
+      resolved = {
+        recipientUid: contract.childUid,
+        recipientRole: 'CHILD',
+        title: 'Deadline tomorrow',
+        body: 'Your contract is due tomorrow.',
+        data: data.data,
+      };
+      familyId = contract.familyId;
+    } else if (event.type === 'REWARD_FULFILLED') {
       if (
         typeof event.entityId !== 'string' ||
         !event.entityId ||

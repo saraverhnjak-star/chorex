@@ -15,7 +15,11 @@ import {
   type AuthCredentials,
   type AuthUser,
 } from '@chorex/firebase-client';
-import { removeCurrentDeviceRegistration } from '@chorex/notifications';
+import {
+  removeCurrentDeviceRegistration,
+  useDeviceRegistrationLifecycle,
+  type DeviceRegistrationLifecycle,
+} from '@chorex/notifications';
 
 type ParentSessionState =
   | { status: 'loading'; user: null; error: null }
@@ -26,6 +30,7 @@ type ParentSessionContextValue = ParentSessionState & {
   register: (credentials: AuthCredentials) => Promise<AuthUser>;
   signIn: (credentials: AuthCredentials) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  notifications: DeviceRegistrationLifecycle;
 };
 
 const ParentSessionContext = createContext<ParentSessionContextValue | null>(
@@ -48,9 +53,15 @@ export function ParentSessionProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const notifications = useDeviceRegistrationLifecycle(
+    'PARENT',
+    state.status === 'ready' ? state.user?.uid : undefined,
+  );
+
   const value = useMemo<ParentSessionContextValue>(
     () => ({
       ...state,
+      notifications,
       register: registerWithEmailAndPassword,
       signIn: signInWithEmailAndPassword,
       signOut: async () => {
@@ -58,7 +69,7 @@ export function ParentSessionProvider({ children }: { children: ReactNode }) {
         await signOutCurrentUser();
       },
     }),
-    [state],
+    [state, notifications],
   );
 
   return (

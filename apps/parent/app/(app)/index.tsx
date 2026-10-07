@@ -6,7 +6,7 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Text, View } from 'react-native';
 import {
   createChildInputSchema,
   createFamilyInputSchema,
@@ -21,9 +21,10 @@ import {
   readCurrentParentFamily,
   type ParentFamilyHome,
 } from '@chorex/firebase-client';
-import { registerCurrentDevice } from '@chorex/notifications';
+import { useNotificationEducation } from '@chorex/notifications';
 import {
   Button,
+  NotificationPermissionCard,
   FormMessage,
   Screen,
   TextField,
@@ -53,13 +54,6 @@ type PairingState =
       expiresAt: string;
     }
   | { status: 'error'; childUid: string; message: string };
-
-type NotificationState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'registered' }
-  | { status: 'denied' }
-  | { status: 'error'; message: string };
 
 type CreateChildFormInput = Pick<CreateChildInput, 'displayName'>;
 const createChildFormSchema = createChildInputSchema.pick({
@@ -94,21 +88,23 @@ function ScreenHeading() {
 }
 
 export default function AuthenticatedHomeScreen() {
-  const { user, signOut } = useParentSession();
+  const { user, signOut, notifications } = useParentSession();
   const uid = user?.uid;
   const dynamicType = useDynamicTypeStyles();
   const [familyState, setFamilyState] = useState<FamilyState>({
     status: 'loading',
   });
+  const education = useNotificationEducation(
+    familyState.status === 'ready' ? uid : undefined,
+    notifications.state.permission,
+  );
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string>();
   const [childIdempotencyKey, setChildIdempotencyKey] = useState<string>();
   const [pairingState, setPairingState] = useState<PairingState>({
     status: 'idle',
   });
-  const [notificationState, setNotificationState] = useState<NotificationState>(
-    { status: 'idle' },
-  );
+
   const {
     control,
     handleSubmit,
@@ -244,18 +240,16 @@ export default function AuthenticatedHomeScreen() {
     }
   };
 
-  const enableNotifications = async () => {
-    if (notificationState.status === 'loading') return;
-    setNotificationState({ status: 'loading' });
-    try {
-      const result = await registerCurrentDevice('PARENT');
-      setNotificationState({ status: result.status });
-    } catch (notificationError) {
-      setNotificationState({
-        status: 'error',
-        message: getNotificationErrorMessage(notificationError),
-      });
+  const enableNotifications = () => {
+    if (
+      !education.showEducation &&
+      notifications.state.permission?.status === 'undetermined'
+    ) {
+      education.revisit();
+      return;
     }
+    education.skip();
+    void notifications.enable();
   };
 
   if (!user) return null;
@@ -375,53 +369,30 @@ export default function AuthenticatedHomeScreen() {
               </Text>
             </View>
 
-            <View className="gap-3 rounded-3xl border border-border bg-surface-warm p-5">
-              <Text
-                allowFontScaling={false}
-                className="font-bold text-text"
-                style={dynamicType.title}
-              >
-                Notifications
-              </Text>
-              <Text
-                allowFontScaling={false}
-                className="text-text-muted"
-                style={dynamicType.body}
-              >
-                Get updates when your family agreements need your attention.
-              </Text>
-              {notificationState.status === 'registered' ? (
-                <Text
-                  allowFontScaling={false}
-                  accessibilityLiveRegion="polite"
-                  className="font-semibold text-text"
-                  style={dynamicType.body}
-                >
-                  Notifications are enabled on this device.
-                </Text>
-              ) : null}
-              {notificationState.status === 'denied' ? (
-                <Text
-                  allowFontScaling={false}
-                  accessibilityLiveRegion="polite"
-                  className="text-text-muted"
-                  style={dynamicType.body}
-                >
-                  Notifications are off. You can keep using ChoreX normally.
-                </Text>
-              ) : null}
-              {notificationState.status === 'error' ? (
-                <FormMessage message={notificationState.message} />
-              ) : null}
-              {notificationState.status !== 'registered' ? (
-                <Button
-                  label="Enable notifications"
-                  loading={notificationState.status === 'loading'}
-                  onPress={() => void enableNotifications()}
-                  variant="secondary"
-                />
-              ) : null}
-            </View>
+            <NotificationPermissionCard
+              benefit="Get updates when your child responds to an offer or submits work for review."
+              education={education.showEducation}
+              busy={
+                notifications.state.status === 'loading' ||
+                notifications.state.status === 'checking'
+              }
+              registered={notifications.state.status === 'registered'}
+              quiet={notifications.state.permission?.quiet}
+              error={
+                notifications.state.status === 'error'
+                  ? getNotificationErrorMessage(notifications.state.error)
+                  : undefined
+              }
+              settingsRequired={
+                notifications.state.permission?.status === 'denied' &&
+                notifications.state.permission.canAskAgain === false
+              }
+              onEnable={enableNotifications}
+              onSkip={education.skip}
+              onSettings={() => {
+                void Linking.openSettings().catch(() => undefined);
+              }}
+            />
 
             <View className="rounded-3xl border border-border bg-surface-warm p-5">
               <Text

@@ -27,7 +27,6 @@ function createDependencies(
     getProjectId: jest.fn(() => 'configured-project-id'),
     getAppVersion: jest.fn(() => '1.2.3'),
     getPlatform: jest.fn(() => 'ios'),
-    createServerTimestamp: jest.fn(() => 'server-timestamp'),
     upsertDevice: jest.fn(async () => undefined),
     deleteDevice: jest.fn(async () => undefined),
     ...overrides,
@@ -73,8 +72,6 @@ it('writes the authenticated device registration with the expected shape', async
       appVersion: '1.2.3',
       expoPushToken: 'ExponentPushToken[test]',
       pushEnabled: true,
-      createdAt: 'server-timestamp',
-      lastSeenAt: 'server-timestamp',
     },
   );
 });

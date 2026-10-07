@@ -306,3 +306,7 @@ Review history expands reads across cycles, not access to new actors. Rules stil
 ## Push receipt cleanup boundary
 
 Phase 5 Slice 1 receipt work is server-only and inaccessible to clients under existing catch-all Rules. Admin transactions may set `users/{uid}/devices/{installationId}.pushEnabled` false only when the ticket's captured token fingerprint and registration generation still match. This never revokes Firebase refresh tokens, deletes/signs out users or changes family membership. Normal owner registration/update remains shape-restricted and may enable a refreshed registration. OPEN-014 remains unresolved and separate.
+
+## Push registration lifecycle boundary
+
+Phase 5 Slice 3 preserves the narrow owner-only device-write exception. The firebase-client adapter rechecks the current authenticated UID inside each registration/deletion transaction; the shared coordinator pauses and serializes reconciliation with sign-out cleanup. Sign-out waits for backend-confirmed deletion before Firebase Auth sign-out, so offline cleanup failure retains the current session for a safe retry. Permission revocation removes only the current installation's push registration and never changes Auth, pairing or membership. Account switching removes the previous UID registration before registering the same opaque installation under the next UID. OPEN-014 individual-device Auth revocation remains unresolved; no management dashboard or new authorization capability is introduced.

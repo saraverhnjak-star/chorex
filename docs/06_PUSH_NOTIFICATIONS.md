@@ -22,12 +22,24 @@ Use Expo development builds from the beginning. Remote push notifications are no
 After authentication and notification permission handling:
 
 1. obtain the Expo push token;
-2. optionally obtain/store the native push token for future portability;
+2. listen for native token-change signals and reacquire the current Expo token;
 3. create or update `/users/{uid}/devices/{deviceId}`;
 4. update `lastSeenAt`, platform, app variant, and version;
 5. on sign-out, disable or remove the registration for that account on that installation.
 
 Do not use a hardware identifier as `deviceId`. Generate a random installation ID and persist it in SecureStore.
+
+### Implemented permission and registration lifecycle (Phase 5 Slice 3)
+
+Parent education appears in the authenticated, readable-family Home after family setup. Child education appears only after successful pairing and a readable family Home. The shared inline card explains the benefit and optional nature of notifications, with explicit **Enable notifications** and **Not now** actions. A small installation-local SecureStore education-seen flag prevents repeat education; it does not store permission or push-registration truth. Explicit Enable can reopen the explanation. Startup, Auth restoration and notification responses never request OS permission.
+
+The Expo permission result is canonical. Undetermined permission may be requested only by an explicit action. Denied permission keeps all agreement flows usable; permanent denial exposes an explicit system Settings action. iOS provisional/ephemeral authorization can register, with quiet copy for provisional authorization. Restoring permission in Settings reconciles on foreground return without another automatic prompt.
+
+Each binary keeps its existing opaque random UUID in SecureStore. Authenticated bootstrap, foreground return and native-token signals reconcile the same owner/installation document; version and Expo token updates replace metadata without changing an existing `createdAt`. The firebase-client adapter validates the shared strict metadata schema and commits a transaction with server `lastSeenAt`. No raw native token is persisted. Successful registration is shown only after the transaction confirms; token/configuration/network failures remain auxiliary to Auth and domain flows. Expo acquisition is bounded to 15 seconds; no polling or generic offline queue is introduced.
+
+A revoked/unusable permission removes only the current user's installation registration using the existing owner-delete Rules. Receipt-worker invalidation remains the separate Admin-only `pushEnabled: false` state. Later valid self-registration can reactivate that document with a new server generation; Slice 1 fingerprint/generation guards remain unchanged. Sign-out pauses registration, waits for in-flight reconciliation and confirms own-registration deletion before Firebase Auth sign-out. Failed cleanup retains Auth and permits retry. A subsequent account uses the same installation ID under its own UID, after the previous registration is removed. This is push targeting cleanup, not individual-device Auth revocation (OPEN-014 remains open).
+
+See [Slice 3 acceptance evidence](PHASE_5_SLICE_3_ACCEPTANCE.md). The user later supplied existing EAS IDs and approved native rebuilds: real native token acquisition and device registration succeeded in both apps. Physical delivery remains unverified; deterministic dependencies also cover lifecycle behavior. See the follow-up in the Slice 3 report.
 
 ## 4. Notification event flow
 
@@ -227,3 +239,11 @@ CONTRACT_SUBMITTED uses the existing committed-event dispatcher, effect lease, d
 ## Reward fulfillment committed-event effect
 
 The existing dispatcher validates REWARD_FULFILLED against the persisted FULFILLED Reward (including owning Parent/fulfilledBy), deterministic Reward identity and matching APPROVED Contract. It resolves the active Child, reuses device/token filters and the existing effect lease, bounded retry and completed-effect deduplication. Copy is “Reward delivered” / “Your reward was marked as delivered.” No reward title, description or feedback is included. The four routing fields are type REWARD_FULFILLED, entityType REWARD, entityId Reward ID and familyId. Both apps recognize the stable `/rewards/[rewardId]` detail route; access is still enforced by authenticated reads. Transport failure never rolls back fulfillment. No receipt polling, reminders or new transport is introduced.
+
+## 11. Contract deadline reminders (Phase 5 Slice 4A)
+
+`generateDeadlineReminders` is an hourly UTC scheduled Function. Indexed ACTIVE/deadline-range queries select only future deadlines in the next 24 hours, in pages of 100 ordered by deadline and document ID. Each candidate transaction rechecks current Contract state, deadline and active Child membership and creates one deterministic SYSTEM `CONTRACT_DEADLINE_REMINDER` activity event. Identity is `deadline_<sha256(contractId)>_24h`; accepted deadlines are frozen, and the event remains the permanent deduplication record. No Contract marker or lifecycle mutation is written.
+
+The existing activity-event dispatcher owns the normal Expo effect/lease, tickets, receipt processing, device filtering and retries. It rechecks ACTIVE status, matching deadline and active Child membership before claiming delivery; obsolete intents are skipped. Generic copy is “Deadline tomorrow” / “Your contract is due tomorrow.” The strict payload carries only CONTRACT_DEADLINE_REMINDER, CONTRACT, Contract ID and Family ID. Existing Child entity routing opens current Contract detail, including changed states for stale taps. A state change after the delivery claim or an ambiguous transport outcome can still produce a stale/duplicate physical push; the logical event remains unique.
+
+No deadline-reminder preference schema/default is currently defined. The operational parameter `CONTRACT_DEADLINE_REMINDERS_ENABLED` defaults to false, leaving scheduled generation inactive pending a product preference/activation decision; this is not a user opt-out default. Deterministic tests and emulator verification call the worker directly with an injected server clock. Do not enable this parameter for live users until the policy is decided and enforced. No preference UI, Reward reminder or expiry behavior is added. OPEN-011 remains unresolved. See [Slice 4A evidence](PHASE_5_SLICE_4A_ACCEPTANCE.md).
