@@ -1,5 +1,7 @@
 # Phase 5 Slice 3 — Contextual permissions and installation registration
 
+> Subsequent scope/status update: Slice 4B / ADR-045 completed the later reminder/preferences deliverables. ADR-046 replaces the historical unilateral Reward flow. Original native UI observation limits remain outstanding even after real token registration succeeded; see the [current audit](PHASE_4_5_ACCEPTANCE_AUDIT.md).
+
 Implementation and automated verification: 2026-10-06. Phase 5 remains incomplete. No commit, push, deployment, EAS project creation or EAS configuration was performed.
 
 ## 1. Changed files and architecture

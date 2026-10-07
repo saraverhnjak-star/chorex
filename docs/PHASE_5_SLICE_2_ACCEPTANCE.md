@@ -1,5 +1,7 @@
 # Phase 5 Slice 2 — Notification response routing
 
+> Subsequent scope/status update: ADR-046 replaces the historical REWARD_FULFILLED examples with REWARD_DELIVERED (Child) and REWARD_RECEIVED_CONFIRMED (Parent), using the same Reward routes. Native observations below describe the original payloads; see the [current audit](PHASE_4_5_ACCEPTANCE_AUDIT.md) and [bilateral acceptance](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md).
+
 Verified 2026-10-06 against the local `chorex-dev` environment. Slice 2 hardens client navigation only. Phase 5 remains incomplete. No commit, push, deployment, physical remote delivery claim or new ADR is part of this slice.
 
 ## 1. Changed files

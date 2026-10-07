@@ -1,5 +1,7 @@
 # Phase 5 Slice 4A — Contract deadline reminders
 
+> Subsequent scope/status update: ADR-045 / Slice 4B superseded the temporary activation gate and completed reminder preferences and pending-Reward reminders. ADR-046 retains pending-only eligibility after bilateral delivery. Historical evidence below is unchanged; see the [current audit](PHASE_4_5_ACCEPTANCE_AUDIT.md).
+
 Verified 2026-10-07. Slice 4A implements the backend reminder pipeline; it does not make optional reminders release-ready for live users. Phase 5 remains incomplete. No commit, push or deployment was performed.
 
 ## Architecture and eligibility

@@ -99,9 +99,9 @@ Note: because authoritative progress writes are Cloud Functions, do not pretend 
 
 ## Phase 4 - Review and reward fulfillment
 
-The first review mutation is Parent approval with a minimal Ready-for-Review list. ADR-043 resolves OPEN-012 using zero-based review rounds; approval preserves the cycle and atomically creates one pending earned Reward. See [approval acceptance evidence](PHASE_4_APPROVAL_ACCEPTANCE.md). Request changes is implemented as a bounded immutable decision/transition with current-round feedback reads; see [request-changes acceptance evidence](PHASE_4_REQUEST_CHANGES_ACCEPTANCE.md). ADR-044 resolves OPEN-009; contract-level correction and Child resubmission are implemented through submitContractForReview. See [resubmission acceptance evidence](PHASE_4_RESUBMISSION_ACCEPTANCE.md). Parent pending obligations, Child earned/fulfilled Reward reads, markRewardDelivered and its committed Child notification are implemented; see [Reward fulfillment acceptance evidence](PHASE_4_REWARD_FULFILLMENT_ACCEPTANCE.md). OPEN-010 and OPEN-011 remain unresolved.
+The first review mutation is Parent approval with a minimal Ready-for-Review list. ADR-043 resolves OPEN-012 using zero-based review rounds; approval preserves the cycle and atomically creates one pending earned Reward. See [approval acceptance evidence](PHASE_4_APPROVAL_ACCEPTANCE.md). Request changes is implemented as a bounded immutable decision/transition with current-round feedback reads; see [request-changes acceptance evidence](PHASE_4_REQUEST_CHANGES_ACCEPTANCE.md). ADR-044 resolves OPEN-009; contract-level correction and Child resubmission are implemented through submitContractForReview. See [resubmission acceptance evidence](PHASE_4_RESUBMISSION_ACCEPTANCE.md). ADR-046 replaces unilateral fulfillment with Parent markRewardDelivered and assigned Child confirmRewardReceived. Parent pending obligations and a separate awaiting-confirmation list, Child earned/awaiting/confirmed reads, and both committed-event notifications are implemented; see [bilateral Reward acceptance evidence](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md). OPEN-010 and OPEN-011 remain unresolved.
 
-**Phase 4 acceptance gate is satisfied.** Both Contract details now expose complete immutable Review history, with participant-scoped reads/Rules, chronological zero-based cycles displayed as Review 1, 2, 3, and verified multi-round continuity through Reward fulfillment. See [Review history and final Phase 4 acceptance evidence](PHASE_4_REVIEW_HISTORY_ACCEPTANCE.md). The next milestone is Phase 5 notification hardening/reminders. Reward cancellation, task undo and expiry/cancellation decisions remain out of scope.
+**Phase 4 acceptance gate is satisfied.** Both Contract details now expose complete immutable Review history, with participant-scoped reads/Rules, chronological zero-based cycles displayed as Review 1, 2, 3, and verified multi-round continuity through Reward fulfillment. See [Review history and final Phase 4 acceptance evidence](PHASE_4_REVIEW_HISTORY_ACCEPTANCE.md). Phase 5 functional implementation is now present; the [post-ADR-046 audit](PHASE_4_5_ACCEPTANCE_AUDIT.md) distinguishes its application-level gates from outstanding native UX observations and physical delivery verification. Phase 7 product hardening may begin before optional auctions. Reward cancellation, task undo and expiry/cancellation decisions remain out of scope.
 
 Build:
 
@@ -127,7 +127,7 @@ Reward fulfillment is separate from contract approval.
 
 ## Phase 5 - Push hardening and reminders
 
-**Slices 1–3 implemented:** ticket/receipt hardening, validated response routing, contextual permission onboarding and device-registration lifecycle. Existing EAS IDs and approved rebuilds subsequently verified real native registration in both apps; physical delivery remains unverified. See [Slice 1](PHASE_5_SLICE_1_ACCEPTANCE.md), [Slice 2](PHASE_5_SLICE_2_ACCEPTANCE.md) and [Slice 3 including native follow-up](PHASE_5_SLICE_3_ACCEPTANCE.md). **Slices 4A–4B implemented and locally verified:** deadline and pending-Reward reminders with ADR-045 account preferences. Functional Phase 5 implementation is complete; production Scheduler/index deployment and physical Expo/APNs verification are not claimed. OPEN-010, OPEN-011 and OPEN-014 remain unresolved.
+**Slices 1–3 implemented:** ticket/receipt hardening, validated response routing, contextual permission onboarding and device-registration lifecycle. Existing EAS IDs and approved rebuilds subsequently verified real native registration in both apps; physical delivery remains unverified. See [Slice 1](PHASE_5_SLICE_1_ACCEPTANCE.md), [Slice 2](PHASE_5_SLICE_2_ACCEPTANCE.md) and [Slice 3 including native follow-up](PHASE_5_SLICE_3_ACCEPTANCE.md). **Slices 4A–4B implemented and locally verified:** deadline and pending-Reward reminders with ADR-045 account preferences. Functional Phase 5 implementation and application-level gates are satisfied. Overall native acceptance remains PARTIAL: Slice 3 still lacks direct observations of permission/dialog/Settings interactions. This evidence gap is separate from deferred physical Expo/APNs delivery; production Scheduler/index deployment is also not claimed. See the [acceptance audit](PHASE_4_5_ACCEPTANCE_AUDIT.md). OPEN-010, OPEN-011 and OPEN-014 remain unresolved.
 
 Build:
 
@@ -145,7 +145,8 @@ Acceptance gate:
 ```text
 Notification tap opens the correct entity in the correct app.
 Invalid tokens stop receiving send attempts.
-Retries do not duplicate reminder notifications.
+Retries/concurrent workers do not create duplicate logical reminder intents; completed effects do not resend.
+Ambiguous external sends may repeat a physical push; exactly-once provider delivery is not promised.
 ```
 
 ## Phase 6 - Auctions (optional post-MVP)
@@ -231,7 +232,7 @@ Each task should include:
 
 ### Phase 5 Slice 4A
 
-Contract deadline reminder infrastructure is implemented with hourly server eligibility checks, deterministic committed intents, transactional race protection and the existing Expo dispatcher/receipts/Child detail routing. See [Slice 4A acceptance](PHASE_5_SLICE_4A_ACCEPTANCE.md). The temporary Slice 4A gate was superseded by approved ADR-045 / Slice 4B account preferences. Existing EAS IDs now permit verified native registration in both apps (Slice 3 follow-up); physical delivery is still unverified. Phase 5 remains incomplete for preference decisions/controls and pending-Reward reminders. OPEN-010/011/014 remain unresolved.
+Contract deadline reminder infrastructure is implemented with hourly server eligibility checks, deterministic committed intents, transactional race protection and the existing Expo dispatcher/receipts/Child detail routing. See [Slice 4A acceptance](PHASE_5_SLICE_4A_ACCEPTANCE.md). The temporary Slice 4A gate was superseded by approved ADR-045 / Slice 4B account preferences. Existing EAS IDs now permit verified native registration in both apps (Slice 3 follow-up); physical delivery is still unverified. The earlier missing preference controls and pending-Reward reminders were completed by Slice 4B; Slice 3 native UX observations remain outstanding. OPEN-010/011/014 remain unresolved.
 
 ## Approved reminder policy — ADR-045 / Phase 5 Slice 4B
 

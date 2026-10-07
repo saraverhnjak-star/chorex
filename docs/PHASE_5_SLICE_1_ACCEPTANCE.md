@@ -1,5 +1,7 @@
 # Phase 5 Slice 1 — Expo receipts and invalid-device cleanup
 
+> Subsequent correction: ADR-046 replaces historical unilateral Reward APIs/events. The current verifier is `pnpm emulators:verify:reward-fulfillment`; original commands/results below remain historical. See the [current audit](PHASE_4_5_ACCEPTANCE_AUDIT.md) and [bilateral acceptance](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md).
+
 Verified 2026-10-06. Slice 1 is implemented; the whole Phase 5 acceptance gate is **not** complete. No commit, push or deployment was performed. No physical Expo/APNs/FCM delivery was claimed.
 
 ## Scope and architecture audit
