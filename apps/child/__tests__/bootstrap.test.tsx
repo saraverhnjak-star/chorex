@@ -1,3 +1,4 @@
+import { useState as mockUseState } from 'react';
 import {
   fireEvent,
   render,
@@ -191,6 +192,30 @@ jest.mock('@chorex/firebase-client', () => ({
 }));
 
 jest.mock('@chorex/notifications', () => ({
+  useNotificationEducation: () => {
+    const [showEducation, setShowEducation] = mockUseState(true);
+    return {
+      showEducation,
+      skip: () => setShowEducation(false),
+      revisit: () => setShowEducation(true),
+    };
+  },
+  useDeviceRegistrationLifecycle: (variant: string) => {
+    const [state, setState] = mockUseState({
+      status: 'off',
+      permission: { status: 'undetermined', granted: false },
+    });
+    return {
+      state,
+      enable: async () => {
+        await mockRegisterCurrentDevice(variant);
+        setState({
+          status: 'registered',
+          permission: { status: 'granted', granted: true },
+        });
+      },
+    };
+  },
   registerCurrentDevice: (...args: unknown[]) =>
     mockRegisterCurrentDevice(...args),
   removeCurrentDeviceRegistration: (...args: unknown[]) =>
@@ -234,6 +259,17 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     currentRevisionId: 'revision-test-id',
     idempotencyKey: expect.stringMatching(/^accept-/),
   });
+  expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
+  expect(
+    screen.getByText(
+      'Notifications are off. You can keep using ChoreX normally.',
+    ),
+  ).toBeOnTheScreen();
+  expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
+  // Explicit entry shows the explanation again before requesting the OS prompt.
+  fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
+  expect(screen.getByRole('button', { name: 'Not now' })).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('CHILD');
   expect(mockRedeemPairingSession).toHaveBeenCalledWith(

@@ -1,14 +1,15 @@
 import { EarnedRewards } from '../src/rewards/EarnedRewards';
 import { ActiveContracts } from '../src/contracts/ActiveContracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Text, View } from 'react-native';
 import {
   readCurrentChildFamily,
   type ChildFamilyHome,
 } from '@chorex/firebase-client';
-import { registerCurrentDevice } from '@chorex/notifications';
+import { useNotificationEducation } from '@chorex/notifications';
 import {
   Button,
+  NotificationPermissionCard,
   FormMessage,
   Screen,
   TextField,
@@ -30,13 +31,6 @@ type ChildFamilyState =
   | { status: 'ready'; home: ChildFamilyHome }
   | { status: 'error'; message: string };
 
-type NotificationState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'registered' }
-  | { status: 'denied' }
-  | { status: 'error'; message: string };
-
 export default function HomeScreen() {
   const session = useChildSession();
   const dynamicType = useDynamicTypeStyles();
@@ -47,12 +41,16 @@ export default function HomeScreen() {
   const [familyState, setFamilyState] = useState<ChildFamilyState>({
     status: 'loading',
   });
-  const [notificationState, setNotificationState] = useState<NotificationState>(
-    { status: 'idle' },
-  );
+
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string>();
   const uid = session.user?.uid;
+  const notifications = session.notifications;
+
+  const education = useNotificationEducation(
+    familyState.status === 'ready' ? uid : undefined,
+    notifications.state.permission,
+  );
 
   const loadFamily = useCallback(async () => {
     setFamilyState({ status: 'loading' });
@@ -87,18 +85,16 @@ export default function HomeScreen() {
     };
   }, [uid]);
 
-  const enableNotifications = async () => {
-    if (notificationState.status === 'loading') return;
-    setNotificationState({ status: 'loading' });
-    try {
-      const result = await registerCurrentDevice('CHILD');
-      setNotificationState({ status: result.status });
-    } catch (notificationError) {
-      setNotificationState({
-        status: 'error',
-        message: getNotificationErrorMessage(notificationError),
-      });
+  const enableNotifications = () => {
+    if (
+      !education.showEducation &&
+      notifications.state.permission?.status === 'undetermined'
+    ) {
+      education.revisit();
+      return;
     }
+    education.skip();
+    void notifications.enable();
   };
 
   const signOut = async () => {
@@ -191,53 +187,30 @@ export default function HomeScreen() {
                 familyId={familyState.home.family.id}
               />
 
-              <View className="gap-3 rounded-3xl border border-border bg-surface-warm p-5">
-                <Text
-                  allowFontScaling={false}
-                  className="font-bold text-text"
-                  style={dynamicType.title}
-                >
-                  Notifications
-                </Text>
-                <Text
-                  allowFontScaling={false}
-                  className="text-text-muted"
-                  style={dynamicType.body}
-                >
-                  Get updates when a family agreement is ready for you.
-                </Text>
-                {notificationState.status === 'registered' ? (
-                  <Text
-                    allowFontScaling={false}
-                    accessibilityLiveRegion="polite"
-                    className="font-semibold text-text"
-                    style={dynamicType.body}
-                  >
-                    Notifications are enabled on this device.
-                  </Text>
-                ) : null}
-                {notificationState.status === 'denied' ? (
-                  <Text
-                    allowFontScaling={false}
-                    accessibilityLiveRegion="polite"
-                    className="text-text-muted"
-                    style={dynamicType.body}
-                  >
-                    Notifications are off. You can keep using ChoreX normally.
-                  </Text>
-                ) : null}
-                {notificationState.status === 'error' ? (
-                  <FormMessage message={notificationState.message} />
-                ) : null}
-                {notificationState.status !== 'registered' ? (
-                  <Button
-                    label="Enable notifications"
-                    loading={notificationState.status === 'loading'}
-                    onPress={() => void enableNotifications()}
-                    variant="secondary"
-                  />
-                ) : null}
-              </View>
+              <NotificationPermissionCard
+                benefit="Get updates when you receive new offers or your Parent reviews your work."
+                education={education.showEducation}
+                busy={
+                  notifications.state.status === 'loading' ||
+                  notifications.state.status === 'checking'
+                }
+                registered={notifications.state.status === 'registered'}
+                quiet={notifications.state.permission?.quiet}
+                error={
+                  notifications.state.status === 'error'
+                    ? getNotificationErrorMessage(notifications.state.error)
+                    : undefined
+                }
+                settingsRequired={
+                  notifications.state.permission?.status === 'denied' &&
+                  notifications.state.permission.canAskAgain === false
+                }
+                onEnable={enableNotifications}
+                onSkip={education.skip}
+                onSettings={() => {
+                  void Linking.openSettings().catch(() => undefined);
+                }}
+              />
             </View>
           ) : null}
 

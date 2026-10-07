@@ -1,4 +1,6 @@
 import {
+  upsertCurrentPushDevice,
+  deleteCurrentPushDevice,
   fulfillReward,
   RewardClientError,
   observeReward,
@@ -18,6 +20,11 @@ import {
   observeActiveContracts,
 } from '@chorex/firebase-client';
 
+const mockTransaction = { get: jest.fn(), set: jest.fn(), delete: jest.fn() };
+const mockRunTransaction = jest.fn(async (_db, callback) =>
+  callback(mockTransaction),
+);
+const mockServerTimestamp = jest.fn(() => 'server-time');
 const mockCallable = jest.fn();
 const mockHttpsCallable = jest.fn(
   (_service: unknown, _name: string) => mockCallable,
@@ -39,6 +46,11 @@ jest.mock('@react-native-firebase/functions', () => ({
     mockHttpsCallable(service, name),
 }));
 jest.mock('@react-native-firebase/firestore', () => ({
+  runTransaction: (
+    db: unknown,
+    callback: (transaction: typeof mockTransaction) => Promise<void>,
+  ) => mockRunTransaction(db, callback),
+  serverTimestamp: () => mockServerTimestamp(),
   getDoc: (ref: unknown) => mockGetDoc(ref),
   getDocs: (ref: unknown) => mockGetDocs(ref),
   collection: (_db: unknown, ...path: string[]) => path.join('/'),
@@ -723,4 +735,63 @@ it('history query reads every round in ascending order with metadata and existin
       error,
     ),
   ).toThrow('FORBIDDEN');
+});
+
+it('upserts only the current user installation and freezes createdAt across token replacement', async () => {
+  const metadata = {
+    platform: 'ios',
+    appVariant: 'CHILD',
+    appVersion: '1.0.0',
+    expoPushToken: 'ExpoPushToken[first]',
+    pushEnabled: true,
+  };
+  mockTransaction.get.mockResolvedValue({ exists: () => false });
+  await upsertCurrentPushDevice('child-1', 'installation-1', metadata);
+  expect(mockTransaction.set).toHaveBeenLastCalledWith(
+    'users/child-1/devices/installation-1',
+    { ...metadata, createdAt: 'server-time', lastSeenAt: 'server-time' },
+  );
+  mockTransaction.get.mockResolvedValue({
+    exists: () => true,
+    data: () => ({ createdAt: timestamp, pushEnabled: false }),
+  });
+  await upsertCurrentPushDevice('child-1', 'installation-1', {
+    ...metadata,
+    expoPushToken: 'ExpoPushToken[replacement]',
+  });
+  expect(mockTransaction.set).toHaveBeenLastCalledWith(
+    'users/child-1/devices/installation-1',
+    expect.objectContaining({
+      createdAt: timestamp,
+      lastSeenAt: 'server-time',
+      pushEnabled: true,
+      expoPushToken: 'ExpoPushToken[replacement]',
+    }),
+  );
+  await expect(
+    upsertCurrentPushDevice('wrong-user', 'installation-1', metadata),
+  ).rejects.toThrow();
+  await expect(
+    upsertCurrentPushDevice('child-1', 'bad/path', metadata),
+  ).rejects.toThrow();
+  await expect(
+    upsertCurrentPushDevice('child-1', 'installation-1', {
+      ...metadata,
+      role: 'PARENT',
+    }),
+  ).rejects.toThrow();
+});
+it('confirms own deletion transaction before sign-out and propagates offline cleanup failure', async () => {
+  mockTransaction.get.mockResolvedValue({ exists: () => true });
+  await deleteCurrentPushDevice('child-1', 'installation-1');
+  expect(mockTransaction.delete).toHaveBeenLastCalledWith(
+    'users/child-1/devices/installation-1',
+  );
+  mockTransaction.get.mockRejectedValueOnce(Error('offline'));
+  await expect(
+    deleteCurrentPushDevice('child-1', 'installation-1'),
+  ).rejects.toThrow('offline');
+  await expect(
+    deleteCurrentPushDevice('other-user', 'installation-1'),
+  ).rejects.toThrow();
 });

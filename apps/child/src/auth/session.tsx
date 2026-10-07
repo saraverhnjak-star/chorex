@@ -14,7 +14,11 @@ import {
   type AuthClientError,
   type AuthUser,
 } from '@chorex/firebase-client';
-import { removeCurrentDeviceRegistration } from '@chorex/notifications';
+import {
+  removeCurrentDeviceRegistration,
+  useDeviceRegistrationLifecycle,
+  type DeviceRegistrationLifecycle,
+} from '@chorex/notifications';
 
 type ChildSessionState =
   | { status: 'loading'; user: null; error: null }
@@ -24,6 +28,7 @@ type ChildSessionState =
 type ChildSessionContextValue = ChildSessionState & {
   pair: (token: string, idempotencyKey: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  notifications: DeviceRegistrationLifecycle;
 };
 
 const ChildSessionContext = createContext<ChildSessionContextValue | null>(
@@ -46,9 +51,15 @@ export function ChildSessionProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const notifications = useDeviceRegistrationLifecycle(
+    'CHILD',
+    state.status === 'ready' ? state.user?.uid : undefined,
+  );
+
   const value = useMemo<ChildSessionContextValue>(
     () => ({
       ...state,
+      notifications,
       pair: async (token, idempotencyKey) => {
         const redemption = await redeemPairingSession({
           token,
@@ -61,7 +72,7 @@ export function ChildSessionProvider({ children }: { children: ReactNode }) {
         await signOutCurrentUser();
       },
     }),
-    [state],
+    [state, notifications],
   );
 
   return (
