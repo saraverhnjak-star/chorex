@@ -129,10 +129,17 @@ export interface Reward {
   parentUid: string;
   childUid: string;
   terms: RewardTerms; // frozen snapshot
-  status: 'PENDING_FULFILLMENT' | 'FULFILLED' | 'CANCELLED';
+  status:
+    | 'PENDING_FULFILLMENT'
+    | 'AWAITING_CHILD_CONFIRMATION'
+    | 'FULFILLED'
+    | 'CANCELLED';
   earnedAt: UtcIsoDateTime;
-  fulfilledAt?: UtcIsoDateTime;
-  fulfilledBy?: string;
+  deliveredAt?: UtcIsoDateTime;
+  deliveredBy?: string;
+  confirmedAt?: UtcIsoDateTime;
+  confirmedBy?: string;
+  fulfilledAt?: UtcIsoDateTime; // equals confirmedAt
 }
 ```
 
@@ -303,10 +310,16 @@ Do not put secrets, pairing codes, auth tokens, or sensitive free-form payloads 
 
 ## Implemented approval boundary
 
-`approveContract({ contractId, idempotencyKey })` is the active Parent participant's server command from exactly `READY_FOR_REVIEW`. It atomically creates an immutable APPROVE review at the existing zero-based cycle, marks the Contract APPROVED, and creates its single earned Reward in PENDING_FULFILLMENT. Terms come only from the frozen Contract. Approval introduces no note and remains separate from fulfillment. Its canonical receipt retains the original pending Reward even after later fulfillment. The shared Reward read schema distinguishes pending and fulfilled records; fulfilledAt and fulfilledBy are required only for FULFILLED. CANCELLED remains a documented exceptional/admin state without an implemented command or client read surface.
+`approveContract({ contractId, idempotencyKey })` is the active Parent participant's server command from exactly `READY_FOR_REVIEW`. It atomically creates an immutable APPROVE review at the existing zero-based cycle, marks the Contract APPROVED, and creates its single earned Reward in PENDING_FULFILLMENT. Terms come only from the frozen Contract. Approval introduces no note and remains separate from fulfillment. Its canonical receipt retains the original pending Reward even after later fulfillment. The shared Reward read schema distinguishes pending, awaiting Child confirmation and fulfilled records. Delivery requires deliveredAt/deliveredBy matching the Parent; terminal fulfillment additionally requires confirmedAt/confirmedBy matching the Child and fulfilledAt equal to confirmedAt. CANCELLED remains an exceptional/admin state without an implemented command or participant read surface.
 
 `requestContractChanges({ contractId, idempotencyKey, note })` shares the Parent review-decision transaction and round identity. Required feedback uses the existing trimmed, nonempty description convention (maximum 500 characters). It creates one immutable REQUEST_CHANGES Review at the unchanged cycle, transitions READY_FOR_REVIEW to CHANGES_REQUESTED, and creates no Reward. Current review feedback is read by the active Contract participants. ADR-044 preserves all task/completion data as valid: remediation happens outside the task-progress model. The Child explicitly resubmits through submitContractForReview after addressing feedback; the transaction verifies the deterministic current REQUEST_CHANGES review and opens the next cycle without a Review or Reward. OPEN-010 and OPEN-011 remain unresolved.
 
-## Parent Reward fulfillment
+## Bilateral Reward fulfillment — ADR-046
 
-`fulfillReward({ rewardId, idempotencyKey })` requires the active authenticated owning Parent. The authoritative Reward must be PENDING_FULFILLMENT and match its deterministic identity, APPROVED Contract, family, participants, earning timestamp and frozen reward terms. One transaction updates only Reward status, fulfilledAt and fulfilledBy, writes one Parent REWARD_FULFILLED event and completes idempotency state. Contract approval, terms, earning timestamp and all execution/review/negotiation history remain unchanged. Same-key retries return the original fulfilled receipt after current access checks; new different-key actions fail REWARD_ALREADY_FULFILLED. Pending Rewards represent earned obligations, not delivered rewards. No cancellation or offline mutation queue is implemented.
+ADR-046 supersedes only ADR-034's unilateral fulfillment semantics. Approval still creates exactly one earned Reward from frozen Contract terms. The lifecycle is PENDING_FULFILLMENT → AWAITING_CHILD_CONFIRMATION → FULFILLED.
+
+`markRewardDelivered({ rewardId, idempotencyKey })` requires the active authenticated owning Parent, a pending Reward and its matching deterministic APPROVED Contract. One transaction writes AWAITING_CHILD_CONFIRMATION, server deliveredAt and deliveredBy, one Parent REWARD_DELIVERED event and the original idempotency receipt. It never writes confirmation metadata or FULFILLED.
+
+`confirmRewardReceived({ rewardId, idempotencyKey })` requires the active assigned Child and an awaiting Reward whose delivery metadata identifies the owning Parent. The shared transaction validates the same approved Contract relationship, writes FULFILLED, server confirmedAt/confirmedBy and fulfilledAt equal to confirmedAt, one Child REWARD_RECEIVED_CONFIRMED event and its original receipt. Client actor/timestamp fields are not accepted; fulfilledBy is removed.
+
+Both commands preserve terms, earning timestamp, Contract and all execution/review/negotiation history. Same-key retries revalidate current access and return the original receipt, including the Parent's awaiting receipt after Child confirmation. New delivery keys fail REWARD_ALREADY_DELIVERED after delivery; new confirmation keys fail REWARD_ALREADY_FULFILLED after confirmation. No dispute, rejection, undo, automatic confirmation or offline mutation queue exists. Without Child confirmation the Reward remains awaiting indefinitely.

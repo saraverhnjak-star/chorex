@@ -1,5 +1,7 @@
 # Phase 4: Contract review history and final acceptance
 
+> Subsequent correction: ADR-046 replaces unilateral Reward fulfillment with Parent delivery followed by assigned Child receipt confirmation. Historical verification below is unchanged. See [bilateral fulfillment acceptance](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md) for the current commands, fields, events and reminder compatibility.
+
 Verified: 2026-10-06. **PASS — every documented Phase 4 deliverable is implemented and its acceptance gate is satisfied within the existing automated/emulator and iOS bundle verification scope.** This final slice adds reads and presentation only. No review mutation, cycle, Reward, notification or task-progress semantics changed. No commit, push or deployment was performed.
 
 ## Authority and scope

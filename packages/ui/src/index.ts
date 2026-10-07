@@ -21,3 +21,5 @@ export { ReviewHistory } from './ReviewHistory';
 
 export { NotificationPermissionCard } from './NotificationPermissionCard';
 export { ReminderPreferenceCard } from './ReminderPreferenceCard';
+
+export { RewardTransitionAction } from './RewardTransitionAction';

@@ -295,9 +295,9 @@ ADR-044 extends submitContractForReview through its existing authenticated activ
 
 ## Reward read and fulfillment authorization
 
-Reward get/list access requires authenticated active membership in the Reward family and exact parentUid/childUid ownership. Parent list queries additionally constrain the authenticated parentUid and PENDING_FULFILLMENT; Child queries constrain authenticated childUid. Unscoped family lists are not authorized by Rules. All Reward and activity-event client writes remain denied, including status/fulfilledAt/fulfilledBy.
+Reward get/list access requires authenticated active membership in the Reward family and exact parentUid/childUid ownership. Parent list queries additionally constrain the authenticated parentUid and the requested pending or awaiting status; Child queries constrain authenticated childUid. Unscoped family lists are not authorized by Rules. All Reward and activity-event client writes remain denied, including all status, delivery and confirmation metadata.
 
-The trusted fulfillReward callable derives family and participants from persisted Reward state, validates active PARENT membership and exact owning Parent UID, and checks the deterministic approved-Contract relationship before committing. Child, another Parent, other-family, inactive/disabled/non-member and unauthenticated requests fail. Same-key retries revalidate current membership/ownership before returning the original receipt. Backend-unavailable failures do not imply success or create a client-side write queue.
+The trusted markRewardDelivered callable derives family and participants from persisted Reward state, validates active PARENT membership and exact owning Parent UID, and checks the deterministic approved-Contract relationship before committing. Child, another Parent, other-family, inactive/disabled/non-member and unauthenticated requests fail. confirmRewardReceived derives the same authoritative family/Contract relationship, requires active CHILD membership, exact childUid and prior Parent delivery; Parent, sibling and cross-family confirmations fail. Same-key retries revalidate current membership/ownership before returning the original receipt. Backend-unavailable failures do not imply success or create a client-side write queue.
 
 ## Immutable Contract review history
 

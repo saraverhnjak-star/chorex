@@ -26,8 +26,11 @@ function useRewards(
   familyId: string,
   authUid: string,
   pending: boolean,
+  parentStatus:
+    | 'PENDING_FULFILLMENT'
+    | 'AWAITING_CHILD_CONFIRMATION' = 'PENDING_FULFILLMENT',
 ): RewardListState {
-  const key = JSON.stringify([familyId, authUid, pending]);
+  const key = JSON.stringify([familyId, authUid, pending, parentStatus]);
   const [result, setResult] = useState<{
     key: string;
     state: RewardListState;
@@ -42,7 +45,15 @@ function useRewards(
       stop?.();
     };
     try {
-      stop = (pending ? observePendingRewards : observeEarnedRewards)(
+      stop = (
+        pending
+          ? (
+              family: string,
+              callback: Parameters<typeof observePendingRewards>[1],
+              error: Parameters<typeof observePendingRewards>[2],
+            ) => observePendingRewards(family, callback, error, parentStatus)
+          : observeEarnedRewards
+      )(
         familyId,
         (snapshot) => {
           if (active && !failed)
@@ -65,7 +76,7 @@ function useRewards(
       active = false;
       stop?.();
     };
-  }, [familyId, authUid, pending, key]);
+  }, [familyId, authUid, pending, parentStatus, key]);
   return result?.key === key ? result.state : { status: 'loading' };
 }
 export type RewardDetailState =
@@ -125,4 +136,11 @@ export function useRewardDetail(
     };
   }, [rewardId, authUid, key]);
   return result?.key === key ? result.state : { status: 'loading' };
+}
+
+export function useAwaitingRewards(
+  familyId: string,
+  authUid: string,
+): RewardListState {
+  return useRewards(familyId, authUid, true, 'AWAITING_CHILD_CONFIRMATION');
 }

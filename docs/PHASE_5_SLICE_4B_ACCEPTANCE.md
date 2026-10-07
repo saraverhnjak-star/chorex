@@ -1,5 +1,7 @@
 # Phase 5 Slice 4B — Reminder preferences and pending-Reward reminders
 
+> Subsequent correction: ADR-046 replaces unilateral Reward fulfillment with Parent delivery followed by assigned Child receipt confirmation. Historical verification below is unchanged. See [bilateral fulfillment acceptance](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md) for the current commands, fields, events and reminder compatibility.
+
 Verified 2026-10-07. ADR-045 records the user-approved default-enabled account policy before implementation. No commit, push, deployment, real Expo send or physical APNs delivery was performed.
 
 ## Decision and persistence

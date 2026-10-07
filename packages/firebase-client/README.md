@@ -44,7 +44,7 @@ ADR-044 correction/resubmission reuses submitContractForReview unchanged at the 
 
 All listeners include metadata changes, expose native fromCache, clear stale scope/session state and reject malformed records. Equal timestamps follow Firestore document-ID ordering. Screens use these adapters rather than raw queries or a persisted store.
 
-`fulfillReward({ rewardId, idempotencyKey })` validates input and the linked fulfilled `{ reward }` receipt and translates stable domain/network errors. Parent UI retains the same key across ambiguous failures, waits for backend confirmation and lets realtime state remove pending obligations. Child surfaces are read-only. Native cached reads may remain available; they never establish callable success or enqueue a mutation.
+`markRewardDelivered({ rewardId, idempotencyKey })` returns the original awaiting `{ reward }` receipt; `confirmRewardReceived` returns the original fulfilled receipt. Both validate shared schemas, use authenticated server commands and translate stable errors. Parent reports delivery; only assigned Child confirms receipt. UI retains the key across ambiguous failures and waits for backend confirmation; realtime listeners own current state. Cached reads never imply command success or enqueue mutations.
 
 ## Complete Contract review history
 

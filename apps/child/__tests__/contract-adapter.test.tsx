@@ -3,7 +3,8 @@ import {
   saveReminderPreference,
   subscribeReminderPreference,
   deleteCurrentPushDevice,
-  fulfillReward,
+  markRewardDelivered,
+  confirmRewardReceived,
   RewardClientError,
   observeReward,
   observePendingRewards,
@@ -615,7 +616,10 @@ it('Reward detail listener parses fulfilled timestamps, denies unrelated ownersh
       ...rewardData,
       status: 'FULFILLED',
       fulfilledAt: timestamp,
-      fulfilledBy: 'parent-1',
+      deliveredAt: timestamp,
+      confirmedAt: timestamp,
+      confirmedBy: 'child-1',
+      deliveredBy: 'parent-1',
     }),
     metadata: { fromCache: false },
   });
@@ -623,7 +627,10 @@ it('Reward detail listener parses fulfilled timestamps, denies unrelated ownersh
     data: expect.objectContaining({
       status: 'FULFILLED',
       fulfilledAt: iso,
-      fulfilledBy: 'parent-1',
+      deliveredAt: iso,
+      confirmedAt: iso,
+      confirmedBy: 'child-1',
+      deliveredBy: 'parent-1',
     }),
     fromCache: false,
   });
@@ -647,37 +654,60 @@ it('Reward detail listener parses fulfilled timestamps, denies unrelated ownersh
   stop();
   expect(mockStop).toHaveBeenCalled();
 });
-it('fulfillment adapter validates strict identity/receipt and maps stable/connectivity errors', async () => {
+it('bilateral Reward adapters validates strict identity/receipt and maps stable/connectivity errors', async () => {
   const input = { rewardId: 'reward-1', idempotencyKey: 'fulfillment-key-001' };
   const output = {
     reward: {
       id: 'reward-1',
       ...rewardData,
       earnedAt: iso,
-      status: 'FULFILLED',
-      fulfilledAt: iso,
-      fulfilledBy: 'parent-1',
+      status: 'AWAITING_CHILD_CONFIRMATION',
+      deliveredAt: iso,
+      deliveredBy: 'parent-1',
     },
   };
   mockCallable.mockResolvedValueOnce({ data: output });
-  await expect(fulfillReward(input)).resolves.toEqual(output);
-  expect(mockHttpsCallable).toHaveBeenCalledWith({}, 'fulfillReward');
+  await expect(markRewardDelivered(input)).resolves.toEqual(output);
+  expect(mockHttpsCallable).toHaveBeenCalledWith({}, 'markRewardDelivered');
   expect(mockCallable).toHaveBeenCalledWith(input);
   mockCallable.mockResolvedValueOnce({
     data: { reward: { ...output.reward, id: 'other' } },
   });
-  await expect(fulfillReward(input)).rejects.toThrow('UNKNOWN_REWARD_FAILURE');
+  await expect(markRewardDelivered(input)).rejects.toThrow(
+    'UNKNOWN_REWARD_FAILURE',
+  );
   mockCallable.mockRejectedValueOnce({
-    details: { code: 'REWARD_ALREADY_FULFILLED' },
+    details: { code: 'REWARD_ALREADY_DELIVERED' },
   });
-  await expect(fulfillReward(input)).rejects.toThrow(
-    'REWARD_ALREADY_FULFILLED',
+  await expect(markRewardDelivered(input)).rejects.toThrow(
+    'REWARD_ALREADY_DELIVERED',
   );
   mockCallable.mockRejectedValueOnce({ code: 'functions/unavailable' });
-  await expect(fulfillReward(input)).rejects.toThrow('NETWORK_UNAVAILABLE');
+  await expect(markRewardDelivered(input)).rejects.toThrow(
+    'NETWORK_UNAVAILABLE',
+  );
   await expect(
-    fulfillReward({ ...input, rewardId: '../bad' }),
+    markRewardDelivered({ ...input, rewardId: '../bad' }),
   ).rejects.toBeInstanceOf(RewardClientError);
+  const terminal = {
+    reward: {
+      ...output.reward,
+      status: 'FULFILLED',
+      confirmedAt: iso,
+      confirmedBy: 'child-1',
+      fulfilledAt: iso,
+    },
+  };
+  mockCallable.mockResolvedValueOnce({ data: terminal });
+  await expect(confirmRewardReceived(input)).resolves.toEqual(terminal);
+  expect(mockHttpsCallable).toHaveBeenLastCalledWith(
+    {},
+    'confirmRewardReceived',
+  );
+  mockCallable.mockResolvedValueOnce({ data: output });
+  await expect(confirmRewardReceived(input)).rejects.toThrow(
+    'UNKNOWN_REWARD_FAILURE',
+  );
 });
 
 it('history query reads every round in ascending order with metadata and existing access/error guards', () => {

@@ -153,12 +153,12 @@ export {
 export {
   pendingRewardSchema,
   fulfilledRewardSchema,
-  fulfillRewardInputSchema,
-  fulfillRewardOutputSchema,
+  markRewardDeliveredInputSchema,
+  markRewardDeliveredOutputSchema,
   rewardCommandErrorCodes,
   type RewardCommandErrorCode,
-  type FulfillRewardInputValue,
-  type FulfillRewardOutput,
+  type MarkRewardDeliveredInputValue,
+  type MarkRewardDeliveredOutput,
 } from './review';
 
 export * from './device';
@@ -168,3 +168,12 @@ export {
   reminderPreferenceEnabled,
   reminderPreferenceData,
 } from './reminderPreferences';
+
+export {
+  rewardStatusSchema,
+  deliveredRewardSchema,
+  confirmRewardReceivedInputSchema,
+  confirmRewardReceivedOutputSchema,
+  type ConfirmRewardReceivedInputValue,
+  type ConfirmRewardReceivedOutput,
+} from './review';

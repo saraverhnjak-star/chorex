@@ -174,7 +174,7 @@ it('submission notification opens existing Contract detail', () => {
 
 it('fulfillment notification opens Reward detail and rejects private payload extensions', () => {
   const data = {
-    type: 'REWARD_FULFILLED',
+    type: 'REWARD_DELIVERED',
     entityType: 'REWARD',
     entityId: 'reward-1',
     familyId: 'family-1',

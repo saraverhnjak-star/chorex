@@ -28,12 +28,21 @@ export function deserializeReward(
       terms: data.terms,
       status: data.status,
       earnedAt: iso(data.earnedAt),
+      ...(data.deliveredAt === undefined
+        ? {}
+        : { deliveredAt: iso(data.deliveredAt) }),
+      ...(data.deliveredBy === undefined
+        ? {}
+        : { deliveredBy: data.deliveredBy }),
+      ...(data.confirmedAt === undefined
+        ? {}
+        : { confirmedAt: iso(data.confirmedAt) }),
+      ...(data.confirmedBy === undefined
+        ? {}
+        : { confirmedBy: data.confirmedBy }),
       ...(data.fulfilledAt === undefined
         ? {}
         : { fulfilledAt: iso(data.fulfilledAt) }),
-      ...(data.fulfilledBy === undefined
-        ? {}
-        : { fulfilledBy: data.fulfilledBy }),
     });
   } catch {
     throw new ContractReadError('MALFORMED_DATA');

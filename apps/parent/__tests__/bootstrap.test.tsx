@@ -92,6 +92,11 @@ jest.mock('@chorex/firebase-client', () => ({
     state: { enabled: true, busy: false },
     save: jest.fn(),
   }),
+  useAwaitingRewards: () => ({
+    status: 'ready',
+    rewards: [],
+    fromCache: false,
+  }),
   usePendingRewards: () => ({ status: 'ready', rewards: [], fromCache: false }),
   useActiveContracts: () => ({
     status: 'ready',

@@ -1471,7 +1471,7 @@ All code, schemas, Firestore documents, functions, tests, and UI copy must use t
 
 # ADR-034 — Reward Promise Lives in the Contract; Reward Entity Is Created on Approval
 
-**Status:** Accepted
+**Status:** Accepted; fulfillment semantics partially superseded by ADR-046
 
 ## Decision
 
@@ -1915,3 +1915,15 @@ Deadline reminders remain one logical reminder in the future 24-hour window. Pen
 OS permission and usable device registration remain independent and authoritative for actual delivery. An enabled preference never implies permission or physical delivery. Preference changes mutate no Contract, Reward, device registration or OS permission. Re-enabling may generate previously ungenerated eligible work but never duplicates an existing logical reminder.
 
 This explicitly replaces Slice 4A's unresolved preference/activation boundary and permits activation of its hourly schedule. OPEN-010, OPEN-011 and OPEN-014 remain unresolved; no expiry/cancellation/Auth revocation semantics change.
+
+# ADR-046 — Reward Fulfillment Requires Parent Delivery and Child Receipt Confirmation
+
+**Status:** Accepted
+
+**Partially supersedes:** ADR-034 fulfillment semantics only; ADR-045 remains valid.
+
+A Reward now follows PENDING_FULFILLMENT → AWAITING_CHILD_CONFIRMATION → FULFILLED. The owning active Parent reports delivery through markRewardDelivered; the assigned active Child explicitly confirms receipt through confirmRewardReceived. Only confirmation may set FULFILLED. ChoreX is bilateral: Parent approval closes the Child's work, while Child confirmation closes Parent delivery. No dispute, rejection, undo, timeout, automatic confirmation or forced Parent completion is introduced. Without confirmation the Reward remains awaiting.
+
+Keep ADR-034's one frozen promise per Contract, exactly one earned Reward atomically created on approval, separation from Contract approval and explicit Parent delivery obligation. Store deliveredAt/deliveredBy for Parent action, confirmedAt/confirmedBy for Child action and fulfilledAt equal to confirmedAt. Remove ambiguous fulfilledBy. Server commands use existing authorization, transaction/activity/idempotency conventions; Parent retries retain the original awaiting receipt even after Child confirmation.
+
+Committed REWARD_DELIVERED notifies Child; committed REWARD_RECEIVED_CONFIRMED notifies Parent through existing transactional notification conventions, without preferences. Optional pending-delivery reminders stop at AWAITING_CHILD_CONFIRMATION and preserve deduplication. Pre-production fixtures must adopt the clean new schema; legacy fulfilled records cannot manufacture a Child confirmation. No external data migration is authorized. OPEN-010/011/014 remain unresolved.

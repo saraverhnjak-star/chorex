@@ -1,6 +1,6 @@
 import { useRewardDetail } from '@chorex/firebase-client';
 import { RewardDetailBody } from '@chorex/ui';
-import { FulfillRewardAction } from './FulfillRewardAction';
+import { MarkRewardDeliveredAction } from './MarkRewardDeliveredAction';
 export function RewardDetail({
   rewardId,
   authUid,
@@ -26,7 +26,7 @@ export function RewardDetail({
       }
     >
       {state.status === 'ready' && state.reward.parentUid === authUid ? (
-        <FulfillRewardAction
+        <MarkRewardDeliveredAction
           key={`${state.reward.id}:${authUid}`}
           reward={state.reward}
         />

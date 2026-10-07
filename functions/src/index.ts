@@ -3,9 +3,10 @@ import { generateContractDeadlineReminders } from './contractDeadlineReminders';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { processPushReceipts, getExpoReceipts } from './pushReceipts';
 import {
-  executeFulfillReward,
-  FulfillRewardCommandError,
-} from './fulfillReward';
+  executeMarkRewardDelivered,
+  executeConfirmRewardReceived,
+  RewardFulfillmentCommandError,
+} from './markRewardDelivered';
 import {
   executeRequestContractChanges,
   RequestContractChangesCommandError,
@@ -70,7 +71,7 @@ const pairingRateLimitHmacSecret = defineSecret(
 
 function callableError(
   error:
-    | FulfillRewardCommandError
+    | RewardFulfillmentCommandError
     | RequestContractChangesCommandError
     | ApproveContractCommandError
     | SubmitContractForReviewCommandError
@@ -94,6 +95,7 @@ function callableError(
     case offerCommandErrorCodes.forbidden:
     case offerCommandErrorCodes.childMembershipRequired:
       return new HttpsError('permission-denied', error.code, details);
+    case rewardCommandErrorCodes.rewardAlreadyDelivered:
     case rewardCommandErrorCodes.rewardAlreadyFulfilled:
     case familyCommandErrorCodes.idempotencyConflict:
     case contractCommandErrorCodes.tasksIncomplete:
@@ -409,15 +411,30 @@ export const requestContractChanges = onCall(async (request) => {
   }
 });
 
-export const fulfillReward = onCall(async (request) => {
+export const markRewardDelivered = onCall(async (request) => {
   try {
-    return await executeFulfillReward(
+    return await executeMarkRewardDelivered(
       firestore,
       request.auth?.uid,
       request.data,
     );
   } catch (error) {
-    if (error instanceof FulfillRewardCommandError) throw callableError(error);
+    if (error instanceof RewardFulfillmentCommandError)
+      throw callableError(error);
+    throw new HttpsError('internal', 'INTERNAL');
+  }
+});
+
+export const confirmRewardReceived = onCall(async (request) => {
+  try {
+    return await executeConfirmRewardReceived(
+      firestore,
+      request.auth?.uid,
+      request.data,
+    );
+  } catch (error) {
+    if (error instanceof RewardFulfillmentCommandError)
+      throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
   }
 });

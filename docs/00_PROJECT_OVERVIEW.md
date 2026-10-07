@@ -26,7 +26,7 @@ Primary responsibilities:
 - monitor progress;
 - review submitted contracts;
 - approve work or request changes;
-- fulfill earned rewards;
+- report earned Reward delivery;
 - open auctions for multiple children;
 - review child bids and select a winner.
 
@@ -41,7 +41,7 @@ Primary responsibilities:
 - see repeated-task progress such as `37 / 100`;
 - submit completed contracts for review;
 - respond to requested changes;
-- see earned rewards;
+- see earned rewards and explicitly confirm receipt after Parent reports delivery;
 - place bids in family auctions.
 
 ### Marketing website
@@ -63,7 +63,7 @@ The first shippable version should support:
 9. Child submits the contract for review only when completion requirements are satisfied.
 10. Parent approves or requests changes.
 11. Approval creates an earned reward.
-12. Parent marks the reward fulfilled when delivered.
+12. Parent reports delivery and Child confirms receipt when delivered.
 13. Push notifications cover the major state changes.
 
 ## 4. Post-MVP scope

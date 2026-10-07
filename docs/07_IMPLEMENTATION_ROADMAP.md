@@ -99,7 +99,7 @@ Note: because authoritative progress writes are Cloud Functions, do not pretend 
 
 ## Phase 4 - Review and reward fulfillment
 
-The first review mutation is Parent approval with a minimal Ready-for-Review list. ADR-043 resolves OPEN-012 using zero-based review rounds; approval preserves the cycle and atomically creates one pending earned Reward. See [approval acceptance evidence](PHASE_4_APPROVAL_ACCEPTANCE.md). Request changes is implemented as a bounded immutable decision/transition with current-round feedback reads; see [request-changes acceptance evidence](PHASE_4_REQUEST_CHANGES_ACCEPTANCE.md). ADR-044 resolves OPEN-009; contract-level correction and Child resubmission are implemented through submitContractForReview. See [resubmission acceptance evidence](PHASE_4_RESUBMISSION_ACCEPTANCE.md). Parent pending obligations, Child earned/fulfilled Reward reads, fulfillReward and its committed Child notification are implemented; see [Reward fulfillment acceptance evidence](PHASE_4_REWARD_FULFILLMENT_ACCEPTANCE.md). OPEN-010 and OPEN-011 remain unresolved.
+The first review mutation is Parent approval with a minimal Ready-for-Review list. ADR-043 resolves OPEN-012 using zero-based review rounds; approval preserves the cycle and atomically creates one pending earned Reward. See [approval acceptance evidence](PHASE_4_APPROVAL_ACCEPTANCE.md). Request changes is implemented as a bounded immutable decision/transition with current-round feedback reads; see [request-changes acceptance evidence](PHASE_4_REQUEST_CHANGES_ACCEPTANCE.md). ADR-044 resolves OPEN-009; contract-level correction and Child resubmission are implemented through submitContractForReview. See [resubmission acceptance evidence](PHASE_4_RESUBMISSION_ACCEPTANCE.md). Parent pending obligations, Child earned/fulfilled Reward reads, markRewardDelivered and its committed Child notification are implemented; see [Reward fulfillment acceptance evidence](PHASE_4_REWARD_FULFILLMENT_ACCEPTANCE.md). OPEN-010 and OPEN-011 remain unresolved.
 
 **Phase 4 acceptance gate is satisfied.** Both Contract details now expose complete immutable Review history, with participant-scoped reads/Rules, chronological zero-based cycles displayed as Review 1, 2, 3, and verified multi-round continuity through Reward fulfillment. See [Review history and final Phase 4 acceptance evidence](PHASE_4_REVIEW_HISTORY_ACCEPTANCE.md). The next milestone is Phase 5 notification hardening/reminders. Reward cancellation, task undo and expiry/cancellation decisions remain out of scope.
 
@@ -112,7 +112,8 @@ Build:
 - reward creation on approval;
 - Child earned rewards screen;
 - Parent reward to-do screen;
-- mark reward fulfilled;
+- Parent reports Reward delivery;
+- assigned Child explicitly confirms Reward receipt;
 - push notifications.
 
 Acceptance gate:
@@ -241,3 +242,7 @@ Child deadline reminders retain the future 24-hour ACTIVE window. Parent pending
 ### Phase 5 Slice 4B
 
 ADR-045 records the approved default-enabled user preference policy and one pending-Reward reminder after 48 hours. Both apps expose only their role's optional reminder setting alongside existing Home notification controls; no dedicated Settings/Profile screen previously existed. Deadline generation is activated with Child preferences; pending-Reward generation and dispatch validate Parent preferences/state/source/membership. See [Slice 4B acceptance](PHASE_5_SLICE_4B_ACCEPTANCE.md). Functional implementation of Phase 5 notification/reminder deliverables is complete, subject to the verification evidence and explicitly deferred physical Expo/APNs delivery. No expiry/cancellation or OPEN-010/011/014 decision is included.
+
+## Bilateral Reward correction — ADR-046
+
+Phase 4/5 Reward behavior now follows PENDING_FULFILLMENT → AWAITING_CHILD_CONFIRMATION → FULFILLED. Parent delivery and Child receipt confirmation use trusted commands, explicit two-step UX and existing transactional notification routes. Parent 48-hour reminders continue to apply only to pending delivery; awaiting Rewards are excluded and deduplication evidence is retained. ADR-045 preferences are unchanged. See [acceptance evidence](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md). No dispute or automatic confirmation exists.

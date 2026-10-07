@@ -3,31 +3,60 @@ import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 import {
   rewardTermsSchema,
   rewardSchema,
-  fulfillRewardInputSchema,
-  fulfillRewardOutputSchema,
-  type FulfillRewardOutput,
+  markRewardDeliveredInputSchema,
+  markRewardDeliveredOutputSchema,
+  confirmRewardReceivedOutputSchema,
+  type ConfirmRewardReceivedOutput,
+  type MarkRewardDeliveredOutput,
   type RewardCommandErrorCode,
 } from '@chorex/domain';
 import { contractRewardId } from './parentReviewDecision';
-const commandName = 'fulfillReward';
+
 const hash = (value: string) =>
   createHash('sha256').update(value).digest('hex');
-export class FulfillRewardCommandError extends Error {
+export class RewardFulfillmentCommandError extends Error {
   constructor(readonly code: RewardCommandErrorCode) {
     super(code);
-    this.name = 'FulfillRewardCommandError';
+    this.name = 'RewardFulfillmentCommandError';
   }
 }
-export async function executeFulfillReward(
+export function executeMarkRewardDelivered(
   db: Firestore,
   actorUid: string | undefined,
   rawInput: unknown,
-): Promise<FulfillRewardOutput> {
+): Promise<MarkRewardDeliveredOutput> {
+  return executeRewardTransition(
+    db,
+    actorUid,
+    rawInput,
+    'PARENT',
+  ) as Promise<MarkRewardDeliveredOutput>;
+}
+export function executeConfirmRewardReceived(
+  db: Firestore,
+  actorUid: string | undefined,
+  rawInput: unknown,
+): Promise<ConfirmRewardReceivedOutput> {
+  return executeRewardTransition(
+    db,
+    actorUid,
+    rawInput,
+    'CHILD',
+  ) as Promise<ConfirmRewardReceivedOutput>;
+}
+async function executeRewardTransition(
+  db: Firestore,
+  actorUid: string | undefined,
+  rawInput: unknown,
+  role: 'PARENT' | 'CHILD',
+): Promise<MarkRewardDeliveredOutput | ConfirmRewardReceivedOutput> {
+  const commandName =
+    role === 'PARENT' ? 'markRewardDelivered' : 'confirmRewardReceived';
   const fail = (code: RewardCommandErrorCode): never => {
-    throw new FulfillRewardCommandError(code);
+    throw new RewardFulfillmentCommandError(code);
   };
   if (!actorUid) return fail('AUTH_REQUIRED');
-  const parsed = fulfillRewardInputSchema.safeParse(rawInput);
+  const parsed = markRewardDeliveredInputSchema.safeParse(rawInput);
   if (!parsed.success) return fail('INVALID_INPUT');
   const input = parsed.data,
     identity = hash(`${commandName}:${actorUid}:${input.idempotencyKey}`),
@@ -68,29 +97,50 @@ export async function executeFulfillReward(
     ).data();
     if (!member || member.status !== 'ACTIVE')
       return fail('FAMILY_MEMBERSHIP_REQUIRED');
-    if (member.role !== 'PARENT') return fail('WRONG_ACTOR_ROLE');
-    if (data.parentUid !== actorUid) return fail('FORBIDDEN');
+    if (member.role !== role) return fail('WRONG_ACTOR_ROLE');
+    if ((role === 'PARENT' ? data.parentUid : data.childUid) !== actorUid)
+      return fail('FORBIDDEN');
     if (record) {
-      const result = fulfillRewardOutputSchema.parse(record.result);
+      const result = (
+        role === 'PARENT'
+          ? markRewardDeliveredOutputSchema
+          : confirmRewardReceivedOutputSchema
+      ).parse(record.result);
       if (
         record.familyId !== data.familyId ||
         result.reward.id !== input.rewardId ||
         result.reward.familyId !== data.familyId ||
-        result.reward.parentUid !== actorUid
+        (role === 'PARENT'
+          ? result.reward.parentUid
+          : result.reward.childUid) !== actorUid
       )
         throw new Error('INVALID_COMPLETED_FULFILLMENT');
       return result;
     }
-    if (data.status === 'FULFILLED') return fail('REWARD_ALREADY_FULFILLED');
+    if (data.status === 'FULFILLED')
+      return fail(
+        role === 'PARENT'
+          ? 'REWARD_ALREADY_DELIVERED'
+          : 'REWARD_ALREADY_FULFILLED',
+      );
+    if (role === 'PARENT' && data.status === 'AWAITING_CHILD_CONFIRMATION')
+      return fail('REWARD_ALREADY_DELIVERED');
     if (
-      data.status !== 'PENDING_FULFILLMENT' ||
-      !(data.earnedAt instanceof Timestamp)
+      data.status !==
+        (role === 'PARENT'
+          ? 'PENDING_FULFILLMENT'
+          : 'AWAITING_CHILD_CONFIRMATION') ||
+      !(data.earnedAt instanceof Timestamp) ||
+      (role === 'CHILD' && !(data.deliveredAt instanceof Timestamp))
     )
       return fail('INVALID_STATE');
     const reward = rewardSchema.safeParse({
       ...data,
       id: input.rewardId,
       earnedAt: data.earnedAt.toDate().toISOString(),
+      ...(role === 'CHILD' && data.deliveredAt instanceof Timestamp
+        ? { deliveredAt: data.deliveredAt.toDate().toISOString() }
+        : {}),
     });
     if (!reward.success) return fail('INVALID_STATE');
     const contract = (
@@ -101,13 +151,13 @@ export async function executeFulfillReward(
       !contract ||
       contract.status !== 'APPROVED' ||
       contract.familyId !== reward.data.familyId ||
-      contract.parentUid !== actorUid ||
+      contract.parentUid !== reward.data.parentUid ||
       contract.childUid !== reward.data.childUid ||
       !Array.isArray(contract.participantUids) ||
       contract.participantUids.length !== 2 ||
-      !contract.participantUids.includes(actorUid) ||
+      !contract.participantUids.includes(reward.data.parentUid) ||
       !contract.participantUids.includes(reward.data.childUid) ||
-      actorUid === reward.data.childUid ||
+      reward.data.parentUid === reward.data.childUid ||
       input.rewardId !== contractRewardId(reward.data.contractId) ||
       !(contract.approvedAt instanceof Timestamp) ||
       !contract.approvedAt.isEqual(data.earnedAt) ||
@@ -116,24 +166,42 @@ export async function executeFulfillReward(
     )
       return fail('INVALID_STATE');
     const now = Timestamp.now();
-    const result = fulfillRewardOutputSchema.parse({
+    const updates =
+      role === 'PARENT'
+        ? {
+            status: 'AWAITING_CHILD_CONFIRMATION',
+            deliveredAt: now,
+            deliveredBy: actorUid,
+          }
+        : {
+            status: 'FULFILLED',
+            confirmedAt: now,
+            confirmedBy: actorUid,
+            fulfilledAt: now,
+          };
+    const result = (
+      role === 'PARENT'
+        ? markRewardDeliveredOutputSchema
+        : confirmRewardReceivedOutputSchema
+    ).parse({
       reward: {
         ...reward.data,
-        status: 'FULFILLED',
-        fulfilledAt: now.toDate().toISOString(),
-        fulfilledBy: actorUid,
+        ...updates,
+        ...(role === 'PARENT'
+          ? { deliveredAt: now.toDate().toISOString() }
+          : {
+              confirmedAt: now.toDate().toISOString(),
+              fulfilledAt: now.toDate().toISOString(),
+            }),
       },
     });
-    tx.update(ref, {
-      status: 'FULFILLED',
-      fulfilledAt: now,
-      fulfilledBy: actorUid,
-    });
+    tx.update(ref, updates);
     tx.create(activity, {
       familyId: data.familyId,
       actorUid,
-      actorType: 'PARENT',
-      type: 'REWARD_FULFILLED',
+      actorType: role,
+      type:
+        role === 'PARENT' ? 'REWARD_DELIVERED' : 'REWARD_RECEIVED_CONFIRMED',
       entityType: 'REWARD',
       entityId: input.rewardId,
       createdAt: now,

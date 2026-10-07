@@ -82,17 +82,18 @@ For CHANGES_REQUESTED, submitContractForReview validates the deterministic curre
 
 `APPROVED` does **not** mean the reward has been delivered. Approval earns the reward.
 
-## 3. Reward fulfillment
+## 3. Reward fulfillment — ADR-046
 
 ```text
-PENDING_FULFILLMENT -> FULFILLED
-          |
-          +---------> CANCELLED   # exceptional/admin path only
+PENDING_FULFILLMENT -> AWAITING_CHILD_CONFIRMATION -> FULFILLED
+     Parent delivery             Child confirms receipt
+
+CANCELLED remains exceptional/admin-only; no cancellation command exists.
 ```
 
-The Parent app exposes pending earned rewards as an obligation list. The Child sees both pending and fulfilled Rewards.
+The active owning Parent calls markRewardDelivered only from PENDING_FULFILLMENT. The assigned active Child calls confirmRewardReceived only from AWAITING_CHILD_CONFIRMATION. Parent delivery cannot finalize fulfillment; Child cannot confirm before delivery. Each shared transaction writes its server timestamps, role-correct activity event and original idempotency receipt. Same-key retries preserve original results even after later transitions. Competing keys permit one transition per step. Contract stays APPROVED and frozen terms/history remain unchanged.
 
-`fulfillReward` performs only PENDING_FULFILLMENT -> FULFILLED through the active owning Parent and authoritative approved-Contract relationship. One transaction updates Reward status/fulfilledAt/fulfilledBy, records a Parent REWARD_FULFILLED event and completes idempotency state. Same-key retries preserve the original timestamp and receipt; concurrent different keys permit one winner, with REWARD_ALREADY_FULFILLED for the loser. Contract stays APPROVED and all frozen terms/history remain unchanged. UI success requires backend confirmation; listeners own the displayed Reward state and pending-list removal. Cancellation is not implemented.
+Parent pending obligations include only PENDING_FULFILLMENT; a separate current-state section shows waiting for Child confirmation. Child sees all three earned states and deliberately confirms receipt. UI success requires backend confirmation and realtime state owns list removal. No automatic confirmation, dispute, undo or cancellation is implemented.
 
 ## 4. Repeated tasks
 

@@ -1,5 +1,7 @@
 # Phase 4: Reward surfaces and Parent fulfillment acceptance
 
+> Subsequent correction: ADR-046 replaces unilateral Reward fulfillment with Parent delivery followed by assigned Child receipt confirmation. Historical verification below is unchanged. See [bilateral fulfillment acceptance](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md) for the current commands, fields, events and reminder compatibility.
+
 Verified: 2026-10-05. This slice completes the implemented MVP Reward lifecycle. **Phase 4 remains incomplete because participant-facing review history is still missing.** No commit, push or deployment was performed.
 
 ## Scope and changed files

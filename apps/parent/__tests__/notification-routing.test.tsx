@@ -120,7 +120,7 @@ it('ready/background response uses this binary route mapping; receipt alone neve
       response(
         'reward',
         payload({
-          type: 'REWARD_FULFILLED',
+          type: 'REWARD_DELIVERED',
           entityType: 'REWARD',
           entityId: 'reward-1',
         }),

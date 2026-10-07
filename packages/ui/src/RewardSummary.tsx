@@ -47,8 +47,10 @@ export function RewardSummary({
         className="text-text"
       >
         {reward.status === 'FULFILLED'
-          ? 'Fulfilled — delivered'
-          : 'Earned — waiting for Parent'}
+          ? 'Fulfilled — receipt confirmed'
+          : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+            ? 'Parent reported delivery — waiting for child confirmation'
+            : 'Earned — waiting for Parent'}
       </Text>
       <Text
         allowFontScaling={false}
@@ -57,6 +59,15 @@ export function RewardSummary({
       >
         Earned: {new Date(reward.earnedAt).toLocaleString()}
       </Text>
+      {reward.status !== 'PENDING_FULFILLMENT' ? (
+        <Text
+          allowFontScaling={false}
+          style={styles.small}
+          className="text-text-muted"
+        >
+          Delivered: {new Date(reward.deliveredAt).toLocaleString()}
+        </Text>
+      ) : null}
       {reward.status === 'FULFILLED' ? (
         <Text
           allowFontScaling={false}

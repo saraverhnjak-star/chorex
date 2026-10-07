@@ -149,7 +149,7 @@ export async function verifyContractApproval(ctx) {
   assert.equal(result.reward.status, 'PENDING_FULFILLMENT');
   assert.deepEqual(result.reward.terms, before.rewardTerms);
   assert.equal('fulfilledAt' in result.reward, false);
-  assert.equal('fulfilledByUid' in result.reward, false);
+  assert.equal('deliveredByUid' in result.reward, false);
   assert.deepEqual(
     await callFunction('approveContract', winningInput, parent.idToken),
     result,

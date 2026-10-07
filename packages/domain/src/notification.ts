@@ -21,7 +21,8 @@ export const negotiationNotificationDataSchema = z
       'CONTRACT_APPROVED',
       'CONTRACT_CHANGES_REQUESTED',
       'CONTRACT_SUBMITTED',
-      'REWARD_FULFILLED',
+      'REWARD_DELIVERED',
+      'REWARD_RECEIVED_CONFIRMED',
       'CONTRACT_DEADLINE_REMINDER',
       'PENDING_REWARD_REMINDER',
     ]),
@@ -32,7 +33,11 @@ export const negotiationNotificationDataSchema = z
   .superRefine((data, context) => {
     if (
       data.entityType !==
-      (['REWARD_FULFILLED', 'PENDING_REWARD_REMINDER'].includes(data.type)
+      ([
+        'REWARD_DELIVERED',
+        'REWARD_RECEIVED_CONFIRMED',
+        'PENDING_REWARD_REMINDER',
+      ].includes(data.type)
         ? 'REWARD'
         : [
               'OFFER_ACCEPTED',

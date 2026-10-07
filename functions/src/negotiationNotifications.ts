@@ -108,15 +108,24 @@ export function fulfillmentNotificationIntent(
   event: DocumentData,
   reward: DocumentData,
 ): NotificationIntent | undefined {
+  const delivery =
+    event.type === 'REWARD_DELIVERED' &&
+    event.actorType === 'PARENT' &&
+    event.actorUid === reward.parentUid &&
+    ['AWAITING_CHILD_CONFIRMATION', 'FULFILLED'].includes(reward.status) &&
+    reward.deliveredBy === reward.parentUid;
+  const confirmation =
+    event.type === 'REWARD_RECEIVED_CONFIRMED' &&
+    event.actorType === 'CHILD' &&
+    event.actorUid === reward.childUid &&
+    reward.status === 'FULFILLED' &&
+    reward.confirmedBy === reward.childUid;
   if (
-    event.type !== 'REWARD_FULFILLED' ||
+    (!delivery && !confirmation) ||
     event.entityType !== 'REWARD' ||
     event.familyId !== reward.familyId ||
-    event.actorType !== 'PARENT' ||
-    event.actorUid !== reward.parentUid ||
-    reward.status !== 'FULFILLED' ||
-    reward.fulfilledBy !== reward.parentUid ||
-    typeof reward.childUid !== 'string'
+    typeof reward.childUid !== 'string' ||
+    typeof reward.parentUid !== 'string'
   )
     return;
   const data = negotiationNotificationDataSchema.safeParse({
@@ -127,10 +136,12 @@ export function fulfillmentNotificationIntent(
   });
   if (!data.success) return;
   return {
-    recipientUid: reward.childUid,
-    recipientRole: 'CHILD',
-    title: 'Reward delivered',
-    body: 'Your reward was marked as delivered.',
+    recipientUid: delivery ? reward.childUid : reward.parentUid,
+    recipientRole: delivery ? 'CHILD' : 'PARENT',
+    title: delivery ? 'Reward delivered' : 'Reward confirmed',
+    body: delivery
+      ? 'Your parent marked your reward as delivered. Confirm when you receive it.'
+      : 'The reward was confirmed as received.',
     data: data.data,
   };
 }
@@ -287,7 +298,8 @@ export async function dispatchNegotiationNotification(
         'CONTRACT_APPROVED',
         'CONTRACT_CHANGES_REQUESTED',
         'CONTRACT_SUBMITTED',
-        'REWARD_FULFILLED',
+        'REWARD_DELIVERED',
+        'REWARD_RECEIVED_CONFIRMED',
         'CONTRACT_DEADLINE_REMINDER',
         'PENDING_REWARD_REMINDER',
       ].includes(event.type)
@@ -412,7 +424,9 @@ export async function dispatchNegotiationNotification(
         data: data.data,
       };
       familyId = contract.familyId;
-    } else if (event.type === 'REWARD_FULFILLED') {
+    } else if (
+      ['REWARD_DELIVERED', 'REWARD_RECEIVED_CONFIRMED'].includes(event.type)
+    ) {
       if (
         typeof event.entityId !== 'string' ||
         !event.entityId ||
@@ -426,7 +440,11 @@ export async function dispatchNegotiationNotification(
         !reward ||
         typeof reward.contractId !== 'string' ||
         reward.contractId.includes('/') ||
-        !(reward.fulfilledAt instanceof Timestamp) ||
+        !(reward.deliveredAt instanceof Timestamp) ||
+        (event.type === 'REWARD_RECEIVED_CONFIRMED' &&
+          (!(reward.confirmedAt instanceof Timestamp) ||
+            !(reward.fulfilledAt instanceof Timestamp) ||
+            !reward.confirmedAt.isEqual(reward.fulfilledAt))) ||
         event.entityId !== contractRewardId(reward.contractId)
       )
         return;

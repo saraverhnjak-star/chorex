@@ -50,7 +50,20 @@ test('48-hour threshold/default preference, fulfilled exclusion and unchanged sn
   seed(db, 'young', {
     earnedAt: Timestamp.fromMillis(now.toMillis() - pendingRewardDelayMs + 1),
   });
-  seed(db, 'fulfilled', { status: 'FULFILLED' });
+  seed(db, 'fulfilled', {
+    status: 'FULFILLED',
+    deliveredAt: now,
+    deliveredBy: 'parent',
+    confirmedAt: now,
+    confirmedBy: 'child',
+    fulfilledAt: now,
+  });
+  seed(db, 'delivered', {
+    status: 'AWAITING_CHILD_CONFIRMATION',
+    deliveredAt: now,
+    deliveredBy: 'parent',
+  });
+  seed(db, 'cancelled', { status: 'CANCELLED' });
   const before = [...db.records.entries()];
   assert.equal(await generatePendingRewardReminders(db, () => now), 1);
   for (const [path, value] of before)
@@ -90,7 +103,11 @@ test('fulfillment, membership and preference changes after candidate lookup supp
       original = db.runTransaction;
     db.runTransaction = (callback) => {
       if (change === 'fulfill')
-        db.records.get(`rewards/${id}`).status = 'FULFILLED';
+        Object.assign(db.records.get(`rewards/${id}`), {
+          status: 'AWAITING_CHILD_CONFIRMATION',
+          deliveredAt: now,
+          deliveredBy: 'parent',
+        });
       if (change === 'inactive')
         db.records.get('families/family/members/parent').status = 'INACTIVE';
       if (change === 'disabled')

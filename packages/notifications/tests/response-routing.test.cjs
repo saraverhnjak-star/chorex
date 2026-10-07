@@ -91,7 +91,8 @@ for (const [type, entityType] of [
   ['CONTRACT_DEADLINE_REMINDER', 'CONTRACT'],
   ['CONTRACT_CHANGES_REQUESTED', 'CONTRACT'],
   ['CONTRACT_APPROVED', 'CONTRACT'],
-  ['REWARD_FULFILLED', 'REWARD'],
+  ['REWARD_DELIVERED', 'REWARD'],
+  ['REWARD_RECEIVED_CONFIRMED', 'REWARD'],
   ['PENDING_REWARD_REMINDER', 'REWARD'],
 ])
   test(`${type}: canonical semantic intent without paths or copied domain terms`, () => {

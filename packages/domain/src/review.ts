@@ -33,34 +33,75 @@ export const pendingRewardSchema = z.strictObject({
   status: z.literal('PENDING_FULFILLMENT'),
   earnedAt: utcIsoDateTimeSchema,
 });
-export const fulfilledRewardSchema = pendingRewardSchema
+export const rewardStatusSchema = z.enum([
+  'PENDING_FULFILLMENT',
+  'AWAITING_CHILD_CONFIRMATION',
+  'FULFILLED',
+  'CANCELLED',
+]);
+export const deliveredRewardSchema = pendingRewardSchema
   .extend({
-    status: z.literal('FULFILLED'),
-    fulfilledAt: utcIsoDateTimeSchema,
-    fulfilledBy: documentId,
+    status: z.literal('AWAITING_CHILD_CONFIRMATION'),
+    deliveredAt: utcIsoDateTimeSchema,
+    deliveredBy: documentId,
   })
   .superRefine((reward, ctx) => {
     if (
-      reward.fulfilledBy !== reward.parentUid ||
-      reward.fulfilledAt < reward.earnedAt
+      reward.deliveredBy !== reward.parentUid ||
+      Date.parse(reward.deliveredAt) < Date.parse(reward.earnedAt)
     )
       ctx.addIssue({
         code: 'custom',
-        path: ['fulfilledBy'],
-        message: 'Fulfillment must identify the Parent after earning.',
+        path: ['deliveredBy'],
+        message: 'Delivery requires the Parent after earning.',
+      });
+  });
+export const fulfilledRewardSchema = pendingRewardSchema
+  .extend({
+    status: z.literal('FULFILLED'),
+    deliveredAt: utcIsoDateTimeSchema,
+    deliveredBy: documentId,
+    confirmedAt: utcIsoDateTimeSchema,
+    confirmedBy: documentId,
+    fulfilledAt: utcIsoDateTimeSchema,
+  })
+  .superRefine((reward, ctx) => {
+    if (
+      reward.deliveredBy !== reward.parentUid ||
+      reward.confirmedBy !== reward.childUid ||
+      Date.parse(reward.deliveredAt) < Date.parse(reward.earnedAt) ||
+      Date.parse(reward.confirmedAt) < Date.parse(reward.deliveredAt) ||
+      reward.fulfilledAt !== reward.confirmedAt
+    )
+      ctx.addIssue({
+        code: 'custom',
+        path: ['confirmedBy'],
+        message:
+          'Fulfillment requires Child confirmation after Parent delivery.',
       });
   });
 export const rewardSchema = z.discriminatedUnion('status', [
   pendingRewardSchema,
+  deliveredRewardSchema,
   fulfilledRewardSchema,
 ]);
-export const fulfillRewardInputSchema = z.strictObject({
+export const markRewardDeliveredInputSchema = z.strictObject({
   rewardId: documentId,
   idempotencyKey: idempotencyKeySchema,
 });
-export const fulfillRewardOutputSchema = z.strictObject({
+export const markRewardDeliveredOutputSchema = z.strictObject({
+  reward: deliveredRewardSchema,
+});
+export const confirmRewardReceivedInputSchema = markRewardDeliveredInputSchema;
+export const confirmRewardReceivedOutputSchema = z.strictObject({
   reward: fulfilledRewardSchema,
 });
+export type ConfirmRewardReceivedInputValue = z.input<
+  typeof confirmRewardReceivedInputSchema
+>;
+export type ConfirmRewardReceivedOutput = z.output<
+  typeof confirmRewardReceivedOutputSchema
+>;
 export const rewardCommandErrorCodes = {
   authRequired: 'AUTH_REQUIRED',
   invalidInput: 'INVALID_INPUT',
@@ -70,12 +111,17 @@ export const rewardCommandErrorCodes = {
   invalidState: 'INVALID_STATE',
   rewardNotFound: 'REWARD_NOT_FOUND',
   rewardAlreadyFulfilled: 'REWARD_ALREADY_FULFILLED',
+  rewardAlreadyDelivered: 'REWARD_ALREADY_DELIVERED',
   idempotencyConflict: 'IDEMPOTENCY_CONFLICT',
 } as const;
 export type RewardCommandErrorCode =
   (typeof rewardCommandErrorCodes)[keyof typeof rewardCommandErrorCodes];
-export type FulfillRewardInputValue = z.input<typeof fulfillRewardInputSchema>;
-export type FulfillRewardOutput = z.output<typeof fulfillRewardOutputSchema>;
+export type MarkRewardDeliveredInputValue = z.input<
+  typeof markRewardDeliveredInputSchema
+>;
+export type MarkRewardDeliveredOutput = z.output<
+  typeof markRewardDeliveredOutputSchema
+>;
 export const approveContractInputSchema = z.strictObject({
   contractId: documentId,
   idempotencyKey: idempotencyKeySchema,

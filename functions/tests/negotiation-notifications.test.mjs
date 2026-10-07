@@ -256,7 +256,7 @@ test('fulfilled Reward targets Child with delivery copy and minimal Reward route
     fulfillmentNotificationIntent,
   } = require('../lib/negotiationNotifications.js');
   const event = {
-    type: 'REWARD_FULFILLED',
+    type: 'REWARD_DELIVERED',
     entityType: 'REWARD',
     entityId: 'reward',
     familyId: 'family',
@@ -264,18 +264,31 @@ test('fulfilled Reward targets Child with delivery copy and minimal Reward route
     actorUid: 'parent',
     terms: 'Private reward',
   };
-  const reward = { ...offer, status: 'FULFILLED', fulfilledBy: 'parent' };
+  const reward = { ...offer, status: 'FULFILLED', deliveredBy: 'parent' };
   const intent = fulfillmentNotificationIntent(event, reward);
   assert.equal(intent.recipientUid, 'child');
   assert.equal(intent.recipientRole, 'CHILD');
-  assert.match(intent.body, /marked as delivered/);
+  assert.match(intent.body, /marked.*as delivered/);
   assert.deepEqual(intent.data, {
-    type: 'REWARD_FULFILLED',
+    type: 'REWARD_DELIVERED',
     entityType: 'REWARD',
     entityId: 'reward',
     familyId: 'family',
   });
   assert.equal(JSON.stringify(intent).includes('Private'), false);
+  const confirmed = fulfillmentNotificationIntent(
+    {
+      ...event,
+      type: 'REWARD_RECEIVED_CONFIRMED',
+      actorType: 'CHILD',
+      actorUid: 'child',
+    },
+    { ...reward, confirmedBy: 'child' },
+  );
+  assert.equal(confirmed.recipientUid, 'parent');
+  assert.equal(confirmed.recipientRole, 'PARENT');
+  assert.equal(confirmed.data.type, 'REWARD_RECEIVED_CONFIRMED');
+
   for (const patch of [
     { actorUid: 'other' },
     { actorType: 'CHILD' },

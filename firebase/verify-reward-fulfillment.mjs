@@ -96,6 +96,13 @@ export async function verifyRewardFulfillment(ctx) {
     where('status', '==', 'PENDING_FULFILLMENT'),
     orderBy('earnedAt', 'desc'),
   );
+  const waitingQuery = query(
+    collection(parentDb, 'rewards'),
+    where('familyId', '==', familyId),
+    where('parentUid', '==', parent.localId),
+    where('status', '==', 'AWAITING_CHILD_CONFIRMATION'),
+    orderBy('earnedAt', 'desc'),
+  );
   const earnedQuery = query(
     collection(childDb, 'rewards'),
     where('familyId', '==', familyId),
@@ -140,7 +147,7 @@ export async function verifyRewardFulfillment(ctx) {
     await assertFails(getDoc(doc(parentDb, path)));
     await expectCode('FAMILY_MEMBERSHIP_REQUIRED', () =>
       callFunction(
-        'fulfillReward',
+        'markRewardDelivered',
         { rewardId, idempotencyKey: 'fulfillment-inactive' },
         parent.idToken,
       ),
@@ -149,7 +156,7 @@ export async function verifyRewardFulfillment(ctx) {
   await withAdmin((db) => deleteDoc(doc(db, memberPath)));
   await expectCode('FAMILY_MEMBERSHIP_REQUIRED', () =>
     callFunction(
-      'fulfillReward',
+      'markRewardDelivered',
       { rewardId, idempotencyKey: 'fulfillment-nonmember' },
       parent.idToken,
     ),
@@ -167,7 +174,9 @@ export async function verifyRewardFulfillment(ctx) {
     ['WRONG_ACTOR_ROLE', child.idToken],
     ['FAMILY_MEMBERSHIP_REQUIRED', outside.idToken],
   ])
-    await expectCode(code, () => callFunction('fulfillReward', input, token));
+    await expectCode(code, () =>
+      callFunction('markRewardDelivered', input, token),
+    );
   for (const extra of [
     { parentUid: parent.localId },
     { fulfilledAt: before.earnedAt },
@@ -175,39 +184,53 @@ export async function verifyRewardFulfillment(ctx) {
     { role: 'PARENT' },
   ])
     await expectCode('INVALID_INPUT', () =>
-      callFunction('fulfillReward', { ...input, ...extra }, parent.idToken),
+      callFunction(
+        'markRewardDelivered',
+        { ...input, ...extra },
+        parent.idToken,
+      ),
     );
   for (const db of [parentDb, childDb]) {
     await assertFails(
       updateDoc(doc(db, path), {
-        status: 'FULFILLED',
+        status: 'AWAITING_CHILD_CONFIRMATION',
         fulfilledAt: new Date(),
-        fulfilledBy: parent.localId,
+        deliveredBy: parent.localId,
       }),
     );
     await assertFails(
       setDoc(doc(db, 'activityEvents/forged-reward'), {
-        type: 'REWARD_FULFILLED',
+        type: 'REWARD_DELIVERED',
       }),
     );
   }
-  const result = await callFunction('fulfillReward', input, parent.idToken);
-  assert.equal(result.reward.status, 'FULFILLED');
-  assert.equal(result.reward.fulfilledBy, parent.localId);
+  const result = await callFunction(
+    'markRewardDelivered',
+    input,
+    parent.idToken,
+  );
+  assert.equal(result.reward.status, 'AWAITING_CHILD_CONFIRMATION');
+  assert.equal(result.reward.deliveredBy, parent.localId);
+  const waiting = watch(waitingQuery),
+    parentDetail = watch(doc(parentDb, path));
+  await waiting.wait(
+    (s) => s.size === 1 && s.docs[0].id === rewardId && !s.metadata.fromCache,
+  );
+
   assert.deepEqual(
-    await callFunction('fulfillReward', input, parent.idToken),
+    await callFunction('markRewardDelivered', input, parent.idToken),
     result,
   );
-  await expectCode('REWARD_ALREADY_FULFILLED', () =>
+  await expectCode('REWARD_ALREADY_DELIVERED', () =>
     callFunction(
-      'fulfillReward',
+      'markRewardDelivered',
       { ...input, idempotencyKey: 'fulfillment-second' },
       parent.idToken,
     ),
   );
   await expectCode('IDEMPOTENCY_CONFLICT', () =>
     callFunction(
-      'fulfillReward',
+      'markRewardDelivered',
       { ...input, rewardId: siblingRewardId },
       parent.idToken,
     ),
@@ -221,17 +244,117 @@ export async function verifyRewardFulfillment(ctx) {
   await activeEarned.wait(
     (s) =>
       s.docs.some(
-        (d) => d.id === rewardId && d.data().status === 'FULFILLED',
+        (d) =>
+          d.id === rewardId &&
+          d.data().status === 'AWAITING_CHILD_CONFIRMATION',
       ) && !s.metadata.fromCache,
   );
   await activeDetail.wait(
+    (s) =>
+      s.data()?.status === 'AWAITING_CHILD_CONFIRMATION' &&
+      !s.metadata.fromCache,
+  );
+  assert.deepEqual(normalized((await readAdmin(path)).data()), {
+    ...before,
+    status: 'AWAITING_CHILD_CONFIRMATION',
+    deliveredBy: parent.localId,
+    deliveredAt: result.reward.deliveredAt,
+  });
+  const confirmationInput = {
+    rewardId,
+    idempotencyKey: 'confirmation-emulator-001',
+  };
+  for (const [code, token] of [
+    ['AUTH_REQUIRED', undefined],
+    ['WRONG_ACTOR_ROLE', parent.idToken],
+    ['FORBIDDEN', sibling.idToken],
+    ['FAMILY_MEMBERSHIP_REQUIRED', outside.idToken],
+  ]) {
+    await expectCode(code, () =>
+      callFunction('confirmRewardReceived', confirmationInput, token),
+    );
+  }
+  const childMemberPath = `families/${familyId}/members/${child.localId}`;
+  const childMember = (await readAdmin(childMemberPath)).data();
+  await withAdmin((db) =>
+    updateDoc(doc(db, childMemberPath), { status: 'INACTIVE' }),
+  );
+  await expectCode('FAMILY_MEMBERSHIP_REQUIRED', () =>
+    callFunction('confirmRewardReceived', confirmationInput, child.idToken),
+  );
+  await withAdmin((db) => setDoc(doc(db, childMemberPath), childMember));
+  const confirmedDetail = watch(doc(childDb, path));
+  const confirmedEarned = watch(earnedQuery);
+  const confirmed = await callFunction(
+    'confirmRewardReceived',
+    confirmationInput,
+    child.idToken,
+  );
+  assert.equal(confirmed.reward.status, 'FULFILLED');
+  await waiting.wait((s) => s.size === 0 && !s.metadata.fromCache);
+  await parentDetail.wait(
     (s) => s.data()?.status === 'FULFILLED' && !s.metadata.fromCache,
+  );
+
+  assert.equal(confirmed.reward.confirmedBy, child.localId);
+  assert.equal(confirmed.reward.fulfilledAt, confirmed.reward.confirmedAt);
+  assert.equal(confirmed.reward.deliveredAt, result.reward.deliveredAt);
+  assert.equal(confirmed.reward.deliveredBy, parent.localId);
+  await confirmedDetail.wait(
+    (s) => s.data()?.status === 'FULFILLED' && !s.metadata.fromCache,
+  );
+  await confirmedEarned.wait(
+    (s) =>
+      s.docs.some(
+        (d) => d.id === rewardId && d.data().status === 'FULFILLED',
+      ) && !s.metadata.fromCache,
+  );
+  assert.deepEqual(
+    await callFunction(
+      'confirmRewardReceived',
+      confirmationInput,
+      child.idToken,
+    ),
+    confirmed,
+  );
+  assert.deepEqual(
+    await callFunction('markRewardDelivered', input, parent.idToken),
+    result,
   );
   assert.deepEqual(normalized((await readAdmin(path)).data()), {
     ...before,
     status: 'FULFILLED',
-    fulfilledBy: parent.localId,
-    fulfilledAt: result.reward.fulfilledAt,
+    deliveredAt: result.reward.deliveredAt,
+    deliveredBy: parent.localId,
+    confirmedAt: confirmed.reward.confirmedAt,
+    confirmedBy: child.localId,
+    fulfilledAt: confirmed.reward.confirmedAt,
+  });
+  await withAdmin(async (db) => {
+    const events = await getDocs(
+      query(
+        collection(db, 'activityEvents'),
+        where('entityId', '==', rewardId),
+        where('type', '==', 'REWARD_RECEIVED_CONFIRMED'),
+      ),
+    );
+    assert.equal(events.size, 1);
+    assert.equal(events.docs[0].data().actorUid, child.localId);
+    assert.equal(events.docs[0].data().actorType, 'CHILD');
+    for (let i = 0; i < 100; i++) {
+      const effect = (
+        await readAdmin(
+          `activityEvents/${events.docs[0].id}/notificationEffects/expo`,
+        )
+      ).data();
+      if (effect?.status === 'COMPLETE') {
+        assert.equal(effect.recipientUid, parent.localId);
+        assert.equal(effect.data.type, 'REWARD_RECEIVED_CONFIRMED');
+        break;
+      }
+      assert.notEqual(i, 99, 'Confirmation effect not completed');
+      await new Promise((r) => setTimeout(r, 100));
+    }
   });
   assert.deepEqual(
     normalized((await readAdmin(contractPath)).data()),
@@ -290,7 +413,7 @@ export async function verifyRewardFulfillment(ctx) {
       query(
         collection(db, 'activityEvents'),
         where('entityId', '==', rewardId),
-        where('type', '==', 'REWARD_FULFILLED'),
+        where('type', '==', 'REWARD_DELIVERED'),
       ),
     );
     assert.equal(events.size, 1);
@@ -307,7 +430,7 @@ export async function verifyRewardFulfillment(ctx) {
     if (effect?.status === 'COMPLETE') {
       assert.equal(effect.recipientUid, child.localId);
       assert.deepEqual(effect.data, {
-        type: 'REWARD_FULFILLED',
+        type: 'REWARD_DELIVERED',
         entityType: 'REWARD',
         entityId: rewardId,
         familyId,
@@ -318,14 +441,14 @@ export async function verifyRewardFulfillment(ctx) {
     await new Promise((r) => setTimeout(r, 100));
   }
   await disableNetwork(childDb);
-  await activeEarned.wait(
+  await confirmedEarned.wait(
     (s) =>
       s.docs.some(
         (d) => d.id === rewardId && d.data().status === 'FULFILLED',
       ) && s.metadata.fromCache,
   );
   await enableNetwork(childDb);
-  await activeEarned.wait(
+  await confirmedEarned.wait(
     (s) =>
       s.docs.some(
         (d) => d.id === rewardId && d.data().status === 'FULFILLED',
@@ -333,7 +456,7 @@ export async function verifyRewardFulfillment(ctx) {
   );
   await verifyFulfillmentRacesAndTransport();
   console.info(
-    'PASS: Offer -> completion -> correction/resubmission -> approval -> Reward fulfillment, Parent multiple-child obligations/query removal, Child earned/pending/fulfilled realtime/cache/reconnect, stable retries, immutable terms/Contract/history, denied family/direct-write access, Child notification effect',
+    'PASS: Offer -> completion -> correction/resubmission -> approval -> bilateral Reward fulfillment, Parent multiple-child obligations/query removal, Child earned/pending/fulfilled realtime/cache/reconnect, stable retries, immutable terms/Contract/history, denied family/direct-write access, Child notification effect',
   );
 }
 async function verifyFulfillmentRacesAndTransport() {
@@ -342,7 +465,10 @@ async function verifyFulfillmentRacesAndTransport() {
   );
   const { initializeApp, deleteApp } = require('firebase-admin/app'),
     { getFirestore, Timestamp } = require('firebase-admin/firestore');
-  const { executeFulfillReward } = require('./lib/fulfillReward.js'),
+  const {
+      executeMarkRewardDelivered,
+      executeConfirmRewardReceived,
+    } = require('./lib/markRewardDelivered.js'),
     { contractRewardId } = require('./lib/parentReviewDecision.js'),
     {
       dispatchNegotiationNotification,
@@ -397,8 +523,8 @@ async function verifyFulfillmentRacesAndTransport() {
       const input = await seed(`race-${i}`),
         same = i % 2 === 0;
       const results = await Promise.allSettled([
-        executeFulfillReward(db, 'parent', input),
-        executeFulfillReward(db, 'parent', {
+        executeMarkRewardDelivered(db, 'parent', input),
+        executeMarkRewardDelivered(db, 'parent', {
           ...input,
           idempotencyKey: same ? input.idempotencyKey : `competing-${i}`,
         }),
@@ -408,6 +534,46 @@ async function verifyFulfillmentRacesAndTransport() {
         same ? 2 : 1,
       );
       if (same) assert.deepEqual(results[0].value, results[1].value);
+      else
+        assert.equal(
+          results.find((r) => r.status === 'rejected').reason.code,
+          'REWARD_ALREADY_DELIVERED',
+        );
+      assert.equal(
+        (await db.doc(`rewards/${input.rewardId}`).get()).data().status,
+        'AWAITING_CHILD_CONFIRMATION',
+      );
+      assert.equal(
+        (
+          await db
+            .collection('activityEvents')
+            .where('entityId', '==', input.rewardId)
+            .get()
+        ).size,
+        1,
+      );
+    }
+    for (let i = 0; i < 2; i++) {
+      const input = await seed(`confirmation-race-${i}`);
+      await assert.rejects(
+        () => executeConfirmRewardReceived(db, 'child', input),
+        (e) => e.code === 'INVALID_STATE',
+      );
+      const delivered = await executeMarkRewardDelivered(db, 'parent', input);
+      const confirmation = { ...input, idempotencyKey: `confirm-${i}` };
+      const results = await Promise.allSettled([
+        executeConfirmRewardReceived(db, 'child', confirmation),
+        executeConfirmRewardReceived(db, 'child', {
+          ...confirmation,
+          idempotencyKey:
+            i === 0 ? confirmation.idempotencyKey : 'competing-confirmation',
+        }),
+      ]);
+      assert.equal(
+        results.filter((r) => r.status === 'fulfilled').length,
+        i === 0 ? 2 : 1,
+      );
+      if (i === 0) assert.deepEqual(results[0].value, results[1].value);
       else
         assert.equal(
           results.find((r) => r.status === 'rejected').reason.code,
@@ -424,11 +590,15 @@ async function verifyFulfillmentRacesAndTransport() {
             .where('entityId', '==', input.rewardId)
             .get()
         ).size,
-        1,
+        2,
+      );
+      assert.deepEqual(
+        await executeMarkRewardDelivered(db, 'parent', input),
+        delivered,
       );
     }
     const input = await seed('transport'),
-      result = await executeFulfillReward(db, 'parent', input);
+      result = await executeMarkRewardDelivered(db, 'parent', input);
     const event = (
       await db
         .collection('activityEvents')
@@ -444,7 +614,7 @@ async function verifyFulfillmentRacesAndTransport() {
     );
     assert.equal(
       (await db.doc(`rewards/${input.rewardId}`).get()).data().status,
-      'FULFILLED',
+      'AWAITING_CHILD_CONFIRMATION',
     );
     await dispatchNegotiationNotification(db, event.id, async (messages) => {
       sends++;
@@ -456,7 +626,10 @@ async function verifyFulfillmentRacesAndTransport() {
       throw new Error('DUPLICATE_SEND');
     });
     assert.equal(sends, 2);
-    assert.deepEqual(await executeFulfillReward(db, 'parent', input), result);
+    assert.deepEqual(
+      await executeMarkRewardDelivered(db, 'parent', input),
+      result,
+    );
     const abort = await seed('abort'),
       failing = {
         doc: (path) => db.doc(path),
@@ -467,7 +640,7 @@ async function verifyFulfillmentRacesAndTransport() {
           }),
       };
     await assert.rejects(
-      () => executeFulfillReward(failing, 'parent', abort),
+      () => executeMarkRewardDelivered(failing, 'parent', abort),
       /INJECTED_ABORT/,
     );
     assert.equal(
@@ -484,7 +657,7 @@ async function verifyFulfillmentRacesAndTransport() {
       0,
     );
     console.info(
-      'PASS: four real fulfillment races (same/different keys), one stable timestamp/event, aborted transaction has no effects, transport failure retains fulfilled state and completed effect deduplicates redelivery',
+      'PASS: four delivery and two confirmation races (same/different keys), one stable timestamp/event, aborted transaction has no effects, transport failure retains awaiting state and completed effect deduplicates redelivery',
     );
   } finally {
     await deleteApp(app);

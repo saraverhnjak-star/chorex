@@ -26,9 +26,9 @@ Run `pnpm emulators:verify:submit-contract-for-review` for the real callable acc
 
 ## Reward fulfillment
 
-`fulfillReward({ rewardId, idempotencyKey })` requires the authenticated active owning Parent. It validates the persisted pending Reward and its deterministic APPROVED Contract relationship, family/participants, frozen terms and original earning timestamp. One transaction updates only status FULFILLED, native fulfilledAt and fulfilledBy; writes one Parent REWARD_FULFILLED event; and completes canonical idempotency state. Same-key retries revalidate current access and preserve the original receipt/timestamp/event. New different-key requests fail REWARD_ALREADY_FULFILLED; conflicting input fails IDEMPOTENCY_CONFLICT. No execution/review/negotiation history is changed. The existing event dispatcher owns the generic active-Child notification effect and transport retries. Cancellation is not implemented.
+`markRewardDelivered({ rewardId, idempotencyKey })` returns the original awaiting `{ reward }` receipt; `confirmRewardReceived` returns the original fulfilled receipt. Both validate shared schemas, use authenticated server commands and translate stable errors. Parent reports delivery; only assigned Child confirms receipt. UI retains the key across ambiguous failures and waits for backend confirmation; realtime listeners own current state. Cached reads never imply command success or enqueue mutations.
 
-Run `pnpm emulators:verify:fulfill-reward` from the repository root for the full accepted/completed/correction/resubmission/approval/fulfillment integration path, scoped Rules/read listeners, transaction races and notification failure/redelivery checks. See the focused Phase 4 Reward fulfillment acceptance report.
+Run `pnpm emulators:verify:reward-fulfillment` from the repository root for the full accepted/completed/correction/resubmission/approval/fulfillment integration path, scoped Rules/read listeners, transaction races and notification failure/redelivery checks. See the focused Phase 4 Reward fulfillment acceptance report.
 
 ## Expo receipt worker (Phase 5 Slice 1)
 

@@ -40,7 +40,9 @@ const {
 const {
   contractRewardId,
 } = require('../functions/lib/parentReviewDecision.js');
-const { executeFulfillReward } = require('../functions/lib/fulfillReward.js');
+const {
+  executeMarkRewardDelivered,
+} = require('../functions/lib/markRewardDelivered.js');
 const now = Timestamp.now();
 let env;
 try {
@@ -224,7 +226,20 @@ try {
   await seedReward('young', {
     earnedAt: Timestamp.fromMillis(now.toMillis() - pendingRewardDelayMs + 1),
   });
-  await seedReward('fulfilled', { status: 'FULFILLED' });
+  await seedReward('fulfilled', {
+    status: 'FULFILLED',
+    deliveredAt: now,
+    deliveredBy: parent,
+    confirmedAt: now,
+    confirmedBy: child,
+    fulfilledAt: now,
+  });
+  await seedReward('delivered', {
+    status: 'AWAITING_CHILD_CONFIRMATION',
+    deliveredAt: now,
+    deliveredBy: parent,
+  });
+  await seedReward('cancelled', { status: 'CANCELLED' });
   await assertSucceeds(
     setDoc(doc(parentClient, parentPreference), {
       pendingRewardRemindersEnabled: false,
@@ -273,12 +288,27 @@ try {
     },
   );
   assert.equal(rewardSends, 1);
+  const reminderBefore = (
+    await db.doc(`activityEvents/${pendingRewardReminderId(rewardId)}`).get()
+  ).data();
+  await executeMarkRewardDelivered(db, parent, {
+    rewardId,
+    idempotencyKey: 'reminder-existing-delivery',
+  });
+  assert.equal(await generatePendingRewardReminders(db, () => now), 0);
+  assert.deepEqual(
+    (
+      await db.doc(`activityEvents/${pendingRewardReminderId(rewardId)}`).get()
+    ).data(),
+    reminderBefore,
+  );
+
   const racingReward = await seedReward('fulfillment-race');
   const fulfillmentRace = {
     collection: (...args) => db.collection(...args),
     doc: (...args) => db.doc(...args),
     runTransaction: async (callback) => {
-      await executeFulfillReward(db, parent, {
+      await executeMarkRewardDelivered(db, parent, {
         rewardId: racingReward,
         idempotencyKey: 'reminder-race-verification',
       });
@@ -291,7 +321,7 @@ try {
   );
   assert.equal(
     (await db.doc(`rewards/${racingReward}`).get()).data().status,
-    'FULFILLED',
+    'AWAITING_CHILD_CONFIRMATION',
   );
   assert.equal(
     (

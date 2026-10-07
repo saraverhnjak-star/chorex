@@ -1,5 +1,8 @@
-import { useRewardDetail } from '@chorex/firebase-client';
-import { RewardDetailBody } from '@chorex/ui';
+import {
+  confirmRewardReceived,
+  useRewardDetail,
+} from '@chorex/firebase-client';
+import { RewardTransitionAction, RewardDetailBody } from '@chorex/ui';
 export function RewardDetail({
   rewardId,
   authUid,
@@ -18,6 +21,20 @@ export function RewardDetail({
         state.fromCache
       }
       reward={state.status === 'ready' ? state.reward : undefined}
-    />
+    >
+      {state.status === 'ready' && state.reward.childUid === authUid ? (
+        <RewardTransitionAction
+          key={`${state.reward.id}:${authUid}`}
+          reward={state.reward}
+          submit={confirmRewardReceived}
+          expectedStatus="AWAITING_CHILD_CONFIRMATION"
+          actionLabel="Confirm received"
+          confirmLabel="Confirm receipt"
+          question="Confirm that you received this reward?"
+          description="Confirm only when you have received your promised reward."
+          success="Reward received"
+        />
+      ) : null}
+    </RewardDetailBody>
   );
 }

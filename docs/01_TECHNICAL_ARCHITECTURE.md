@@ -21,7 +21,7 @@ Use a **TypeScript monorepo** with two Expo React Native applications and a Fire
                              | Functions   |
                              | Storage(*)  |
                              | App Check   |
-                             +------+------+ 
+                             +------+------+
                                     |
                                     v
                              server-authoritative
@@ -157,8 +157,14 @@ Example API boundary:
 
 ```ts
 export interface ContractRepository {
-  observeContract(contractId: string, cb: (contract: Contract) => void): Unsubscribe;
-  observeTasks(contractId: string, cb: (tasks: ContractTask[]) => void): Unsubscribe;
+  observeContract(
+    contractId: string,
+    cb: (contract: Contract) => void,
+  ): Unsubscribe;
+  observeTasks(
+    contractId: string,
+    cb: (tasks: ContractTask[]) => void,
+  ): Unsubscribe;
 }
 ```
 
@@ -236,7 +242,8 @@ undoTaskCompletion
 submitContractForReview
 requestContractChanges
 approveContract
-fulfillReward
+markRewardDelivered
+confirmRewardReceived
 createAuction
 placeAuctionBid
 selectAuctionBid

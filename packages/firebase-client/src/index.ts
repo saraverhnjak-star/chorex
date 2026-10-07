@@ -50,12 +50,15 @@ import {
   httpsCallable,
 } from '@react-native-firebase/functions';
 import {
-  fulfillRewardInputSchema,
-  fulfillRewardOutputSchema,
+  markRewardDeliveredInputSchema,
+  confirmRewardReceivedOutputSchema,
+  type ConfirmRewardReceivedInputValue,
+  type ConfirmRewardReceivedOutput,
+  markRewardDeliveredOutputSchema,
   rewardCommandErrorCodes,
   type RewardCommandErrorCode,
-  type FulfillRewardInputValue,
-  type FulfillRewardOutput,
+  type MarkRewardDeliveredInputValue,
+  type MarkRewardDeliveredOutput,
   type EarnedReward,
   requestContractChangesInputSchema,
   requestContractChangesOutputSchema,
@@ -1421,6 +1424,7 @@ export function observeCurrentContractReview(
 export { RewardReadError, deserializeReward } from './rewardReadModel';
 export {
   usePendingRewards,
+  useAwaitingRewards,
   useEarnedRewards,
   useRewardDetail,
   type RewardListState,
@@ -1435,19 +1439,40 @@ export class RewardClientError extends Error {
     this.name = 'RewardClientError';
   }
 }
-export async function fulfillReward(
-  rawInput: FulfillRewardInputValue,
-): Promise<FulfillRewardOutput> {
+export function markRewardDelivered(
+  rawInput: MarkRewardDeliveredInputValue,
+): Promise<MarkRewardDeliveredOutput> {
+  return executeRewardClientCommand(
+    rawInput,
+    'markRewardDelivered',
+  ) as Promise<MarkRewardDeliveredOutput>;
+}
+export function confirmRewardReceived(
+  rawInput: ConfirmRewardReceivedInputValue,
+): Promise<ConfirmRewardReceivedOutput> {
+  return executeRewardClientCommand(
+    rawInput,
+    'confirmRewardReceived',
+  ) as Promise<ConfirmRewardReceivedOutput>;
+}
+async function executeRewardClientCommand(
+  rawInput: MarkRewardDeliveredInputValue,
+  command: 'markRewardDelivered' | 'confirmRewardReceived',
+): Promise<MarkRewardDeliveredOutput | ConfirmRewardReceivedOutput> {
   if (!getInitializedAuth().currentUser)
     throw new RewardClientError('AUTH_REQUIRED');
-  const input = fulfillRewardInputSchema.safeParse(rawInput);
+  const input = markRewardDeliveredInputSchema.safeParse(rawInput);
   if (!input.success) throw new RewardClientError('INVALID_INPUT');
   try {
     const response = await httpsCallable<typeof input.data, unknown>(
       getInitializedFunctions(),
-      'fulfillReward',
+      command,
     )(input.data);
-    const output = fulfillRewardOutputSchema.parse(response.data);
+    const output = (
+      command === 'markRewardDelivered'
+        ? markRewardDeliveredOutputSchema
+        : confirmRewardReceivedOutputSchema
+    ).parse(response.data);
     if (output.reward.id !== input.data.rewardId)
       throw new RewardClientError('UNKNOWN_REWARD_FAILURE');
     return output;
@@ -1507,8 +1532,11 @@ export function observePendingRewards(
   familyId: string,
   callback: (snapshot: ReadSnapshot<readonly EarnedReward[]>) => void,
   onError: (error: ContractReadError) => void,
+  status:
+    | 'PENDING_FULFILLMENT'
+    | 'AWAITING_CHILD_CONFIRMATION' = 'PENDING_FULFILLMENT',
 ): () => void {
-  return observeRewards(familyId, true, callback, onError);
+  return observeRewards(familyId, true, callback, onError, status);
 }
 export function observeEarnedRewards(
   familyId: string,
@@ -1522,12 +1550,15 @@ function observeRewards(
   pending: boolean,
   callback: (snapshot: ReadSnapshot<readonly EarnedReward[]>) => void,
   onError: (error: ContractReadError) => void,
+  parentStatus:
+    | 'PENDING_FULFILLMENT'
+    | 'AWAITING_CHILD_CONFIRMATION' = 'PENDING_FULFILLMENT',
 ): () => void {
   const uid = requireContractReadContext(familyId);
   const constraints = [
     where('familyId', '==', familyId),
     where(pending ? 'parentUid' : 'childUid', '==', uid),
-    ...(pending ? [where('status', '==', 'PENDING_FULFILLMENT')] : []),
+    ...(pending ? [where('status', '==', parentStatus)] : []),
     orderBy('earnedAt', 'desc'),
   ];
   try {
@@ -1544,7 +1575,7 @@ function observeRewards(
               (reward) =>
                 reward.familyId !== familyId ||
                 (pending ? reward.parentUid : reward.childUid) !== uid ||
-                (pending && reward.status !== 'PENDING_FULFILLMENT'),
+                (pending && reward.status !== parentStatus),
             )
           )
             throw new ContractReadError('MALFORMED_DATA');
