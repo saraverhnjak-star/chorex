@@ -3,8 +3,10 @@ import { markRewardDelivered } from '@chorex/firebase-client';
 import { RewardTransitionAction } from '@chorex/ui';
 export function MarkRewardDeliveredAction({
   reward,
+  childName,
 }: {
   reward: EarnedReward;
+  childName?: string;
 }) {
   return (
     <RewardTransitionAction
@@ -14,7 +16,7 @@ export function MarkRewardDeliveredAction({
       actionLabel="Mark as delivered"
       confirmLabel="Confirm delivery"
       question="Record this reward as delivered?"
-      description="Confirm that you delivered the promised reward. Your child will confirm receipt separately."
+      description={`This tells ${childName ?? 'your Child'} that the reward was delivered. They will confirm when they receive it.`}
       success="Waiting for child confirmation"
     />
   );

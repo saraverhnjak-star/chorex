@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import { Text, View } from 'react-native';
-import type { EarnedReward } from '@chorex/domain';
+import { View } from 'react-native';
+import { DesignText as Text, homeTokens } from './Home';
+import type { EarnedReward, UserProfile } from '@chorex/domain';
 import { FormMessage } from './FormMessage';
 import { RewardSummary } from './RewardSummary';
-import { useDynamicTypeStyles } from './typography';
 export function RewardDetailBody({
   loading,
   error,
@@ -11,6 +11,7 @@ export function RewardDetailBody({
   fromCache,
   reward,
   childName,
+  viewer = 'CHILD',
   children,
 }: {
   loading: boolean;
@@ -19,9 +20,13 @@ export function RewardDetailBody({
   fromCache: boolean;
   reward?: EarnedReward;
   childName?: string;
+  viewer?: UserProfile['accountType'];
   children?: ReactNode;
 }) {
-  const styles = useDynamicTypeStyles();
+  const styles = {
+    body: { fontSize: 16, color: homeTokens.text },
+    small: { fontSize: 14, color: homeTokens.secondary },
+  };
   if (error)
     return (
       <FormMessage message="This reward could not be loaded or is unavailable to your account." />
@@ -32,7 +37,7 @@ export function RewardDetailBody({
         allowFontScaling={false}
         accessibilityLiveRegion="polite"
         style={styles.body}
-        className="text-text-muted"
+        className="text-home-muted"
       >
         Loading reward…
       </Text>
@@ -42,7 +47,7 @@ export function RewardDetailBody({
       <Text
         allowFontScaling={false}
         style={styles.body}
-        className="text-text-muted"
+        className="text-home-muted"
       >
         {fromCache
           ? 'No cached reward is available yet. Connect to the internet to load it.'
@@ -55,12 +60,14 @@ export function RewardDetailBody({
         <Text
           allowFontScaling={false}
           style={styles.small}
-          className="text-text-muted"
+          className="text-home-muted"
         >
           Showing saved rewards. Updates may be pending.
         </Text>
       ) : null}
-      {reward ? <RewardSummary reward={reward} childName={childName} /> : null}
+      {reward ? (
+        <RewardSummary reward={reward} childName={childName} viewer={viewer} />
+      ) : null}
       {children}
     </View>
   );

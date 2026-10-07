@@ -51,3 +51,9 @@ export {
   CompletionBar,
   contractStatusLabel,
 } from './ContractPresentation';
+
+export {
+  RewardCard,
+  RewardFulfillmentProgress,
+  rewardStatusLabel,
+} from './RewardPresentation';

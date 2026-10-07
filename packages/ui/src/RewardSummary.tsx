@@ -1,82 +1,121 @@
-import { Text, View } from 'react-native';
-import type { EarnedReward } from '@chorex/domain';
-import { useDynamicTypeStyles } from './typography';
+import { View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import type { EarnedReward, UserProfile } from '@chorex/domain';
+import { DesignText, homeTokens } from './Home';
+import { SurfaceCard, TermsHeading } from './OfferTerms';
+import {
+  rewardStatusLabel,
+  rewardResponsibility,
+  rewardTone,
+  RewardFulfillmentProgress,
+} from './RewardPresentation';
 export function RewardSummary({
   reward,
   childName,
+  viewer = 'CHILD',
 }: {
   reward: EarnedReward;
   childName?: string;
+  viewer?: UserProfile['accountType'];
 }) {
-  const styles = useDynamicTypeStyles();
   return (
-    <View className="gap-2">
-      {childName ? (
-        <Text
-          allowFontScaling={false}
-          style={styles.body}
-          className="text-text"
+    <>
+      <SurfaceCard>
+        <View
+          style={{
+            backgroundColor: rewardTone(reward.status, viewer),
+            borderRadius: 16,
+            padding: homeTokens.spacing.medium,
+            gap: 8,
+          }}
         >
-          Reward for {childName}
-        </Text>
-      ) : null}
-      <Text
-        allowFontScaling={false}
-        accessibilityRole="header"
-        style={styles.title}
-        className="font-bold text-text"
-      >
-        {reward.terms.title}
-      </Text>
-      {reward.terms.description ? (
-        <Text
-          allowFontScaling={false}
-          style={styles.body}
-          className="text-text"
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <Ionicons
+              accessible={false}
+              name={
+                reward.status === 'FULFILLED'
+                  ? 'checkmark-circle-outline'
+                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+                    ? 'time-outline'
+                    : 'gift-outline'
+              }
+              size={24}
+              color={
+                reward.status === 'FULFILLED'
+                  ? homeTokens.success
+                  : homeTokens.secondary
+              }
+            />
+            <DesignText
+              accessibilityLiveRegion="polite"
+              accessibilityLabel={`Reward status: ${rewardStatusLabel(reward.status, viewer)}`}
+              style={{
+                flex: 1,
+                fontSize: 16,
+                fontWeight: '600',
+                color: homeTokens.text,
+              }}
+            >
+              {rewardStatusLabel(reward.status, viewer)}
+            </DesignText>
+          </View>
+          <DesignText style={{ fontSize: 15, color: homeTokens.text }}>
+            {rewardResponsibility(reward, viewer, childName)}
+          </DesignText>
+        </View>
+        <TermsHeading icon="gift-outline">
+          {viewer === 'PARENT' ? 'Earned reward' : 'Your earned reward'}
+        </TermsHeading>
+        <DesignText
+          accessibilityRole="header"
+          style={{ fontSize: 22, fontWeight: '700', color: homeTokens.text }}
         >
-          {reward.terms.description}
-        </Text>
-      ) : null}
-      <Text allowFontScaling={false} style={styles.body} className="text-text">
-        Type: {reward.terms.type}
-      </Text>
-      <Text
-        allowFontScaling={false}
-        accessibilityLiveRegion="polite"
-        style={styles.body}
-        className="text-text"
-      >
-        {reward.status === 'FULFILLED'
-          ? 'Fulfilled — receipt confirmed'
-          : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-            ? 'Parent reported delivery — waiting for child confirmation'
-            : 'Earned — waiting for Parent'}
-      </Text>
-      <Text
-        allowFontScaling={false}
-        style={styles.small}
-        className="text-text-muted"
-      >
-        Earned: {new Date(reward.earnedAt).toLocaleString()}
-      </Text>
-      {reward.status !== 'PENDING_FULFILLMENT' ? (
-        <Text
-          allowFontScaling={false}
-          style={styles.small}
-          className="text-text-muted"
-        >
-          Delivered: {new Date(reward.deliveredAt).toLocaleString()}
-        </Text>
-      ) : null}
-      {reward.status === 'FULFILLED' ? (
-        <Text
-          allowFontScaling={false}
-          style={styles.small}
-          className="text-text-muted"
-        >
-          Fulfilled: {new Date(reward.fulfilledAt).toLocaleString()}
-        </Text>
-      ) : null}
-    </View>
+          {reward.terms.title}
+        </DesignText>
+        {childName ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: homeTokens.coralSurface,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <DesignText
+                style={{
+                  fontSize: 18,
+                  fontWeight: '600',
+                  color: homeTokens.text,
+                }}
+              >
+                {childName.slice(0, 1).toUpperCase()}
+              </DesignText>
+            </View>
+            <DesignText
+              style={{ flex: 1, fontSize: 15, color: homeTokens.text }}
+            >
+              Reward for {childName}
+            </DesignText>
+          </View>
+        ) : null}
+        {reward.terms.description ? (
+          <DesignText style={{ fontSize: 16, color: homeTokens.text }}>
+            {reward.terms.description}
+          </DesignText>
+        ) : null}
+        <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
+          Type: {reward.terms.type.toLowerCase()}
+        </DesignText>
+      </SurfaceCard>
+      <SurfaceCard>
+        <TermsHeading icon="checkmark-done-outline">
+          Reward journey
+        </TermsHeading>
+        <RewardFulfillmentProgress reward={reward} />
+      </SurfaceCard>
+    </>
   );
 }

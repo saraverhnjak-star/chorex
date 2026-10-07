@@ -94,9 +94,7 @@ it('renders multiple obligations and empty/cache/error states; realtime removes 
   expect(
     screen.getByRole('button', { name: 'Open reward: Leo · Park' }),
   ).toBeOnTheScreen();
-  expect(
-    screen.getAllByText(/Earned — waiting for Parent delivery/),
-  ).toHaveLength(2);
+  expect(screen.getAllByText(/Your turn to deliver/)).toHaveLength(2);
   fireEvent.press(
     screen.getByRole('button', { name: 'Open reward: Mia · Cinema' }),
   );
@@ -132,7 +130,7 @@ it('deliberate confirmation is cancellable, pending blocks duplicate taps and su
   expect(screen.queryByText('Waiting for child confirmation')).toBeNull();
   await act(async () => resolve({}));
   expect(screen.getByText('Waiting for child confirmation')).toBeOnTheScreen();
-  expect(screen.getByText('Earned — waiting for Parent')).toBeOnTheScreen();
+  expect(screen.getByText('Ready to deliver')).toBeOnTheScreen();
   expect(
     screen.getByText('Waiting for updated reward status…'),
   ).toBeOnTheScreen();
@@ -147,11 +145,26 @@ it('deliberate confirmation is cancellable, pending blocks duplicate taps and su
       fromCache: false,
     }),
   );
+  expect(screen.getByLabelText('Reward status: Delivered')).toBeOnTheScreen();
+  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  act(() =>
+    mockReward({
+      data: {
+        ...reward,
+        status: 'FULFILLED',
+        deliveredAt: reward.earnedAt,
+        deliveredBy: 'parent-1',
+        confirmedAt: reward.earnedAt,
+        confirmedBy: 'child-1',
+        fulfilledAt: reward.earnedAt,
+      },
+      fromCache: false,
+    }),
+  );
   expect(
-    screen.getByText(
-      'Parent reported delivery — waiting for child confirmation',
-    ),
+    screen.getByLabelText('Reward status: Confirmed received'),
   ).toBeOnTheScreen();
+  expect(screen.queryByText('Waiting for child confirmation')).toBeNull();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
 });
 it('offline failure never claims delivery and retry keeps the original key', async () => {
@@ -164,7 +177,7 @@ it('offline failure never claims delivery and retry keeps the original key', asy
   await act(async () =>
     fireEvent.press(screen.getByRole('button', { name: 'Confirm delivery' })),
   );
-  expect(screen.getByText('Earned — waiting for Parent')).toBeOnTheScreen();
+  expect(screen.getByText('Ready to deliver')).toBeOnTheScreen();
   expect(screen.queryByText('Waiting for child confirmation')).toBeNull();
   expect(
     screen.getByText(

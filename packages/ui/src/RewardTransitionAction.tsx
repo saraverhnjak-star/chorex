@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { DesignText as Text, homeTokens } from './Home';
 import type { EarnedReward } from '@chorex/domain';
 import { Button } from './Button';
 import { FormMessage } from './FormMessage';
-import { useDynamicTypeStyles } from './typography';
 export function RewardTransitionAction({
   reward,
   submit,
@@ -26,7 +26,10 @@ export function RewardTransitionAction({
   description: string;
   success: string;
 }) {
-  const styles = useDynamicTypeStyles(),
+  const styles = {
+      body: { fontSize: 16, color: homeTokens.text },
+      small: { fontSize: 14, color: homeTokens.secondary },
+    },
     key = useRef<string | undefined>(undefined),
     inFlight = useRef(false),
     active = useRef(true);
@@ -63,14 +66,20 @@ export function RewardTransitionAction({
       if (active.current) setPending(false);
     }
   };
+  const showReceipt =
+    confirmed &&
+    (reward.status === expectedStatus ||
+      (expectedStatus === 'PENDING_FULFILLMENT'
+        ? reward.status === 'AWAITING_CHILD_CONFIRMATION'
+        : reward.status === 'FULFILLED'));
   return (
     <View className="gap-2">
-      {confirmed ? (
+      {showReceipt ? (
         <Text
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
           style={styles.body}
-          className="text-text"
+          className="text-home-text"
         >
           {success}
         </Text>
@@ -80,7 +89,7 @@ export function RewardTransitionAction({
           allowFontScaling={false}
           accessibilityLiveRegion="polite"
           style={styles.small}
-          className="text-text-muted"
+          className="text-home-muted"
         >
           Waiting for updated reward status…
         </Text>
@@ -94,14 +103,14 @@ export function RewardTransitionAction({
                 allowFontScaling={false}
                 accessibilityRole="header"
                 style={styles.body}
-                className="font-semibold text-text"
+                className="font-semibold text-home-text"
               >
                 {question}
               </Text>
               <Text
                 allowFontScaling={false}
                 style={styles.body}
-                className="text-text"
+                className="text-home-text"
               >
                 {description}
               </Text>
@@ -112,6 +121,7 @@ export function RewardTransitionAction({
               />
               <Button
                 label="Keep checking"
+                variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(false)}
               />

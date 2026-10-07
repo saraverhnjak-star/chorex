@@ -13,6 +13,7 @@ export function RewardDetail({
   const state = useRewardDetail(rewardId, authUid);
   return (
     <RewardDetailBody
+      viewer="PARENT"
       loading={state.status === 'loading'}
       error={state.status === 'error'}
       missing={state.status === 'missing'}
@@ -29,6 +30,7 @@ export function RewardDetail({
         <MarkRewardDeliveredAction
           key={`${state.reward.id}:${authUid}`}
           reward={state.reward}
+          childName={childNames[state.reward.childUid]}
         />
       ) : null}
     </RewardDetailBody>

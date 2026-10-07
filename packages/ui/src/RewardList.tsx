@@ -1,8 +1,10 @@
-import { Text, View } from 'react-native';
-import type { EarnedReward } from '@chorex/domain';
+import { View } from 'react-native';
+import type { EarnedReward, UserProfile } from '@chorex/domain';
 import { FormMessage } from './FormMessage';
-import { HomeListRow, SectionHeading } from './Home';
-import { useDynamicTypeStyles } from './typography';
+import { CountBadge, DesignText, homeTokens, SectionHeading } from './Home';
+import { SurfaceCard } from './OfferTerms';
+import { OfferOutcome } from './OfferTerms';
+import { RewardCard } from './RewardPresentation';
 export function RewardList({
   title,
   empty,
@@ -12,6 +14,7 @@ export function RewardList({
   rewards,
   onSelect,
   childNames = {},
+  viewer = 'CHILD',
 }: {
   title: string;
   empty: string;
@@ -21,52 +24,105 @@ export function RewardList({
   rewards: readonly EarnedReward[];
   onSelect: (id: string) => void;
   childNames?: Readonly<Record<string, string>>;
+  viewer?: UserProfile['accountType'];
 }) {
-  const styles = useDynamicTypeStyles();
+  const groups =
+    viewer === 'CHILD'
+      ? [
+          {
+            label: 'Confirm receipt',
+            rewards: rewards.filter(
+              (reward) => reward.status === 'AWAITING_CHILD_CONFIRMATION',
+            ),
+          },
+          {
+            label: 'Waiting for Parent',
+            rewards: rewards.filter(
+              (reward) => reward.status === 'PENDING_FULFILLMENT',
+            ),
+          },
+          {
+            label: 'Received',
+            rewards: rewards.filter((reward) => reward.status === 'FULFILLED'),
+          },
+        ].filter((group) => group.rewards.length > 0)
+      : [{ label: undefined, rewards }];
   return (
-    <View className="gap-4 rounded-3xl border border-border bg-home-surface p-5">
-      <SectionHeading>{title}</SectionHeading>
+    <SurfaceCard>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: homeTokens.spacing.small,
+        }}
+      >
+        <SectionHeading>{title}</SectionHeading>
+        <CountBadge count={rewards.length} />
+      </View>
       {loading ? (
-        <Text
-          allowFontScaling={false}
+        <DesignText
           accessibilityLiveRegion="polite"
-          style={styles.body}
-          className="text-text-muted"
+          style={{ fontSize: 16, color: homeTokens.secondary }}
         >
           Loading rewards…
-        </Text>
+        </DesignText>
       ) : null}
       {error ? (
         <FormMessage message="Your rewards could not be loaded. Reopen this screen to try again." />
       ) : null}
       {fromCache ? (
-        <Text
-          allowFontScaling={false}
-          style={styles.small}
-          className="text-text-muted"
-        >
+        <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
           Showing saved rewards. Updates may be pending.
-        </Text>
+        </DesignText>
       ) : null}
       {!loading && !error && rewards.length === 0 ? (
-        <Text
-          allowFontScaling={false}
-          style={styles.body}
-          className="text-text-muted"
+        <OfferOutcome
+          title={fromCache ? 'No rewards are saved on this device yet.' : empty}
         >
-          {fromCache ? 'No rewards are saved on this device yet.' : empty}
-        </Text>
+          {viewer === 'CHILD'
+            ? 'Your earned rewards will appear here.'
+            : undefined}
+        </OfferOutcome>
       ) : null}
-      {rewards.map((reward) => (
-        <HomeListRow
-          icon="gift-outline"
-          key={reward.id}
-          title={reward.terms.title}
-          detail={`${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.status === 'FULFILLED' ? 'Fulfilled — receipt confirmed' : reward.status === 'AWAITING_CHILD_CONFIRMATION' ? 'Parent reported delivery — waiting for child confirmation' : 'Earned — waiting for Parent delivery'}`}
-          label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
-          onPress={() => onSelect(reward.id)}
-        />
+      {groups.map((group) => (
+        <View
+          key={group.label ?? 'rewards'}
+          style={{ gap: homeTokens.spacing.medium }}
+        >
+          {group.label ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              <DesignText
+                accessibilityRole="header"
+                style={{
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: homeTokens.text,
+                }}
+              >
+                {group.label}
+              </DesignText>
+              <CountBadge count={group.rewards.length} />
+            </View>
+          ) : null}
+          {group.rewards.map((reward) => (
+            <RewardCard
+              key={reward.id}
+              reward={reward}
+              viewer={viewer}
+              childName={childNames[reward.childUid]}
+              onPress={() => onSelect(reward.id)}
+            />
+          ))}
+        </View>
       ))}
-    </View>
+    </SurfaceCard>
   );
 }
