@@ -41,7 +41,14 @@ export function receiptDatabase() {
           cursor,
         ),
       limit: (limit) => query(path, filters, sort, limit, cursor),
-      startAfter: (snapshot) => query(path, filters, sort, count, snapshot),
+      startAfter: (snapshot, ref) =>
+        query(
+          path,
+          filters,
+          sort,
+          count,
+          ref ? { id: ref.id, data: () => ({ [sort]: snapshot }) } : snapshot,
+        ),
       get: async () => {
         let docs = [...records.keys()]
           .filter(
@@ -60,9 +67,18 @@ export function receiptDatabase() {
             ),
           );
         if (sort)
-          docs.sort((a, b) => number(a.data()[sort]) - number(b.data()[sort]));
+          docs.sort(
+            (a, b) =>
+              number(a.data()[sort]) - number(b.data()[sort]) ||
+              a.id.localeCompare(b.id),
+          );
         if (cursor)
-          docs = docs.slice(docs.findIndex((d) => d.id === cursor.id) + 1);
+          docs = docs.filter(
+            (d) =>
+              number(d.data()[sort]) > number(cursor.data()[sort]) ||
+              (number(d.data()[sort]) === number(cursor.data()[sort]) &&
+                d.id.localeCompare(cursor.id) > 0),
+          );
         docs = docs.slice(0, count);
         return { docs, empty: !docs.length, size: docs.length };
       },

@@ -1,5 +1,7 @@
 import {
   upsertCurrentPushDevice,
+  saveReminderPreference,
+  subscribeReminderPreference,
   deleteCurrentPushDevice,
   fulfillReward,
   RewardClientError,
@@ -794,4 +796,25 @@ it('confirms own deletion transaction before sign-out and propagates offline cle
   await expect(
     deleteCurrentPushDevice('other-user', 'installation-1'),
   ).rejects.toThrow();
+});
+
+it('reads missing own preferences as enabled and confirms a role-specific save transaction', async () => {
+  const value = jest.fn(),
+    fail = jest.fn();
+  subscribeReminderPreference('child-1', 'CHILD', value, fail);
+  mockSnapshot({ exists: () => false, metadata: { fromCache: false } });
+  expect(value).toHaveBeenCalledWith({ enabled: true, fromCache: false });
+  mockTransaction.get.mockResolvedValue({ exists: () => false });
+  await saveReminderPreference('child-1', 'CHILD', false);
+  expect(mockTransaction.set).toHaveBeenLastCalledWith(
+    'users/child-1/preferences/reminders',
+    { deadlineRemindersEnabled: false },
+  );
+  mockTransaction.get.mockRejectedValueOnce(Error('offline'));
+  await expect(
+    saveReminderPreference('child-1', 'CHILD', true),
+  ).rejects.toThrow('offline');
+  await expect(saveReminderPreference('other', 'CHILD', false)).rejects.toThrow(
+    'AUTH_REQUIRED',
+  );
 });

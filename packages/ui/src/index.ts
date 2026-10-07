@@ -20,3 +20,4 @@ export { RewardDetailBody } from './RewardDetailBody';
 export { ReviewHistory } from './ReviewHistory';
 
 export { NotificationPermissionCard } from './NotificationPermissionCard';
+export { ReminderPreferenceCard } from './ReminderPreferenceCard';

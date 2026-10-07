@@ -1,4 +1,8 @@
-import { pushDeviceMetadataSchema } from '@chorex/domain';
+import {
+  reminderPreferenceEnabled,
+  reminderPreferenceData,
+  pushDeviceMetadataSchema,
+} from '@chorex/domain';
 import { deserializeReward } from './rewardReadModel';
 import {
   ContractReadError,
@@ -1647,3 +1651,58 @@ export async function deleteCurrentPushDevice(
     if (existing.exists()) transaction.delete(reference);
   });
 }
+
+export function subscribeReminderPreference(
+  uid: string,
+  role: import('@chorex/domain').UserProfile['accountType'],
+  onValue: (value: { enabled: boolean; fromCache: boolean }) => void,
+  onError: (error: unknown) => void,
+): () => void {
+  if (getInitializedAuth().currentUser?.uid !== uid)
+    throw new Error('AUTH_REQUIRED');
+  return onSnapshot(
+    doc(getInitializedFirestore(), 'users', uid, 'preferences', 'reminders'),
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      try {
+        if (getInitializedAuth().currentUser?.uid !== uid)
+          throw new Error('AUTH_REQUIRED');
+        onValue({
+          enabled: reminderPreferenceEnabled(
+            role,
+            snapshot.exists() ? snapshot.data() : undefined,
+          ),
+          fromCache: snapshot.metadata.fromCache,
+        });
+      } catch (error) {
+        onError(error);
+      }
+    },
+    onError,
+  );
+}
+export async function saveReminderPreference(
+  uid: string,
+  role: import('@chorex/domain').UserProfile['accountType'],
+  enabled: boolean,
+): Promise<void> {
+  const check = () => {
+    if (getInitializedAuth().currentUser?.uid !== uid)
+      throw new Error('AUTH_REQUIRED');
+  };
+  check();
+  const data = reminderPreferenceData(role, enabled);
+  const ref = doc(
+    getInitializedFirestore(),
+    'users',
+    uid,
+    'preferences',
+    'reminders',
+  );
+  await runTransaction(getInitializedFirestore(), async (tx) => {
+    await tx.get(ref);
+    check();
+    tx.set(ref, data);
+  });
+}
+export { useReminderPreference } from './useReminderPreference';

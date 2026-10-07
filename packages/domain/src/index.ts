@@ -162,3 +162,9 @@ export {
 } from './review';
 
 export * from './device';
+export {
+  childReminderPreferencesSchema,
+  parentReminderPreferencesSchema,
+  reminderPreferenceEnabled,
+  reminderPreferenceData,
+} from './reminderPreferences';

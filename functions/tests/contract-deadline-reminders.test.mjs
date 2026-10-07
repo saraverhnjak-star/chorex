@@ -170,3 +170,16 @@ test('dispatcher skips a committed intent that becomes submitted before delivery
     'SKIPPED',
   );
 });
+
+test('Child preference defaults ON, OFF suppresses intent, re-enable generates once', async () => {
+  const db = receiptDatabase();
+  seed(db);
+  const path = 'users/child/preferences/reminders';
+  db.records.set(path, { deadlineRemindersEnabled: false });
+  assert.equal(await generateContractDeadlineReminders(db, () => now), 0);
+  db.records.set(path, { deadlineRemindersEnabled: true });
+  assert.equal(await generateContractDeadlineReminders(db, () => now), 1);
+  db.records.set(path, { deadlineRemindersEnabled: false });
+  db.records.set(path, { deadlineRemindersEnabled: true });
+  assert.equal(await generateContractDeadlineReminders(db, () => now), 0);
+});

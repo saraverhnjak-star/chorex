@@ -20,6 +20,26 @@ service cloud.firestore {
       allow get: if isSignedIn() && request.auth.uid == uid;
       allow list, write: if false;
 
+      match /preferences/{preferenceId} {
+        function isPreferenceOwner() {
+          return isSignedIn() && request.auth.uid == uid && preferenceId == 'reminders';
+        }
+        function validReminders() {
+          let role = get(/databases/$(database)/documents/users/$(uid)).data.accountType;
+          return (role == 'CHILD'
+              && request.resource.data.keys().hasOnly(['deadlineRemindersEnabled'])
+              && request.resource.data.keys().hasAll(['deadlineRemindersEnabled'])
+              && request.resource.data.deadlineRemindersEnabled is bool)
+            || (role == 'PARENT'
+              && request.resource.data.keys().hasOnly(['pendingRewardRemindersEnabled'])
+              && request.resource.data.keys().hasAll(['pendingRewardRemindersEnabled'])
+              && request.resource.data.pendingRewardRemindersEnabled is bool);
+        }
+        allow get: if isPreferenceOwner();
+        allow create, update: if isPreferenceOwner() && validReminders();
+        allow list, delete: if false;
+      }
+
       match /devices/{deviceId} {
         function isDeviceOwner() {
           return isSignedIn() && request.auth.uid == uid;

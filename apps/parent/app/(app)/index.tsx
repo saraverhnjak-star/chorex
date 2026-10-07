@@ -1,3 +1,13 @@
+import {
+  ReminderPreferenceCard,
+  Button,
+  NotificationPermissionCard,
+  FormMessage,
+  Screen,
+  TextField,
+  amberAuroraColors,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { PendingRewards } from '../../src/rewards/PendingRewards';
 import {
   ActiveContracts,
@@ -15,6 +25,7 @@ import {
   type CreateFamilyInputValue,
 } from '@chorex/domain';
 import {
+  useReminderPreference,
   createChild,
   createFamily,
   createPairingSession,
@@ -22,15 +33,6 @@ import {
   type ParentFamilyHome,
 } from '@chorex/firebase-client';
 import { useNotificationEducation } from '@chorex/notifications';
-import {
-  Button,
-  NotificationPermissionCard,
-  FormMessage,
-  Screen,
-  TextField,
-  amberAuroraColors,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 import { getAuthErrorMessage } from '../../src/auth/messages';
 import { useParentSession } from '../../src/auth/session';
 import { getFamilyErrorMessage } from '../../src/family/messages';
@@ -89,6 +91,7 @@ function ScreenHeading() {
 
 export default function AuthenticatedHomeScreen() {
   const { user, signOut, notifications } = useParentSession();
+  const reminder = useReminderPreference(user?.uid, 'PARENT');
   const uid = user?.uid;
   const dynamicType = useDynamicTypeStyles();
   const [familyState, setFamilyState] = useState<FamilyState>({
@@ -369,6 +372,16 @@ export default function AuthenticatedHomeScreen() {
               </Text>
             </View>
 
+            <ReminderPreferenceCard
+              label="Pending reward reminders"
+              enabled={reminder.state.enabled}
+              busy={reminder.state.busy}
+              fromCache={reminder.state.fromCache}
+              error={reminder.state.error}
+              onChange={(enabled) => {
+                void reminder.save(enabled);
+              }}
+            />
             <NotificationPermissionCard
               benefit="Get updates when your child responds to an offer or submits work for review."
               education={education.showEducation}

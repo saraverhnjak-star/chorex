@@ -23,6 +23,7 @@ export const negotiationNotificationDataSchema = z
       'CONTRACT_SUBMITTED',
       'REWARD_FULFILLED',
       'CONTRACT_DEADLINE_REMINDER',
+      'PENDING_REWARD_REMINDER',
     ]),
     entityType: z.enum(['OFFER', 'CONTRACT', 'REWARD']),
     entityId: id,
@@ -31,7 +32,7 @@ export const negotiationNotificationDataSchema = z
   .superRefine((data, context) => {
     if (
       data.entityType !==
-      (data.type === 'REWARD_FULFILLED'
+      (['REWARD_FULFILLED', 'PENDING_REWARD_REMINDER'].includes(data.type)
         ? 'REWARD'
         : [
               'OFFER_ACCEPTED',

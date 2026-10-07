@@ -1,3 +1,4 @@
+import { reminderPreferenceEnabled } from '@chorex/domain';
 import { createHash } from 'node:crypto';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 
@@ -64,6 +65,12 @@ export async function generateContractDeadlineReminders(
         ).data();
         if (member?.status !== 'ACTIVE' || member.role !== 'CHILD')
           return false;
+        const preference = (
+          await tx.get(
+            firestore.doc(`users/${contract.childUid}/preferences/reminders`),
+          )
+        ).data();
+        if (!reminderPreferenceEnabled('CHILD', preference)) return false;
         tx.create(eventRef, {
           type: 'CONTRACT_DEADLINE_REMINDER',
           actorType: 'SYSTEM',

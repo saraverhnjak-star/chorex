@@ -1901,3 +1901,17 @@ Offer
 ```
 
 The first implementation priority is to prove this lifecycle end-to-end before expanding product scope.
+
+# ADR-045 — Optional Reminder Preferences Are Account-Scoped and Default Enabled
+
+**Status:** Accepted
+
+## Decision
+
+Approved MVP policy: optional reminder application preferences default enabled when absent. Child accounts control only Contract deadline reminders; Parent accounts control only pending-Reward reminders. Persist the role-specific boolean in the user-owned `users/{uid}/preferences/reminders` document. Ownership and allowed fields are enforced using the authoritative profile accountType, never a client role. These narrowly scoped preference writes are the existing non-sensitive user-preference exception to server-only domain mutations.
+
+Deadline reminders remain one logical reminder in the future 24-hour window. Pending Rewards receive one logical reminder at or after 48 hours from earnedAt, only while PENDING_FULFILLMENT and with a valid active owning Parent. There are no recurring daily reminders. Both generation and dispatch respect the recipient preference; transactional notifications do not.
+
+OS permission and usable device registration remain independent and authoritative for actual delivery. An enabled preference never implies permission or physical delivery. Preference changes mutate no Contract, Reward, device registration or OS permission. Re-enabling may generate previously ungenerated eligible work but never duplicates an existing logical reminder.
+
+This explicitly replaces Slice 4A's unresolved preference/activation boundary and permits activation of its hourly schedule. OPEN-010, OPEN-011 and OPEN-014 remain unresolved; no expiry/cancellation/Auth revocation semantics change.

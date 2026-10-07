@@ -92,6 +92,7 @@ for (const [type, entityType] of [
   ['CONTRACT_CHANGES_REQUESTED', 'CONTRACT'],
   ['CONTRACT_APPROVED', 'CONTRACT'],
   ['REWARD_FULFILLED', 'REWARD'],
+  ['PENDING_REWARD_REMINDER', 'REWARD'],
 ])
   test(`${type}: canonical semantic intent without paths or copied domain terms`, () => {
     const value = payload({ type, entityType });

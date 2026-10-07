@@ -1,13 +1,5 @@
-import { EarnedRewards } from '../src/rewards/EarnedRewards';
-import { ActiveContracts } from '../src/contracts/ActiveContracts';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Text, View } from 'react-native';
 import {
-  readCurrentChildFamily,
-  type ChildFamilyHome,
-} from '@chorex/firebase-client';
-import { useNotificationEducation } from '@chorex/notifications';
-import {
+  ReminderPreferenceCard,
   Button,
   NotificationPermissionCard,
   FormMessage,
@@ -16,6 +8,16 @@ import {
   amberAuroraColors,
   useDynamicTypeStyles,
 } from '@chorex/ui';
+import { EarnedRewards } from '../src/rewards/EarnedRewards';
+import { ActiveContracts } from '../src/contracts/ActiveContracts';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Linking, Text, View } from 'react-native';
+import {
+  useReminderPreference,
+  readCurrentChildFamily,
+  type ChildFamilyHome,
+} from '@chorex/firebase-client';
+import { useNotificationEducation } from '@chorex/notifications';
 import { useChildSession } from '../src/auth/session';
 import { getChildFamilyErrorMessage } from '../src/family/messages';
 import { getNotificationErrorMessage } from '../src/notifications/messages';
@@ -46,6 +48,7 @@ export default function HomeScreen() {
   const [signOutError, setSignOutError] = useState<string>();
   const uid = session.user?.uid;
   const notifications = session.notifications;
+  const reminder = useReminderPreference(session.user?.uid, 'CHILD');
 
   const education = useNotificationEducation(
     familyState.status === 'ready' ? uid : undefined,
@@ -187,6 +190,16 @@ export default function HomeScreen() {
                 familyId={familyState.home.family.id}
               />
 
+              <ReminderPreferenceCard
+                label="Deadline reminders"
+                enabled={reminder.state.enabled}
+                busy={reminder.state.busy}
+                fromCache={reminder.state.fromCache}
+                error={reminder.state.error}
+                onChange={(enabled) => {
+                  void reminder.save(enabled);
+                }}
+              />
               <NotificationPermissionCard
                 benefit="Get updates when you receive new offers or your Parent reviews your work."
                 education={education.showEducation}

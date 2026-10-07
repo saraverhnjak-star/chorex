@@ -1,4 +1,9 @@
 import {
+  eligiblePendingReward,
+  pendingRewardReminderId,
+} from './pendingRewardReminders';
+import { reminderPreferenceEnabled } from '@chorex/domain';
+import {
   deadlineReminderId,
   deadlineWindowMs,
 } from './contractDeadlineReminders';
@@ -284,6 +289,7 @@ export async function dispatchNegotiationNotification(
         'CONTRACT_SUBMITTED',
         'REWARD_FULFILLED',
         'CONTRACT_DEADLINE_REMINDER',
+        'PENDING_REWARD_REMINDER',
       ].includes(event.type)
     )
       return;
@@ -302,7 +308,52 @@ export async function dispatchNegotiationNotification(
     }
     let resolved: NotificationIntent | undefined;
     let familyId: string;
-    if (event.type === 'CONTRACT_DEADLINE_REMINDER') {
+    if (event.type === 'PENDING_REWARD_REMINDER') {
+      if (
+        event.actorType !== 'SYSTEM' ||
+        event.actorUid !== undefined ||
+        typeof event.entityId !== 'string' ||
+        !event.entityId ||
+        event.entityId.includes('/') ||
+        eventId !== pendingRewardReminderId(event.entityId)
+      )
+        return;
+      const reward = (
+        await tx.get(firestore.doc(`rewards/${event.entityId}`))
+      ).data();
+      if (
+        !(await eligiblePendingReward(
+          firestore,
+          tx,
+          event.entityId,
+          reward,
+          now,
+        )) ||
+        reward?.familyId !== event.familyId
+      ) {
+        tx.set(effectRef, {
+          status: 'SKIPPED',
+          reason: 'REMINDER_NO_LONGER_ELIGIBLE',
+          updatedAt: now,
+        });
+        return;
+      }
+      const data = negotiationNotificationDataSchema.safeParse({
+        type: event.type,
+        entityType: 'REWARD',
+        entityId: event.entityId,
+        familyId: reward!.familyId,
+      });
+      if (!data.success) return;
+      resolved = {
+        recipientUid: reward!.parentUid,
+        recipientRole: 'PARENT',
+        title: 'Reward still waiting',
+        body: 'You still have an earned reward to fulfill.',
+        data: data.data,
+      };
+      familyId = reward!.familyId;
+    } else if (event.type === 'CONTRACT_DEADLINE_REMINDER') {
       if (
         event.actorType !== 'SYSTEM' ||
         event.actorUid !== undefined ||
@@ -340,6 +391,19 @@ export async function dispatchNegotiationNotification(
         familyId: contract.familyId,
       });
       if (!data.success) return;
+      const preference = (
+        await tx.get(
+          firestore.doc(`users/${contract.childUid}/preferences/reminders`),
+        )
+      ).data();
+      if (!reminderPreferenceEnabled('CHILD', preference)) {
+        tx.set(effectRef, {
+          status: 'SKIPPED',
+          reason: 'REMINDER_DISABLED',
+          updatedAt: now,
+        });
+        return;
+      }
       resolved = {
         recipientUid: contract.childUid,
         recipientRole: 'CHILD',
