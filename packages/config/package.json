@@ -6,12 +6,13 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./app-check": "./src/appCheck.ts",
     "./tsconfig.base.json": "./tsconfig.base.json"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "jest --config ../../jest.config.cjs --rootDir . --passWithNoTests --runInBand"
+    "test": "node --test tests/*.test.cjs"
   },
   "devDependencies": {
     "typescript": "6.0.3"

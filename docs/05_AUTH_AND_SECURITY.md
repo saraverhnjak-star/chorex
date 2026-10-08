@@ -221,6 +221,8 @@ Rollout pattern:
 
 App Check complements Auth and Security Rules; it does not replace either.
 
+ADR-048 selects RN Firebase App Attest with DeviceCheck fallback for iOS releases and Play Integrity for Android releases. Shared bootstrap initializes App Check before client services are exposed. Debug providers are restricted to emulator development builds; production project/native-file validation fails closed. Firestore service enforcement and callable v2 `enforceAppCheck` remain OFF pending separately approved monitoring/native verification. Pre-auth pairing receives SDK App Check context independently of Child Auth and retains all existing TTL, replay and rate-limit rules.
+
 ## 10. Pairing security
 
 Pairing sessions should have:

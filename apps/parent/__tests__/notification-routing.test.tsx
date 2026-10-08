@@ -5,6 +5,7 @@ import {
   parseNotificationRoutingIntent,
 } from '@chorex/notifications/core';
 import RootLayout from '../app/_layout';
+import { configureFirebase } from '../src/firebase';
 import { resolveParentNotificationRoute } from '../src/notifications/routing';
 
 let mockSession: {
@@ -16,13 +17,19 @@ let mockCoordinator: ReturnType<typeof createNotificationResponseCoordinator>;
 let mockTap: (response: unknown) => void;
 let mockInitial: unknown;
 const mockReplace = jest.fn();
+const mockSessionRead = jest.fn();
 const mockRouter = { replace: mockReplace };
 jest.mock('../global.css', () => ({}));
-jest.mock('../src/firebase', () => ({ configureFirebase: jest.fn() }));
+jest.mock('../src/firebase', () => ({
+  configureFirebase: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('../src/auth/session', () => ({
   ParentSessionProvider: ({ children }: { children: React.ReactNode }) =>
     children,
-  useParentSession: () => mockSession,
+  useParentSession: () => {
+    mockSessionRead();
+    return mockSession;
+  },
 }));
 jest.mock('expo-router', () => {
   const Stack = ({ children }: { children: React.ReactNode }) => children;
@@ -73,16 +80,26 @@ const response = (id = 'response', data = payload()) => ({
   actionIdentifier: 'DEFAULT',
   notification: { request: { identifier: id, content: { data } } },
 });
+async function renderBootstrapped() {
+  const view = render(<RootLayout />);
+  await act(async () => {});
+  return view;
+}
 beforeEach(() => {
   mockReplace.mockClear();
+  mockSessionRead.mockClear();
+  jest
+    .mocked(configureFirebase)
+    .mockReset()
+    .mockResolvedValue({} as never);
   mockCoordinator = createNotificationResponseCoordinator('DEFAULT');
   mockSession = { status: 'loading', user: null };
   mockRouterKey = undefined;
   mockInitial = null;
 });
-it('root captures a cold tap before Auth restoration and routes once after Auth and navigation mount', () => {
+it('root captures a cold tap before Auth restoration and routes once after Auth and navigation mount', async () => {
   mockInitial = response();
-  const view = render(<RootLayout />);
+  const view = await renderBootstrapped();
   expect(mockReplace).not.toHaveBeenCalled();
   mockSession = { status: 'ready', user: { uid: 'parent-1' } };
   view.rerender(<RootLayout />);
@@ -95,12 +112,12 @@ it('root captures a cold tap before Auth restoration and routes once after Auth 
   view.rerender(<RootLayout />);
   expect(mockReplace).toHaveBeenCalledTimes(1);
   view.unmount();
-  render(<RootLayout />);
+  await renderBootstrapped();
   expect(mockReplace).toHaveBeenCalledTimes(1);
 });
-it('signed-out or failed restoration consumes pending tap without bypassing existing auth UI', () => {
+it('signed-out or failed restoration consumes pending tap without bypassing existing auth UI', async () => {
   mockInitial = response();
-  const view = render(<RootLayout />);
+  const view = await renderBootstrapped();
   mockSession = { status: 'ready', user: null };
   mockRouterKey = 'root';
   view.rerender(<RootLayout />);
@@ -109,10 +126,10 @@ it('signed-out or failed restoration consumes pending tap without bypassing exis
   view.rerender(<RootLayout />);
   expect(mockReplace).not.toHaveBeenCalled();
 });
-it('ready/background response uses this binary route mapping; receipt alone never routes', () => {
+it('ready/background response uses this binary route mapping; receipt alone never routes', async () => {
   mockSession = { status: 'ready', user: { uid: 'parent-1' } };
   mockRouterKey = 'root';
-  render(<RootLayout />);
+  await renderBootstrapped();
   expect(mockReplace).not.toHaveBeenCalled();
   act(() => mockTap(response('accepted', payload({ type: 'OFFER_ACCEPTED' }))));
   expect(mockReplace).toHaveBeenLastCalledWith('/contracts/contract-1');
@@ -171,4 +188,22 @@ it('explicit Parent entity mapping preserves current semantic routes and rejects
     { note: 'private' },
   ])
     expect(parseNotificationRoutingIntent(payload(patch))).toBeUndefined();
+});
+
+it('session and Firebase consumers remain unmounted until bootstrap succeeds, including failed setup', async () => {
+  let rejectBootstrap!: (error: Error) => void;
+  jest.mocked(configureFirebase).mockImplementationOnce(
+    () =>
+      new Promise((_, reject) => {
+        rejectBootstrap = reject;
+      }),
+  );
+  const view = render(<RootLayout />);
+  await act(async () => {});
+  expect(mockSessionRead).not.toHaveBeenCalled();
+  await act(async () => {
+    rejectBootstrap(new Error('SETUP_FAILED'));
+  });
+  expect(mockSessionRead).not.toHaveBeenCalled();
+  view.unmount();
 });

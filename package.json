@@ -37,7 +37,8 @@
     "emulators:verify:resubmit-contract-for-review": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_REQUEST_CHANGES=1 CHOREX_VERIFY_RESUBMISSION=1 node firebase/verify-record-task-completion.mjs\"",
     "emulators:verify:contract-review-history": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_REQUEST_CHANGES=1 CHOREX_VERIFY_RESUBMISSION=1 CHOREX_VERIFY_REVIEW_HISTORY=1 node firebase/verify-record-task-completion.mjs\"",
     "emulators:verify:reward-fulfillment": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore,functions \"CHOREX_VERIFY_SUBMISSION=1 CHOREX_VERIFY_REQUEST_CHANGES=1 CHOREX_VERIFY_RESUBMISSION=1 CHOREX_VERIFY_FULFILLMENT=1 node firebase/verify-record-task-completion.mjs\"",
-    "emulators:verify:push-receipts": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore \"node firebase/verify-push-receipts.mjs\""
+    "emulators:verify:push-receipts": "pnpm functions:build && firebase emulators:exec --project dev --only auth,firestore \"node firebase/verify-push-receipts.mjs\"",
+    "emulators:verify:security-baseline": "firebase emulators:exec --project dev --only firestore \"node firebase/verify-security-baseline.mjs\""
   },
   "devDependencies": {
     "eslint": "9.39.5",

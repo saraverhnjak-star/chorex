@@ -45,6 +45,7 @@ Use React Native Firebase for native Firebase services in the mobile apps:
 @react-native-firebase/auth
 @react-native-firebase/firestore
 @react-native-firebase/functions
+@react-native-firebase/app-check
 @react-native-firebase/crashlytics
 ```
 
@@ -292,6 +293,8 @@ production
 Each environment should use a separate Firebase project. Never point local development at production Firestore.
 
 Use Expo/EAS environment configuration to select the correct Firebase native files and runtime configuration.
+
+ADR-048 adds guarded production bootstrap and native App Check: shared bootstrap runs before session providers mount; release bootstrap also waits for SDK token acquisition because the 26.4.0 modular initializer schedules native setup asynchronously, iOS uses App Attest with DeviceCheck fallback and Android uses Play Integrity. Emulator development uses native debug providers only in development builds. Production requires separate environment-supplied native files and matching explicit project ID; no production configuration is checked in. Integration does not enable enforcement.
 
 ## 12. Testing strategy
 

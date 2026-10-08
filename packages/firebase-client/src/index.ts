@@ -144,6 +144,15 @@ import {
   type FirebaseEmulatorInput,
 } from '@chorex/config';
 import { createLatestSnapshotCoordinator } from './latestSnapshot';
+import {
+  getToken,
+  initializeAppCheck,
+  ReactNativeFirebaseAppCheckProvider,
+} from '@react-native-firebase/app-check';
+import {
+  readFirebaseBootstrapConfig,
+  type FirebaseBootstrapInput,
+} from '@chorex/config/app-check';
 
 export type {
   AcceptOfferOutput,
@@ -169,7 +178,79 @@ interface SetupState {
 // Persist across module re-evaluation/Fast Refresh. Never repeat partial setup.
 const registry = globalThis as typeof globalThis & {
   __chorexDevelopmentFirebase?: SetupState;
+  __chorexFirebaseBootstrap?: {
+    fingerprint: string;
+    ready: Promise<DevelopmentFirebase>;
+  };
 };
+
+// Schedule native provider setup before session listeners or commands mount.
+// Cache the promise (including failure) across renders/Fast Refresh; never retry partial setup.
+export function initializeFirebase(
+  input: FirebaseBootstrapInput,
+  developmentBuild: boolean,
+): Promise<DevelopmentFirebase> {
+  const config = readFirebaseBootstrapConfig(input, developmentBuild);
+  const fingerprint = JSON.stringify(config);
+  const previous = registry.__chorexFirebaseBootstrap;
+  if (previous) {
+    if (previous.fingerprint !== fingerprint)
+      throw new Error(
+        'FIREBASE_BOOTSTRAP_CONFIG_CHANGED: restart the native app.',
+      );
+    return previous.ready;
+  }
+  const ready = (async () => {
+    const app = getApp();
+    if (app.options.projectId !== config.projectId)
+      throw new Error('FIREBASE_PROJECT_MISMATCH');
+    const provider = new ReactNativeFirebaseAppCheckProvider();
+    provider.configure({
+      apple: config.appCheck.apple,
+      android: config.appCheck.android,
+    });
+    const appCheck = initializeAppCheck(app, {
+      provider,
+      isTokenAutoRefreshEnabled: config.appCheck.isTokenAutoRefreshEnabled,
+    });
+    if (config.mode === 'emulator') return initializeDevelopmentFirebase(input);
+    // In 26.4.0 the modular initializer returns synchronously while native setup
+    // continues. Release services require an actual token, not an awaited object.
+    // Retry only the SDK's transient provider-not-ready startup response; all
+    // attestation/configuration errors fail closed. Never retain or log the token.
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await getToken(appCheck);
+        break;
+      } catch (error) {
+        if (
+          attempt >= 20 ||
+          typeof error !== 'object' ||
+          error === null ||
+          !('code' in error) ||
+          error.code !== 'appCheck/provider-not-ready'
+        )
+          throw error;
+        await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    const services = {
+      app,
+      auth: getAuth(app),
+      firestore: getFirestore(app),
+      functions: getFunctions(app),
+    };
+    registry.__chorexDevelopmentFirebase = { fingerprint, services };
+    return services;
+  })().catch(() => {
+    // SDK errors may contain attestation/request details. Expose only a stable setup code.
+    throw new Error(
+      'FIREBASE_BOOTSTRAP_FAILED: restart the native app and verify configuration.',
+    );
+  });
+  registry.__chorexFirebaseBootstrap = { fingerprint, ready };
+  return ready;
+}
 
 export const authErrorCodes = {
   invalidCredentials: 'INVALID_CREDENTIALS',
@@ -273,7 +354,7 @@ export interface ChildFamilyHome {
   readonly membership: ChildFamilyMembership;
 }
 
-export function initializeDevelopmentFirebase(
+function initializeDevelopmentFirebase(
   input: FirebaseEmulatorInput,
 ): DevelopmentFirebase {
   const config = readFirebaseEmulatorConfig(input);

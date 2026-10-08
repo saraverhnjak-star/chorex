@@ -147,7 +147,7 @@ pnpm exec expo export --platform android --output-dir dist/android
 
 ## Firebase development infrastructure
 
-Both native clients include React Native Firebase App, Auth, Firestore, and Functions `26.4.0`. The dev-only Firebase client files live in each app's `firebase/dev/` directory and identify `chorex-dev`; they are client configuration, not Admin credentials. Original reference files remain untouched. App identities remain as listed above.
+Both native clients include React Native Firebase App, Auth, Firestore, Functions, and App Check `26.4.0`. The dev-only Firebase client files live in each app's `firebase/dev/` directory and identify `chorex-dev`; they are client configuration, not Admin credentials. Original reference files remain untouched. App identities remain as listed above.
 
 Copy `.env.example` to `apps/parent/.env.local` and `apps/child/.env.local`. All five values are required. iOS Simulator uses `127.0.0.1`; Android Emulator uses `10.0.2.2`. Physical devices require your machine's private LAN IPv4 address and deliberate LAN emulator bindings as described in `firebase/README.md`. Restart Metro after environment changes and restart the native client after emulator configuration changes. Missing/invalid configuration fails closed.
 
@@ -197,3 +197,11 @@ Validation on this machine for this slice:
 CI uses read-only repository permission and requires no Firebase credentials or custom secrets. The existing emulator verification command owns startup/shutdown and retains its project/endpoint guards. CI does not deploy, provision cloud resources, or build native binaries.
 
 Workflow prepared and locally validated; first GitHub Actions run pending push. Phase 0 still requires that successful remote run and the final acceptance review.
+
+## App Check development and rollout
+
+Both apps await the shared App Check bootstrap before mounting Firebase session consumers. The 26.4.0 modular initializer is synchronous; release bootstrap additionally requires SDK token acquisition, while emulator startup does not require live attestation. Emulator development builds select the SDK debug provider; release builds select App Attest with DeviceCheck fallback on iOS and Play Integrity on Android (ADR-048). Rebuild both native development clients after installing this dependency; Expo Go and a JavaScript export cannot verify native initialization. Restart Metro after environment changes.
+
+Debug credentials are generated and retained by the native SDK. If testing against a Firebase development service that validates App Check, privately obtain the SDK-generated debug credential and register it under the matching development app in Firebase Console → App Check → Manage debug tokens. Treat it as a secret: never put it in source, `.env` public variables, screenshots or shared logs. The SDK may emit its debug credential in native debug diagnostics; ChoreX adds no token logging. Emulator success does not prove valid attestation or Console registration.
+
+Production configuration requires a separate environment and explicit matching native Firebase files; see `.env.example`. Current native identifiers are still temporary development identifiers. Production Console registration, provisioning, valid physical-device traffic and enforcement are separate manual steps. **Enforcement remains OFF and no deployment is included.** Follow the [App Check security baseline and rollout checklist](docs/PHASE_7_SLICE_1_APP_CHECK_SECURITY_BASELINE_ACCEPTANCE.md).

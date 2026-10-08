@@ -1,5 +1,5 @@
 import { AppNavigation } from '../src/navigation/AppNavigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   configureForegroundNotifications,
   listenForNotificationResponses,
@@ -93,7 +93,50 @@ function ChildNavigator() {
 }
 
 export default function RootLayout() {
-  configureFirebase();
+  const dynamicType = useDynamicTypeStyles();
+  const [bootstrap, setBootstrap] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
+  useEffect(() => {
+    let active = true;
+    Promise.resolve()
+      .then(configureFirebase)
+      .then(
+        () => {
+          if (active) setBootstrap('ready');
+        },
+        () => {
+          if (active) setBootstrap('error');
+        },
+      );
+    return () => {
+      active = false;
+    };
+  }, []);
+  if (bootstrap !== 'ready')
+    return (
+      <Screen design entry>
+        <View className="flex-1 justify-center py-12">
+          {bootstrap === 'loading' ? (
+            <ActivityIndicator
+              accessibilityLabel="Loading your session"
+              color={homeTokens.coral}
+              size="large"
+            />
+          ) : null}
+          <Text
+            allowFontScaling={false}
+            accessibilityRole={bootstrap === 'error' ? 'alert' : undefined}
+            className="mt-4 text-home-muted"
+            style={dynamicType.body}
+          >
+            {bootstrap === 'error'
+              ? 'We couldn’t restore your session. Restart the app and try again.'
+              : 'Loading your session…'}
+          </Text>
+        </View>
+      </Screen>
+    );
   return (
     <ChildSessionProvider>
       <ChildNavigator />

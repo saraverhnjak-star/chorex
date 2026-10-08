@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   configureForegroundNotifications,
   listenForNotificationResponses,
@@ -102,7 +102,27 @@ function ParentNavigator() {
 }
 
 export default function RootLayout() {
-  configureFirebase();
+  const [bootstrap, setBootstrap] = useState<'loading' | 'ready' | 'error'>(
+    'loading',
+  );
+  useEffect(() => {
+    let active = true;
+    Promise.resolve()
+      .then(configureFirebase)
+      .then(
+        () => {
+          if (active) setBootstrap('ready');
+        },
+        () => {
+          if (active) setBootstrap('error');
+        },
+      );
+    return () => {
+      active = false;
+    };
+  }, []);
+  if (bootstrap === 'loading') return <SessionLoadingScreen />;
+  if (bootstrap === 'error') return <SessionErrorScreen />;
   return (
     <ParentSessionProvider>
       <ParentNavigator />

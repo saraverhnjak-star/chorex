@@ -1941,3 +1941,17 @@ New editable forms default by RewardType: EXPERIENCE → cinema; ITEM → gift; 
 Each server-validated immutable revision stores the selected key. Acceptance copies it exactly into Contract.rewardTerms; approval copies those frozen terms exactly into the earned Reward. Neither surface permits icon editing afterward. Existing authorization, transactions, activity events and idempotency remain authoritative; the icon participates in request identity.
 
 Pre-production repository fixtures adopt the required canonical field. No legacy parsing relaxation or external data migration is introduced: old documents without the field fail canonical validation and should be replaced only through authorized development seeding. At presentation boundaries, a missing/unknown key falls back to the valid RewardType default, then gift if type is invalid. This display-only fallback never writes historical data.
+
+# ADR-048 — Native App Check Providers and Staged Enforcement
+
+**Status:** Accepted
+
+**Extends:** ADR-005/006 native Firebase architecture and Security Model section 9; no authorization or lifecycle decision is superseded.
+
+Parent and Child initialize RN Firebase App Check once in the shared Firebase bootstrap before exposing Auth/Firestore/Functions services to React providers. The 26.4.0 modular initializer schedules native setup and returns synchronously; release bootstrap additionally gates services on successful SDK token acquisition, while local emulator startup does not depend on live token exchange. iOS release builds use `appAttestWithDeviceCheckFallback`; Android release builds use `playIntegrity`. Expo's RN Firebase App Check plugin registers the native provider factory before Firebase configuration. A new native binary is required.
+
+Local emulator development uses the supported native debug provider only in a development JS build, with token auto-refresh disabled for deterministic emulator execution. No reusable debug token is embedded in JS or EXPO_PUBLIC configuration. The SDK's per-installation debug secret may be privately registered for the corresponding non-production Firebase app when validating real debug-token exchange; it must never be committed or copied into ChoreX logs. Emulator success is not proof of attestation.
+
+Explicit production mode requires a release JS build, a separate expected Firebase project ID matching the native Firebase app, and environment-supplied native files; the development project and emulator endpoints are rejected. Existing emulator mode cannot run in release builds. This enables a guarded production bootstrap without supplying production identities/configuration or changing Console settings.
+
+Integration and monitoring precede enforcement. This slice does not enable Firestore Console enforcement or callable `enforceAppCheck`. A later explicitly approved rollout must validate both binaries and the pre-auth `redeemPairingSession` path, then configure per-callable v2 enforcement and Firestore service enforcement. App Check is not Auth, membership/role authorization, rate limiting, individual Child-device session revocation or an OPEN-014 resolution. Storage is unused and receives no enforcement configuration.
