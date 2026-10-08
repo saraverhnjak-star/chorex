@@ -9,7 +9,7 @@ import {
 const pairingErrorMessages: Record<PairingClientErrorCode, string> = {
   [pairingClientErrorCodes.authRequired]:
     'This pairing request could not be completed.',
-  [pairingClientErrorCodes.invalidInput]: 'Enter the pairing token again.',
+  [pairingClientErrorCodes.invalidInput]: 'Enter the pairing code again.',
   [pairingClientErrorCodes.familyMembershipRequired]:
     'This pairing request could not be completed.',
   [pairingClientErrorCodes.wrongActorRole]:
@@ -19,13 +19,13 @@ const pairingErrorMessages: Record<PairingClientErrorCode, string> = {
   [pairingClientErrorCodes.idempotencyConflict]:
     'This pairing request could not be completed.',
   [pairingClientErrorCodes.pairingInvalid]:
-    'That pairing token is not valid. Ask your parent for a new one.',
+    'That pairing code is not valid. Ask your parent for a new one.',
   [pairingClientErrorCodes.pairingExpired]:
-    'That pairing token has expired. Ask your parent for a new one.',
+    'That pairing code has expired. Ask your parent for a new one.',
   [pairingClientErrorCodes.pairingInvalidated]:
-    'A newer pairing token was created. Ask your parent for the latest one.',
+    'A newer pairing code was created. Ask your parent for the latest one.',
   [pairingClientErrorCodes.pairingAlreadyUsed]:
-    'That pairing token has already been used.',
+    'That pairing code has already been used.',
   [pairingClientErrorCodes.pairingRateLimited]:
     'Too many pairing attempts. Wait before trying again.',
   [pairingClientErrorCodes.pairingServiceUnavailable]:

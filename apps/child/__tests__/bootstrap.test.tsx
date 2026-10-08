@@ -255,13 +255,20 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     </ChildSessionProvider>,
   );
   expect(
-    await screen.findByRole('header', { name: 'Pair this device' }),
+    await screen.findByRole('header', { name: 'Connect to your family' }),
   ).toBeOnTheScreen();
   fireEvent.changeText(
-    screen.getByLabelText('Pairing token'),
+    screen.getByLabelText('Pairing code'),
     'AbCdEfGhIjKlMnOpQrStUw',
   );
-  fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
+  mockRedeemPairingSession.mockRejectedValueOnce(new Error('network failure'));
+  fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
+  expect(
+    await screen.findByText('Pairing could not be completed.'),
+  ).toBeOnTheScreen();
+  expect(mockSignInWithChildCustomToken).not.toHaveBeenCalled();
+  expect(mockAuthUser).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
   expect(await screen.findByText('Hi, Mia!')).toBeOnTheScreen();
   expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen();
   expect(screen.queryByText('Load the dishwasher · 2×')).toBeNull();

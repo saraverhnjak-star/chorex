@@ -1,6 +1,8 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import {
   Pressable,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text as NativeText,
@@ -115,23 +117,30 @@ export function NavigationFrame({
 }
 export function HomeScreenFrame({
   children,
+  keyboard = false,
 }: {
   children: ReactNode;
   child?: boolean;
+  keyboard?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   return (
     <DesignThemeProvider>
-      <View style={[s.frame, { paddingTop: insets.top }]}>
+      <KeyboardAvoidingView
+        enabled={keyboard}
+        behavior={keyboard && Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[s.frame, { paddingTop: insets.top }]}
+      >
         <ScrollView
           contentInsetAdjustmentBehavior="never"
+          keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[s.content, { paddingTop: 12 }]}
           showsVerticalScrollIndicator={false}
         >
           {children}
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </DesignThemeProvider>
   );
 }

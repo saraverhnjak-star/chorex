@@ -1,8 +1,15 @@
 import { useDeviceRegistrationLifecycle as mockUseDeviceRegistrationLifecycle } from '@chorex/notifications';
 import { useState as mockUseState, useEffect as mockUseEffect } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 import {
   createPairingSession,
+  createFamily,
+  createChild,
   readCurrentParentFamily,
 } from '@chorex/firebase-client';
 import HomeScreen from '../app/(app)/index';
@@ -352,4 +359,47 @@ it('publishes the saved Offer draft and shows the published result', async () =>
       currentRevisionId: 'revision-test-id',
     }),
   );
+});
+
+it('uses the existing family and child commands before offering device pairing', async () => {
+  const home = await readCurrentParentFamily();
+  if (!home) throw new Error('Missing test fixture');
+  jest.mocked(readCurrentParentFamily).mockResolvedValueOnce(null);
+  jest.mocked(createFamily).mockResolvedValueOnce(home);
+  jest.mocked(createChild).mockResolvedValueOnce({
+    profile: {
+      uid: 'new-child',
+      displayName: 'Lea',
+      accountType: 'CHILD',
+      createdAt: home.profile.createdAt,
+    },
+    membership: { ...home.children[0]!, uid: 'new-child', displayName: 'Lea' },
+  });
+  render(
+    <AppNavigation>
+      <ParentSurface area="family" />
+    </AppNavigation>,
+  );
+  await screen.findByText('Create your family');
+  fireEvent.changeText(screen.getByLabelText('Your name'), ' Alex ');
+  fireEvent.changeText(screen.getByLabelText('Family name'), ' Rivera Family ');
+  fireEvent.press(screen.getByRole('button', { name: 'Create family' }));
+  await screen.findByText('Add a child');
+  expect(createFamily).toHaveBeenCalledWith({
+    displayName: 'Alex',
+    familyName: 'Rivera Family',
+  });
+  fireEvent.changeText(screen.getByLabelText("Child's name"), ' Lea ');
+  fireEvent.press(screen.getByRole('button', { name: 'Create child profile' }));
+  await waitFor(() =>
+    expect(createChild).toHaveBeenCalledWith({
+      familyId: home.family.id,
+      displayName: 'Lea',
+      idempotencyKey: expect.any(String),
+    }),
+  );
+  expect(
+    await screen.findByRole('button', { name: 'Pair device' }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Child's name").props.value).toBe('');
 });

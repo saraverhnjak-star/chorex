@@ -14,6 +14,7 @@ import {
   NotificationPermissionCard,
   FormMessage,
   Screen,
+  EntryHeading,
   TextField,
   amberAuroraColors,
   useDynamicTypeStyles,
@@ -288,38 +289,21 @@ function ChildSurfaceContent({
   };
 
   return (
-    <Screen>
-      <View className="flex-1 justify-center py-12">
-        <Text
-          allowFontScaling={false}
-          className="font-semibold uppercase tracking-widest text-text-muted"
-          style={dynamicType.small}
-        >
-          Child app
-        </Text>
-        <Text
-          allowFontScaling={false}
-          accessibilityRole="header"
-          className="mt-2 font-bold text-text"
-          style={dynamicType.title}
-        >
-          Pair this device
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="mt-3 text-text-muted"
-          style={dynamicType.body}
-        >
-          Enter the one-time token shown in the Parent app.
-        </Text>
+    <Screen design entry>
+      <View className="flex-1 py-6">
+        <EntryHeading
+          child
+          title="Connect to your family"
+          description="Ask your parent for the pairing code from their ChoreX app."
+        />
 
-        <View className="mt-8 gap-5 rounded-3xl border border-border bg-surface-warm p-5">
+        <View className="mt-6 gap-5">
           <FormMessage message={error} />
           <TextField
             autoCapitalize="none"
             autoCorrect={false}
             editable={!submitting}
-            label="Pairing token"
+            label="Pairing code"
             onChangeText={(value) => {
               setToken(value);
               idempotencyKey.current = undefined;
@@ -331,7 +315,7 @@ function ChildSurfaceContent({
           />
           <Button
             disabled={!token.trim()}
-            label="Pair device"
+            label="Connect"
             loading={submitting}
             onPress={() => void pairDevice()}
           />

@@ -15,7 +15,7 @@ const authErrorMessages: Record<AuthErrorCode, string> = {
   [authErrorCodes.tooManyAttempts]:
     'Too many attempts. Wait a moment before trying again.',
   [authErrorCodes.networkUnavailable]:
-    'The local authentication service is unavailable. Check your connection and try again.',
+    'Sign-in is unavailable. Check your connection and try again.',
   [authErrorCodes.unknown]: 'Authentication could not be completed. Try again.',
 };
 

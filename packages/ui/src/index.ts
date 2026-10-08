@@ -64,3 +64,6 @@ export {
   type NavigationItem,
 } from './Home';
 export { SettingsSection, SettingsRow } from './Settings';
+
+export { EntryHeading } from './EntryHeading';
+export { SetupSection } from './SetupSection';

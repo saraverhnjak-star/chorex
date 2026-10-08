@@ -10,6 +10,8 @@ import {
 } from '@chorex/domain';
 import {
   Button,
+  EntryHeading,
+  homeTokens,
   FormMessage,
   Screen,
   TextField,
@@ -44,32 +46,14 @@ export default function RegisterScreen() {
   };
 
   return (
-    <Screen>
+    <Screen design entry>
       <View className="py-6">
-        <Text
-          allowFontScaling={false}
-          className="font-semibold uppercase tracking-widest text-text-muted"
-          style={dynamicType.small}
-        >
-          Parent app
-        </Text>
-        <Text
-          allowFontScaling={false}
-          accessibilityRole="header"
-          className="mt-2 font-bold text-text"
-          style={dynamicType.title}
-        >
-          Create your account
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="mt-3 text-text-muted"
-          style={dynamicType.body}
-        >
-          Start with a local development account. Family setup comes next.
-        </Text>
+        <EntryHeading
+          title="Create your account"
+          description="Start with your account. Your family comes next."
+        />
 
-        <View className="mt-8 gap-5 rounded-3xl border border-border bg-surface-warm p-5">
+        <View className="mt-6 gap-5">
           <FormMessage message={errors.root?.auth?.message} />
           <Controller
             control={control}
@@ -111,11 +95,10 @@ export default function RegisterScreen() {
           />
           <Text
             allowFontScaling={false}
-            className="-mt-3 text-text-muted"
+            className="-mt-3 text-home-muted"
             style={dynamicType.small}
           >
-            Use at least {parentPasswordMinimumLength} characters. This
-            development minimum is not the final production policy.
+            Use at least {parentPasswordMinimumLength} characters.
           </Text>
           <Controller
             control={control}
@@ -146,7 +129,7 @@ export default function RegisterScreen() {
         <View className="mt-6 items-center">
           <Text
             allowFontScaling={false}
-            className="text-text-muted"
+            className="text-home-muted"
             style={dynamicType.body}
           >
             Already registered?
@@ -158,8 +141,8 @@ export default function RegisterScreen() {
             >
               <Text
                 allowFontScaling={false}
-                className="font-semibold text-text underline"
-                style={dynamicType.body}
+                className="font-semibold underline"
+                style={[dynamicType.body, { color: homeTokens.coral }]}
               >
                 Return to sign in
               </Text>

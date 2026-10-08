@@ -9,6 +9,8 @@ import {
 } from '@chorex/domain';
 import {
   Button,
+  EntryHeading,
+  homeTokens,
   FormMessage,
   Screen,
   TextField,
@@ -40,32 +42,14 @@ export default function SignInScreen() {
   };
 
   return (
-    <Screen>
+    <Screen design entry>
       <View className="py-6">
-        <Text
-          allowFontScaling={false}
-          className="font-semibold uppercase tracking-widest text-text-muted"
-          style={dynamicType.small}
-        >
-          Parent app
-        </Text>
-        <Text
-          allowFontScaling={false}
-          accessibilityRole="header"
-          className="mt-2 font-bold text-text"
-          style={dynamicType.title}
-        >
-          ChoreX Parent
-        </Text>
-        <Text
-          allowFontScaling={false}
-          className="mt-3 text-text-muted"
-          style={dynamicType.body}
-        >
-          Sign in to continue your family&apos;s agreements.
-        </Text>
+        <EntryHeading
+          title="Welcome back"
+          description="Sign in to continue your family’s agreements."
+        />
 
-        <View className="mt-8 gap-5 rounded-3xl border border-border bg-surface-warm p-5">
+        <View className="mt-6 gap-5">
           <FormMessage message={errors.root?.auth?.message} />
           <Controller
             control={control}
@@ -116,7 +100,7 @@ export default function SignInScreen() {
         <View className="mt-6 items-center">
           <Text
             allowFontScaling={false}
-            className="text-text-muted"
+            className="text-home-muted"
             style={dynamicType.body}
           >
             New to ChoreX?
@@ -128,8 +112,8 @@ export default function SignInScreen() {
             >
               <Text
                 allowFontScaling={false}
-                className="font-semibold text-text underline"
-                style={dynamicType.body}
+                className="font-semibold underline"
+                style={[dynamicType.body, { color: homeTokens.coral }]}
               >
                 Create a parent account
               </Text>

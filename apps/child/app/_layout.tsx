@@ -9,7 +9,7 @@ import '../global.css';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import { resolveChildNotificationRoute } from '../src/notifications/routing';
-import { Screen, amberAuroraColors, useDynamicTypeStyles } from '@chorex/ui';
+import { Screen, homeTokens, useDynamicTypeStyles } from '@chorex/ui';
 import { configureFirebase } from '../src/firebase';
 import { ChildSessionProvider, useChildSession } from '../src/auth/session';
 
@@ -38,16 +38,16 @@ function ChildNavigator() {
 
   if (session.status === 'loading') {
     return (
-      <Screen>
+      <Screen design entry>
         <View className="flex-1 items-center justify-center py-12">
           <ActivityIndicator
             accessibilityLabel="Loading your session"
-            color={amberAuroraColors.primaryPressed}
+            color={homeTokens.coral}
             size="large"
           />
           <Text
             allowFontScaling={false}
-            className="mt-4 text-text-muted"
+            className="mt-4 text-home-muted"
             style={dynamicType.body}
           >
             Loading your session…
@@ -59,12 +59,12 @@ function ChildNavigator() {
 
   if (session.status === 'error') {
     return (
-      <Screen>
+      <Screen design entry>
         <View className="flex-1 justify-center py-12">
           <Text
             allowFontScaling={false}
             accessibilityRole="header"
-            className="font-bold text-text"
+            className="font-bold text-home-text"
             style={dynamicType.title}
           >
             ChoreX Child
@@ -72,7 +72,7 @@ function ChildNavigator() {
           <Text
             allowFontScaling={false}
             accessibilityRole="alert"
-            className="mt-4 text-text-muted"
+            className="mt-4 text-home-muted"
             style={dynamicType.body}
           >
             We couldn&apos;t restore your session. Restart the app and try

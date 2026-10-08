@@ -12,6 +12,8 @@ import {
   SettingsSection,
   SettingsRow,
   Button,
+  SetupSection,
+  homeTokens,
   NotificationPermissionCard,
   FormMessage,
   TextField,
@@ -226,7 +228,9 @@ function ParentSurfaceContent({
   if (!user) return null;
 
   return (
-    <HomeScreenFrame>
+    <HomeScreenFrame
+      keyboard={area === 'family' || familyState.status === 'onboarding'}
+    >
       <View>
         <HomeHeader
           name={
@@ -261,21 +265,10 @@ function ParentSurfaceContent({
         ) : null}
 
         {familyState.status === 'onboarding' ? (
-          <View className="mt-8 gap-5 rounded-3xl border border-border bg-surface-warm p-5">
-            <Text
-              allowFontScaling={false}
-              className="font-bold text-text"
-              style={dynamicType.title}
-            >
-              Create your family
-            </Text>
-            <Text
-              allowFontScaling={false}
-              className="text-text-muted"
-              style={dynamicType.body}
-            >
-              Tell us what to call you and your family to finish Parent setup.
-            </Text>
+          <SetupSection
+            title="Create your family"
+            description="This is the shared space for your agreements and rewards."
+          >
             <FormMessage message={errors.root?.family?.message} />
             <Controller
               control={control}
@@ -317,7 +310,7 @@ function ParentSurfaceContent({
               loading={isSubmitting}
               onPress={handleSubmit(onCreateFamily)}
             />
-          </View>
+          </SetupSection>
         ) : null}
 
         {familyState.status === 'ready' ? (
@@ -433,14 +426,10 @@ function ParentSurfaceContent({
               </HomeSection>
             ) : null}
             {area === 'family' ? (
-              <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
-                <Text
-                  allowFontScaling={false}
-                  className="font-bold text-home-text"
-                  style={dynamicType.title}
-                >
-                  Add a child
-                </Text>
+              <SetupSection
+                title="Add a child"
+                description="Create their profile, then connect their Child app. No child email is needed."
+              >
                 <FormMessage message={childErrors.root?.child?.message} />
                 <Controller
                   control={childControl}
@@ -467,7 +456,7 @@ function ParentSurfaceContent({
                   loading={isCreatingChild}
                   onPress={handleChildSubmit(onCreateChild)}
                 />
-              </View>
+              </SetupSection>
             ) : null}
             {area === 'more' || area === 'family' ? (
               <HomeSection>
@@ -507,7 +496,7 @@ function ParentSurfaceContent({
                                 label={
                                   pairingState.status === 'ready' &&
                                   pairingState.childUid === child.uid
-                                    ? 'Create new token'
+                                    ? 'Create new code'
                                     : 'Pair device'
                                 }
                                 loading={
@@ -521,7 +510,21 @@ function ParentSurfaceContent({
                               />
                               {pairingState.status === 'ready' &&
                               pairingState.childUid === child.uid ? (
-                                <View className="gap-2 rounded-2xl bg-home-surface p-4">
+                                <View
+                                  className="gap-3 rounded-2xl p-4"
+                                  style={{
+                                    backgroundColor: homeTokens.coralSurface,
+                                  }}
+                                >
+                                  <Text
+                                    allowFontScaling={false}
+                                    className="text-home-text"
+                                    style={dynamicType.body}
+                                  >
+                                    Use this temporary code in the Child app to
+                                    connect {child.displayName}&apos;s device.
+                                    It can only be used once.
+                                  </Text>
                                   {pairingState.token ? (
                                     <Text
                                       allowFontScaling={false}
@@ -537,8 +540,8 @@ function ParentSurfaceContent({
                                       className="text-home-muted"
                                       style={dynamicType.body}
                                     >
-                                      This token was already shown. Create a new
-                                      token to pair a device.
+                                      This code was already shown. Create a new
+                                      code to connect a device.
                                     </Text>
                                   )}
                                   <Text
@@ -546,7 +549,7 @@ function ParentSurfaceContent({
                                     className="text-home-muted"
                                     style={dynamicType.small}
                                   >
-                                    Expires
+                                    Expires:{' '}
                                     {new Date(
                                       pairingState.expiresAt,
                                     ).toLocaleString()}

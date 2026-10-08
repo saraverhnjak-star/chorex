@@ -24,12 +24,12 @@ const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
     'This offer changed. Refresh before publishing it.',
   [familyClientErrorCodes.deadlinePassed]:
     'The offer deadline has passed. Create a new draft.',
-  [familyClientErrorCodes.pairingInvalid]: 'This pairing token is invalid.',
-  [familyClientErrorCodes.pairingExpired]: 'This pairing token has expired.',
+  [familyClientErrorCodes.pairingInvalid]: 'This pairing code is invalid.',
+  [familyClientErrorCodes.pairingExpired]: 'This pairing code has expired.',
   [familyClientErrorCodes.pairingInvalidated]:
-    'This pairing token was replaced by a newer one.',
+    'This pairing code was replaced by a newer one.',
   [familyClientErrorCodes.pairingAlreadyUsed]:
-    'This pairing token has already been used.',
+    'This pairing code has already been used.',
   [familyClientErrorCodes.pairingRateLimited]:
     'Too many pairing attempts. Wait and try again.',
   [familyClientErrorCodes.pairingServiceUnavailable]:
@@ -37,7 +37,7 @@ const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
   [familyClientErrorCodes.multipleFamiliesUnsupported]:
     'This version cannot open accounts with more than one family yet.',
   [familyClientErrorCodes.networkUnavailable]:
-    'The local family service is unavailable. Check your connection and try again.',
+    'Family setup is unavailable. Check your connection and try again.',
   [familyClientErrorCodes.profileReadFailed]:
     'Your Parent profile could not be loaded. Try again.',
   [familyClientErrorCodes.unknown]:
