@@ -1,63 +1,65 @@
-import { Switch, Text, View } from 'react-native';
+import { Switch } from 'react-native';
 import { FormMessage } from './FormMessage';
-import { useDynamicTypeStyles } from './typography';
+import { DesignText, homeTokens } from './Home';
+import { SettingsRow } from './Settings';
 export function ReminderPreferenceCard(props: {
   label: string;
+  description: string;
   enabled?: boolean;
   busy: boolean;
   fromCache?: boolean;
   error?: string;
   onChange: (enabled: boolean) => void;
 }) {
-  const type = useDynamicTypeStyles();
+  const loaded = props.enabled !== undefined;
   return (
-    <View className="gap-3 rounded-3xl border border-border bg-surface-warm p-5">
-      <Text
-        accessibilityRole="header"
-        allowFontScaling={false}
-        className="font-bold text-text"
-        style={type.title}
-      >
-        {props.label}
-      </Text>
-      <Switch
-        accessibilityLabel={props.label}
-        accessibilityState={{
-          disabled: props.busy || props.enabled === undefined,
-          checked: props.enabled,
-        }}
-        disabled={props.busy || props.enabled === undefined}
-        value={props.enabled ?? false}
-        onValueChange={props.onChange}
-      />
-      <Text
-        allowFontScaling={false}
-        className="text-text-muted"
-        style={type.body}
-      >
-        This account setting controls optional reminders. Delivery also needs
-        notification permission on your device.
-      </Text>
-      {props.enabled === undefined && !props.error ? (
-        <Text style={type.body} className="text-text-muted">
+    <SettingsRow
+      last
+      title={props.label}
+      subtitle={props.description}
+      icon="alarm-outline"
+      tone="lavender"
+      control={
+        loaded ? (
+          <Switch
+            hitSlop={8}
+            accessibilityLabel={props.label}
+            accessibilityHint="Controls optional reminders for your account. Does not change device notification permission."
+            accessibilityState={{
+              disabled: props.busy,
+              checked: props.enabled,
+            }}
+            disabled={props.busy}
+            value={props.enabled}
+            trackColor={{ true: homeTokens.success }}
+            onValueChange={props.onChange}
+          />
+        ) : undefined
+      }
+    >
+      <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
+        Optional reminders only. Device permission is separate; agreement
+        updates stay enabled.
+      </DesignText>
+      {!loaded && !props.error ? (
+        <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
           Loading reminder setting…
-        </Text>
+        </DesignText>
       ) : null}
       {props.fromCache ? (
-        <Text style={type.body} className="text-text-muted">
+        <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
           Showing saved settings. Connect to confirm changes.
-        </Text>
+        </DesignText>
       ) : null}
       {props.busy ? (
-        <Text
+        <DesignText
           accessibilityLiveRegion="polite"
-          style={type.body}
-          className="text-text-muted"
+          style={{ fontSize: 14, color: homeTokens.secondary }}
         >
           Saving reminder setting…
-        </Text>
+        </DesignText>
       ) : null}
       <FormMessage message={props.error} />
-    </View>
+    </SettingsRow>
   );
 }

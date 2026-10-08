@@ -10,6 +10,8 @@ import { ParentSurface } from '../src/navigation/ParentSurface';
 import { AppNavigation } from '../src/navigation/AppNavigation';
 import { OfferDraftComposer } from '../src/offers/OfferDraftComposer';
 
+const mockSaveReminder = jest.fn();
+const mockSignOut = jest.fn().mockResolvedValue(undefined);
 const mockRegisterCurrentDevice = jest
   .fn()
   .mockResolvedValue({ status: 'registered' });
@@ -103,7 +105,7 @@ jest.mock('@chorex/firebase-client', () => ({
   useContractDetail: () => ({ status: 'loading' }),
   useReminderPreference: () => ({
     state: { enabled: true, busy: false },
-    save: jest.fn(),
+    save: mockSaveReminder,
   }),
   useAwaitingRewards: () => ({
     status: 'ready',
@@ -203,7 +205,7 @@ jest.mock('../src/auth/session', () => ({
   useParentSession: () => ({
     user: { uid: 'parent-test-uid', email: 'parent@example.invalid' },
     notifications: mockUseDeviceRegistrationLifecycle('PARENT'),
-    signOut: jest.fn(),
+    signOut: mockSignOut,
   }),
 }));
 
@@ -263,13 +265,18 @@ it('renders the parent screen through the public shared UI package', async () =>
       <ParentSurface area="more" />
     </AppNavigation>,
   );
-  await screen.findByRole('header', { name: 'More' });
+  await screen.findByRole('header', { name: 'Settings' });
+  expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
+  const reminderSwitch = screen.getByRole('switch', {
+    name: 'Pending reward reminders',
+  });
+  expect(reminderSwitch.props.value).toBe(true);
+  fireEvent(reminderSwitch, 'valueChange', false);
+  expect(mockSaveReminder).toHaveBeenCalledWith(false);
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
   expect(
-    screen.getByText(
-      'Notifications are off. You can keep using ChoreX normally.',
-    ),
+    screen.getByText('Notifications are currently disabled on this device.'),
   ).toBeOnTheScreen();
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   // Explicit entry shows the explanation again before requesting the OS prompt.
@@ -277,6 +284,8 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(screen.getByRole('button', { name: 'Not now' })).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('PARENT');
+  fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
+  expect(mockSignOut).toHaveBeenCalledTimes(1);
   view.rerender(
     <AppNavigation>
       <ParentSurface area="family" />

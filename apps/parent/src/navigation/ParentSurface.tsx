@@ -9,6 +9,8 @@ import {
   QuickActions,
   SectionHeading,
   ReminderPreferenceCard,
+  SettingsSection,
+  SettingsRow,
   Button,
   NotificationPermissionCard,
   FormMessage,
@@ -333,7 +335,7 @@ function ParentSurfaceContent({
                       offers: 'Offers',
                       contracts: 'Contracts',
                       rewards: 'Rewards',
-                      more: 'More',
+                      more: 'Settings',
                       create: 'Create Offer',
                       family: 'Family',
                     } as const
@@ -561,51 +563,70 @@ function ParentSurfaceContent({
                       )}
                     </View>
                   </View>
-                ) : (
-                  <Button
-                    label="Family"
-                    variant="outline"
-                    onPress={() => router.navigate('/family')}
-                  />
-                )}
+                ) : null}
                 {area === 'more' ? (
                   <>
-                    <ReminderPreferenceCard
-                      label="Pending reward reminders"
-                      enabled={reminder.state.enabled}
-                      busy={reminder.state.busy}
-                      fromCache={reminder.state.fromCache}
-                      error={reminder.state.error}
-                      onChange={(enabled) => {
-                        void reminder.save(enabled);
-                      }}
-                    />
-                    <NotificationPermissionCard
-                      benefit="Get updates when your child responds to an offer or submits work for review."
-                      education={education.showEducation}
-                      busy={
-                        notifications.state.status === 'loading' ||
-                        notifications.state.status === 'checking'
-                      }
-                      registered={notifications.state.status === 'registered'}
-                      quiet={notifications.state.permission?.quiet}
-                      error={
-                        notifications.state.status === 'error'
-                          ? getNotificationErrorMessage(
-                              notifications.state.error,
-                            )
-                          : undefined
-                      }
-                      settingsRequired={
-                        notifications.state.permission?.status === 'denied' &&
-                        notifications.state.permission.canAskAgain === false
-                      }
-                      onEnable={enableNotifications}
-                      onSkip={education.skip}
-                      onSettings={() => {
-                        void Linking.openSettings().catch(() => undefined);
-                      }}
-                    />
+                    <SettingsSection title="Account">
+                      <SettingsRow
+                        last
+                        title={familyState.home.profile.displayName}
+                        subtitle="Parent account"
+                        icon="person-outline"
+                        tone="blue"
+                      />
+                    </SettingsSection>
+                    <SettingsSection title="Notifications">
+                      <NotificationPermissionCard
+                        benefit="Stay updated when your child responds, submits an agreement or needs your attention."
+                        education={education.showEducation}
+                        busy={
+                          notifications.state.status === 'loading' ||
+                          notifications.state.status === 'checking'
+                        }
+                        registered={notifications.state.status === 'registered'}
+                        permissionGranted={
+                          notifications.state.permission?.granted
+                        }
+                        quiet={notifications.state.permission?.quiet}
+                        error={
+                          notifications.state.status === 'error'
+                            ? getNotificationErrorMessage(
+                                notifications.state.error,
+                              )
+                            : undefined
+                        }
+                        settingsRequired={
+                          notifications.state.permission?.status === 'denied' &&
+                          notifications.state.permission.canAskAgain === false
+                        }
+                        onEnable={enableNotifications}
+                        onSkip={education.skip}
+                        onSettings={() => {
+                          void Linking.openSettings().catch(() => undefined);
+                        }}
+                      />
+                      <ReminderPreferenceCard
+                        label="Pending reward reminders"
+                        description="Get a reminder when an earned reward is still waiting for delivery."
+                        enabled={reminder.state.enabled}
+                        busy={reminder.state.busy}
+                        fromCache={reminder.state.fromCache}
+                        error={reminder.state.error}
+                        onChange={(enabled) => {
+                          void reminder.save(enabled);
+                        }}
+                      />
+                    </SettingsSection>
+                    <SettingsSection title="Family">
+                      <SettingsRow
+                        last
+                        title="Family"
+                        subtitle="View your family and existing child profiles."
+                        icon="people-outline"
+                        tone="mint"
+                        onPress={() => router.navigate('/family')}
+                      />
+                    </SettingsSection>
                   </>
                 ) : null}
               </HomeSection>
@@ -617,12 +638,28 @@ function ParentSurfaceContent({
         (area === 'more' || familyState.status !== 'ready') ? (
           <View className="mt-6 gap-4">
             <FormMessage message={signOutError} />
-            <Button
-              label="Sign out"
-              loading={signingOut}
-              onPress={handleSignOut}
-              variant="secondary"
-            />
+            {area === 'more' ? (
+              <SettingsSection title="Account actions">
+                <SettingsRow
+                  last
+                  title="Sign out"
+                  showChevron={false}
+                  subtitle={signingOut ? 'Signing out…' : undefined}
+                  icon="log-out-outline"
+                  tone="coralSurface"
+                  destructive
+                  disabled={signingOut}
+                  onPress={handleSignOut}
+                />
+              </SettingsSection>
+            ) : (
+              <Button
+                label="Sign out"
+                loading={signingOut}
+                onPress={handleSignOut}
+                variant="secondary"
+              />
+            )}
           </View>
         ) : null}
       </View>

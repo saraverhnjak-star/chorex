@@ -8,6 +8,8 @@ import {
   HomeGreeting,
   SectionHeading,
   ReminderPreferenceCard,
+  SettingsSection,
+  SettingsRow,
   Button,
   NotificationPermissionCard,
   FormMessage,
@@ -149,7 +151,7 @@ function ChildSurfaceContent({
                         offers: 'Offers',
                         contracts: 'My chores',
                         rewards: 'Rewards',
-                        more: 'More',
+                        more: 'Settings',
                       } as const
                     )[area]
                   }
@@ -191,40 +193,57 @@ function ChildSurfaceContent({
               ) : null}
               {area === 'more' ? (
                 <HomeSection>
-                  <ReminderPreferenceCard
-                    label="Deadline reminders"
-                    enabled={reminder.state.enabled}
-                    busy={reminder.state.busy}
-                    fromCache={reminder.state.fromCache}
-                    error={reminder.state.error}
-                    onChange={(enabled) => {
-                      void reminder.save(enabled);
-                    }}
-                  />
-                  <NotificationPermissionCard
-                    benefit="Get updates when you receive new offers or your Parent reviews your work."
-                    education={education.showEducation}
-                    busy={
-                      notifications.state.status === 'loading' ||
-                      notifications.state.status === 'checking'
-                    }
-                    registered={notifications.state.status === 'registered'}
-                    quiet={notifications.state.permission?.quiet}
-                    error={
-                      notifications.state.status === 'error'
-                        ? getNotificationErrorMessage(notifications.state.error)
-                        : undefined
-                    }
-                    settingsRequired={
-                      notifications.state.permission?.status === 'denied' &&
-                      notifications.state.permission.canAskAgain === false
-                    }
-                    onEnable={enableNotifications}
-                    onSkip={education.skip}
-                    onSettings={() => {
-                      void Linking.openSettings().catch(() => undefined);
-                    }}
-                  />
+                  <SettingsSection title="Account">
+                    <SettingsRow
+                      last
+                      title={familyState.home.profile.displayName}
+                      subtitle="Child account"
+                      icon="person-outline"
+                      tone="coralSurface"
+                    />
+                  </SettingsSection>
+                  <SettingsSection title="Notifications">
+                    <NotificationPermissionCard
+                      benefit="Get updates when you receive an offer or your parent reviews your agreement."
+                      education={education.showEducation}
+                      busy={
+                        notifications.state.status === 'loading' ||
+                        notifications.state.status === 'checking'
+                      }
+                      registered={notifications.state.status === 'registered'}
+                      permissionGranted={
+                        notifications.state.permission?.granted
+                      }
+                      quiet={notifications.state.permission?.quiet}
+                      error={
+                        notifications.state.status === 'error'
+                          ? getNotificationErrorMessage(
+                              notifications.state.error,
+                            )
+                          : undefined
+                      }
+                      settingsRequired={
+                        notifications.state.permission?.status === 'denied' &&
+                        notifications.state.permission.canAskAgain === false
+                      }
+                      onEnable={enableNotifications}
+                      onSkip={education.skip}
+                      onSettings={() => {
+                        void Linking.openSettings().catch(() => undefined);
+                      }}
+                    />
+                    <ReminderPreferenceCard
+                      label="Deadline reminders"
+                      description="Get a reminder when an active agreement is due soon."
+                      enabled={reminder.state.enabled}
+                      busy={reminder.state.busy}
+                      fromCache={reminder.state.fromCache}
+                      error={reminder.state.error}
+                      onChange={(enabled) => {
+                        void reminder.save(enabled);
+                      }}
+                    />
+                  </SettingsSection>
                 </HomeSection>
               ) : null}
             </View>
@@ -233,12 +252,19 @@ function ChildSurfaceContent({
           {area === 'more' ? (
             <View className="mt-6 gap-4">
               <FormMessage message={signOutError} />
-              <Button
-                label="Sign out"
-                loading={signingOut}
-                onPress={() => void signOut()}
-                variant="secondary"
-              />
+              <SettingsSection title="Account actions">
+                <SettingsRow
+                  last
+                  title="Sign out"
+                  showChevron={false}
+                  subtitle={signingOut ? 'Signing out…' : undefined}
+                  icon="log-out-outline"
+                  tone="coralSurface"
+                  destructive
+                  disabled={signingOut}
+                  onPress={() => void signOut()}
+                />
+              </SettingsSection>
             </View>
           ) : null}
         </View>

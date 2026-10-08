@@ -63,3 +63,4 @@ export {
   CollectionHeading,
   type NavigationItem,
 } from './Home';
+export { SettingsSection, SettingsRow } from './Settings';

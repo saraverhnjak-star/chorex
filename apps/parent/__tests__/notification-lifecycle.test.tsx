@@ -1,5 +1,13 @@
-import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { AppState, type AppStateStatus } from 'react-native';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  renderHook,
+  waitFor,
+} from '@testing-library/react-native';
+import { NotificationPermissionCard, ReminderPreferenceCard } from '@chorex/ui';
+import { AppState, View, type AppStateStatus } from 'react-native';
 import {
   useDeviceRegistrationLifecycle,
   useNotificationEducation,
@@ -179,4 +187,89 @@ it('does not register in a loop when native acquisition emits the same token aga
   expect(mockRegister).toHaveBeenCalledTimes(3);
   AppState.currentState = previousAppState;
   jest.restoreAllMocks();
+});
+
+it('Settings presents real channel states and separates reminder preference from OS permission', () => {
+  const onEnable = jest.fn(),
+    onSettings = jest.fn(),
+    onChange = jest.fn();
+  const props = {
+    benefit: 'Get agreement updates.',
+    education: false,
+    busy: false,
+    registered: false,
+    settingsRequired: false,
+    onEnable,
+    onSkip: jest.fn(),
+    onSettings,
+  };
+  const view = render(<NotificationPermissionCard {...props} busy />, {
+    wrapper: ({ children }) => <View>{children}</View>,
+  });
+  expect(screen.getByText('Checking notifications…')).toBeOnTheScreen();
+  expect(screen.queryByText('Notifications off')).not.toBeOnTheScreen();
+  view.rerender(
+    <NotificationPermissionCard {...props} registered permissionGranted />,
+  );
+  expect(screen.getByText('Notifications on')).toBeOnTheScreen();
+  view.rerender(<NotificationPermissionCard {...props} registered quiet />);
+  expect(
+    screen.getByText('ChoreX can send quiet notifications to this device.'),
+  ).toBeOnTheScreen();
+  view.rerender(
+    <NotificationPermissionCard
+      {...props}
+      permissionGranted
+      error="Connection unavailable."
+    />,
+  );
+  expect(screen.getByText('Notifications unavailable')).toBeOnTheScreen();
+  expect(screen.queryByText('Notifications on')).not.toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Retry notifications' }));
+  expect(onEnable).toHaveBeenCalledTimes(1);
+  view.rerender(
+    <NotificationPermissionCard {...props} error="Connection unavailable." />,
+  );
+  expect(screen.getByText('Notifications unavailable')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Notification status could not be checked. Try again.'),
+  ).toBeOnTheScreen();
+  view.rerender(
+    <>
+      <NotificationPermissionCard {...props} settingsRequired />
+      <ReminderPreferenceCard
+        label="Deadline reminders"
+        description="Get a reminder when an agreement is due soon."
+        enabled
+        busy={false}
+        onChange={onChange}
+      />
+    </>,
+  );
+  expect(screen.getByText('Notifications off')).toBeOnTheScreen();
+  expect(onSettings).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole('switch', { name: 'Deadline reminders' }).props.value,
+  ).toBe(true);
+  fireEvent(
+    screen.getByRole('switch', { name: 'Deadline reminders' }),
+    'valueChange',
+    false,
+  );
+  expect(onChange).toHaveBeenCalledWith(false);
+  expect(onEnable).toHaveBeenCalledTimes(1);
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Open notification settings' }),
+  );
+  expect(onSettings).toHaveBeenCalledTimes(1);
+  view.rerender(
+    <ReminderPreferenceCard
+      label="Deadline reminders"
+      description="Optional reminders."
+      busy={false}
+      onChange={onChange}
+    />,
+  );
+  expect(screen.queryByRole('switch')).not.toBeOnTheScreen();
+  expect(screen.getByText('Loading reminder setting…')).toBeOnTheScreen();
 });

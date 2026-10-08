@@ -8,6 +8,7 @@ import {
 import { ChildSurface as HomeScreen } from '../src/navigation/ChildSurface';
 import { AppNavigation } from '../src/navigation/AppNavigation';
 import { ChildSessionProvider } from '../src/auth/session';
+import { signOutCurrentUser } from '@chorex/firebase-client';
 
 let mockAuthUser: { uid: string; email: null } | null = null;
 let mockAuthListener: ((user: typeof mockAuthUser) => void) | undefined;
@@ -154,6 +155,7 @@ const mockCounterOffer = jest.fn().mockResolvedValue({
     createdAt: '2026-10-03T12:36:56.789Z',
   },
 });
+const mockSaveReminder = jest.fn();
 const mockRegisterCurrentDevice = jest
   .fn()
   .mockResolvedValue({ status: 'registered' });
@@ -174,7 +176,7 @@ jest.mock('@chorex/firebase-client', () => ({
   useContractDetail: () => ({ status: 'loading' }),
   useReminderPreference: () => ({
     state: { enabled: true, busy: false },
-    save: jest.fn(),
+    save: mockSaveReminder,
   }),
   useEarnedRewards: () => ({ status: 'ready', rewards: [], fromCache: false }),
   useActiveContracts: () => ({
@@ -303,12 +305,17 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
       </AppNavigation>
     </ChildSessionProvider>,
   );
-  await screen.findByRole('header', { name: 'More' });
+  await screen.findByRole('header', { name: 'Settings' });
+  const reminderSwitch = screen.getByRole('switch', {
+    name: 'Deadline reminders',
+  });
+  expect(reminderSwitch.props.value).toBe(true);
+  fireEvent(reminderSwitch, 'valueChange', false);
+  expect(mockSaveReminder).toHaveBeenCalledWith(false);
+  expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
   expect(
-    screen.getByText(
-      'Notifications are off. You can keep using ChoreX normally.',
-    ),
+    screen.getByText('Notifications are currently disabled on this device.'),
   ).toBeOnTheScreen();
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   // Explicit entry shows the explanation again before requesting the OS prompt.
@@ -323,6 +330,9 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     'firebase-custom-token',
   );
 
+  fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
+  await waitFor(() => expect(signOutCurrentUser).toHaveBeenCalledTimes(1));
+  expect(mockRemoveCurrentDeviceRegistration).toHaveBeenCalledTimes(1);
   firstLaunch.unmount();
   const secondLaunch = render(
     <ChildSessionProvider>
