@@ -66,7 +66,7 @@ export function NavigationFrame({
 }) {
   const { fontScale } = useWindowDimensions();
   // Keep five concise destinations readable at narrow widths; full accessible labels remain available.
-  const labelSize = 12 * Math.min(fontScale, 1.3);
+  const labelSize = 11 * Math.min(fontScale, 1.3);
   const insets = useSafeAreaInsets();
   return (
     <HomeContext.Provider value={{ active: true, navigate: onNavigate }}>
@@ -151,10 +151,12 @@ export function CollectionHeading({
   children,
   onSeeAll,
   label = 'See all',
+  count,
 }: {
   children: ReactNode;
   onSeeAll?: () => void;
   label?: string;
+  count?: number;
 }) {
   return (
     <View
@@ -166,14 +168,25 @@ export function CollectionHeading({
       }}
     >
       <View style={{ flexGrow: 1, flexShrink: 1 }}>
-        <SectionHeading>{children}</SectionHeading>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          <SectionHeading>{children}</SectionHeading>
+          {count !== undefined ? <CountBadge count={count} /> : null}
+        </View>
       </View>
       {onSeeAll ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={label}
           onPress={onSeeAll}
-          style={{ minHeight: 44, justifyContent: 'center' }}
+          hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+          style={{ minHeight: 24, justifyContent: 'center' }}
         >
           <Text style={{ fontSize: 14, color: homeTokens.coral }}>
             See all →
@@ -236,7 +249,7 @@ export function HomeGreeting({
   child?: boolean;
 }) {
   return (
-    <View style={s.section}>
+    <View style={{ gap: 4 }}>
       <Text accessibilityRole="header" style={s.greeting}>
         {child ? 'Hi' : 'Hello'}, {name}!
       </Text>
@@ -257,7 +270,7 @@ export function SectionHeading({ children }: { children: ReactNode }) {
 }
 export function QuickActions() {
   const { width, fontScale } = useWindowDimensions();
-  const wideText = fontScale > 1.3 || width < 360;
+  const wideText = fontScale > 1.15 || width < 360;
   const { navigate } = useContext(HomeContext);
   const actions: { label: string; id: string; icon: Icon; color: string }[] = [
     {
@@ -300,7 +313,7 @@ export function QuickActions() {
               s.tile,
               {
                 backgroundColor: action.color,
-                ...(wideText ? { flexBasis: '45%' } : {}),
+                ...(wideText ? { flex: 0, flexGrow: 1, width: '45%' } : {}),
               },
             ]}
           >
@@ -308,10 +321,18 @@ export function QuickActions() {
               accessible={false}
               name={action.icon}
               size={28}
-              color={homeTokens.coral}
+              color={
+                action.id === 'create'
+                  ? homeTokens.coral
+                  : action.id === 'rewards'
+                    ? homeTokens.success
+                    : homeTokens.secondary
+              }
             />
-            <Text style={s.tileText}>
-              {action.id === 'review' ? 'Review' : action.label}
+            <Text style={[s.tileText, { fontSize: 13, fontWeight: '400' }]}>
+              {action.id === 'review'
+                ? 'Review\nWork'
+                : action.label.replace(' ', '\n')}
             </Text>
           </Pressable>
         ))}
@@ -352,7 +373,12 @@ export function SummaryMetric({
   tone?: 'mint' | 'blue' | 'lavender';
 }) {
   return (
-    <View style={[s.tile, { backgroundColor: homeTokens[tone] }]}>
+    <View
+      style={[
+        s.tile,
+        { backgroundColor: homeTokens[tone], gap: 4, padding: 10 },
+      ]}
+    >
       <Ionicons
         accessible={false}
         name={icon}
@@ -360,7 +386,28 @@ export function SummaryMetric({
         color={homeTokens.secondary}
       />
       <Text style={s.metric}>{value}</Text>
-      <Text style={s.caption}>{label}</Text>
+      <Text style={[s.caption, { textAlign: 'center' }]}>{label}</Text>
+    </View>
+  );
+}
+export function HomeEmptyState({
+  children,
+  icon = 'checkmark-circle-outline',
+}: {
+  children: ReactNode;
+  icon?: Icon;
+}) {
+  return (
+    <View style={[s.row, { gap: 10 }]}>
+      <Ionicons
+        accessible={false}
+        name={icon}
+        size={24}
+        color={homeTokens.secondary}
+      />
+      <Text style={{ fontSize: 14, color: homeTokens.secondary, flex: 1 }}>
+        {children}
+      </Text>
     </View>
   );
 }
@@ -370,6 +417,8 @@ export function HomeListRow({
   label,
   onPress,
   progress,
+  grouped = false,
+  separator = false,
   icon = 'checkbox-outline',
 }: {
   title: string;
@@ -378,6 +427,8 @@ export function HomeListRow({
   onPress: () => void;
   icon?: Icon;
   progress?: { completed: number; required: number };
+  grouped?: boolean;
+  separator?: boolean;
 }) {
   return (
     <Pressable
@@ -385,9 +436,18 @@ export function HomeListRow({
       accessibilityLabel={label}
       onPress={onPress}
       className="active:opacity-60"
-      style={s.row}
+      style={[
+        s.row,
+        grouped
+          ? {
+              borderWidth: 0,
+              borderRadius: 0,
+              borderTopWidth: separator ? 1 : 0,
+            }
+          : undefined,
+      ]}
     >
-      <View style={s.avatar}>
+      <View style={[s.avatar, { width: 36, height: 36 }]}>
         <Ionicons
           accessible={false}
           name={icon}
@@ -399,16 +459,27 @@ export function HomeListRow({
         <Text style={s.rowTitle}>{title}</Text>
         <Text style={s.caption}>{detail}</Text>
         {progress ? (
-          <View style={{ gap: 6, marginTop: 8 }}>
+          <View
+            style={{
+              gap: 8,
+              marginTop: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
             <View
               accessibilityRole="progressbar"
               accessibilityValue={{
                 min: 0,
                 max: progress.required,
                 now: progress.completed,
+                text: `${progress.completed} / ${progress.required} completions`,
               }}
               style={{
                 height: 6,
+                flex: 1,
+                minWidth: 60,
                 borderRadius: 999,
                 backgroundColor: homeTokens.border,
               }}
@@ -423,7 +494,7 @@ export function HomeListRow({
               />
             </View>
             <Text style={s.caption}>
-              {progress.completed} / {progress.required} completions
+              {progress.completed} / {progress.required}
             </Text>
           </View>
         ) : null}
@@ -439,19 +510,29 @@ export function HomeListRow({
 }
 const s = StyleSheet.create({
   frame: { flex: 1, backgroundColor: homeTokens.app },
-  content: { padding: 20, paddingTop: 16, paddingBottom: 24 },
+  content: { padding: 18, paddingTop: 16, paddingBottom: 24 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  wordmark: { fontSize: 30, fontWeight: '800', color: homeTokens.text },
-  section: { gap: 12 },
-  greeting: { fontSize: 28, fontWeight: '700', color: homeTokens.text },
-  heading: { fontSize: 21, fontWeight: '700', color: homeTokens.text },
-  body: { fontSize: 16, color: homeTokens.secondary, lineHeight: 23 },
-  caption: { fontSize: 12, color: homeTokens.secondary },
+  wordmark: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '800',
+    color: homeTokens.text,
+  },
+  section: { gap: 10 },
+  greeting: { fontSize: 27, fontWeight: '700', color: homeTokens.text },
+  heading: {
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: homeTokens.text,
+  },
+  body: { fontSize: 15, color: homeTokens.secondary, lineHeight: 20 },
+  caption: { fontSize: 12, lineHeight: 17, color: homeTokens.secondary },
   avatar: {
     width: 44,
     height: 44,
@@ -472,24 +553,32 @@ const s = StyleSheet.create({
     flex: 1,
     minWidth: 64,
     borderRadius: 16,
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    minHeight: 92,
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
   },
-  tileText: { fontSize: 12, color: homeTokens.text, textAlign: 'center' },
+  tileText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: homeTokens.text,
+    textAlign: 'center',
+  },
   metric: { fontSize: 21, fontWeight: '700', color: homeTokens.text },
   nav: {
     flexDirection: 'row',
     borderTopWidth: 1,
     borderColor: homeTokens.border,
     backgroundColor: homeTokens.surface,
-    paddingTop: 8,
+    paddingTop: 6,
     paddingBottom: 24,
   },
   navItem: {
     flex: 1,
     minWidth: 0,
-    minHeight: 48,
+    minHeight: 44,
     paddingHorizontal: 2,
     alignItems: 'center',
     gap: 4,
@@ -498,11 +587,17 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 16,
-    borderRadius: 20,
+    padding: 10,
+    minHeight: 56,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: homeTokens.border,
     backgroundColor: homeTokens.surface,
   },
-  rowTitle: { fontSize: 16, fontWeight: '600', color: homeTokens.text },
+  rowTitle: {
+    lineHeight: 20,
+    fontSize: 15,
+    fontWeight: '600',
+    color: homeTokens.text,
+  },
 });

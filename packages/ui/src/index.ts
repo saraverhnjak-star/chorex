@@ -34,6 +34,7 @@ export {
   SectionHeading,
   SummaryMetric,
   HomeListRow,
+  HomeEmptyState,
   homeTokens,
 } from './Home';
 

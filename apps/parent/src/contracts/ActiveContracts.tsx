@@ -9,6 +9,7 @@ import {
 } from '@chorex/firebase-client';
 import {
   Button,
+  HomeEmptyState,
   CollectionHeading,
   CountBadge,
   OfferOutcome,
@@ -79,14 +80,20 @@ function ContractList({
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   return (
-    <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
+    <View
+      className={
+        preview
+          ? 'gap-3'
+          : 'gap-4 rounded-3xl border border-home-border bg-home-surface p-5'
+      }
+    >
       <CollectionHeading
         label={readyForReview ? 'See all Reviews' : 'See all Contracts'}
         onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
       >
         {readyForReview ? 'Ready for Review' : 'Active Contracts'}
       </CollectionHeading>
-      {state.status === 'ready' ? (
+      {!preview && state.status === 'ready' ? (
         <CountBadge count={state.contracts.length} />
       ) : null}
       {state.status === 'loading' ? (
@@ -113,29 +120,44 @@ function ContractList({
             <Text
               allowFontScaling={false}
               className="text-home-muted"
-              style={styles.small}
+              style={
+                preview
+                  ? {
+                      ...styles.small,
+                      fontSize: (styles.small.fontSize ?? 14) * (12 / 14),
+                    }
+                  : styles.small
+              }
             >
               Showing saved data. Updates may be pending.
             </Text>
           ) : null}
           {state.contracts.length === 0 ? (
-            <OfferOutcome
-              title={
-                readyForReview
-                  ? 'Nothing waiting for review'
-                  : 'No active agreements'
-              }
-            >
-              {state.fromCache
-                ? readyForReview
-                  ? 'No Contracts awaiting review are saved on this device yet.'
-                  : 'No active Contracts are saved on this device yet.'
-                : readyForReview
-                  ? 'No Contracts awaiting review.'
-                  : 'No active Contracts yet.'}
-            </OfferOutcome>
+            preview ? (
+              <HomeEmptyState>
+                {state.fromCache
+                  ? 'No active agreements saved yet.'
+                  : 'No active agreements'}
+              </HomeEmptyState>
+            ) : (
+              <OfferOutcome
+                title={
+                  readyForReview
+                    ? 'Nothing waiting for review'
+                    : 'No active agreements'
+                }
+              >
+                {state.fromCache
+                  ? readyForReview
+                    ? 'No Contracts awaiting review are saved on this device yet.'
+                    : 'No active Contracts are saved on this device yet.'
+                  : readyForReview
+                    ? 'No Contracts awaiting review.'
+                    : 'No active Contracts yet.'}
+              </OfferOutcome>
+            )
           ) : (
-            (preview ? state.contracts.slice(0, 2) : state.contracts).map(
+            (preview ? state.contracts.slice(0, 1) : state.contracts).map(
               (contract) => (
                 <HomeContractRow
                   key={contract.id}

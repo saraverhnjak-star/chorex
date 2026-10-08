@@ -1,3 +1,5 @@
+import type { Contract, EarnedReward } from '@chorex/domain';
+import { HomeAttention } from '../src/navigation/HomeAttention';
 import { useDeviceRegistrationLifecycle as mockUseDeviceRegistrationLifecycle } from '@chorex/notifications';
 import { useState as mockUseState, useEffect as mockUseEffect } from 'react';
 import {
@@ -17,6 +19,8 @@ import { ParentSurface } from '../src/navigation/ParentSurface';
 import { AppNavigation } from '../src/navigation/AppNavigation';
 import { OfferDraftComposer } from '../src/offers/OfferDraftComposer';
 
+let mockAttentionReviews: readonly Contract[] = [];
+let mockAttentionRewards: readonly EarnedReward[] = [];
 const mockSaveReminder = jest.fn();
 const mockSignOut = jest.fn().mockResolvedValue(undefined);
 const mockRegisterCurrentDevice = jest
@@ -119,7 +123,11 @@ jest.mock('@chorex/firebase-client', () => ({
     rewards: [],
     fromCache: false,
   }),
-  usePendingRewards: () => ({ status: 'ready', rewards: [], fromCache: false }),
+  usePendingRewards: () => ({
+    status: 'ready',
+    rewards: mockAttentionRewards,
+    fromCache: false,
+  }),
   useActiveContracts: () => ({
     status: 'ready',
     contracts: [],
@@ -127,7 +135,7 @@ jest.mock('@chorex/firebase-client', () => ({
   }),
   useReadyForReviewContracts: () => ({
     status: 'ready',
-    contracts: [],
+    contracts: mockAttentionReviews,
     fromCache: false,
   }),
   readCurrentParentFamily: jest.fn().mockResolvedValue({
@@ -248,9 +256,7 @@ it('renders the parent screen through the public shared UI package', async () =>
     ['Rewards', '/rewards'],
     ['More', '/more'],
     ['Home', '/'],
-    ['See all Offers', '/offers'],
     ['See all Contracts', '/contracts'],
-    ['See all Rewards', '/rewards'],
     ['Create Offer', '/offers/create'],
     ['Review Submissions', '/contracts'],
     ['Manage Rewards', '/rewards'],
@@ -402,4 +408,73 @@ it('uses the existing family and child commands before offering device pairing',
     await screen.findByRole('button', { name: 'Pair device' }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Child's name").props.value).toBe('');
+});
+
+it('combines actionable attention sources and preserves each existing destination', async () => {
+  const timestamp = '2026-10-03T12:34:56.789Z';
+  mockAttentionReviews = [
+    {
+      id: 'review-contract',
+      familyId: 'family-test-id',
+      parentUid: 'parent-test-uid',
+      childUid: 'child-test-uid',
+      source: {
+        type: 'OFFER',
+        offerId: 'review-offer',
+        revisionId: 'review-revision',
+      },
+      rewardTerms: { title: 'Book', type: 'ITEM' },
+      deadlineAt: timestamp,
+      status: 'READY_FOR_REVIEW',
+      reviewCycle: 0,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+  ];
+  mockAttentionRewards = [
+    {
+      id: 'delivery-reward',
+      familyId: 'family-test-id',
+      contractId: 'approved-contract',
+      parentUid: 'parent-test-uid',
+      childUid: 'child-test-uid',
+      terms: { title: 'Cinema', type: 'EXPERIENCE' },
+      status: 'PENDING_FULFILLMENT',
+      earnedAt: timestamp,
+    },
+  ];
+  const view = render(
+    <HomeAttention
+      familyId="family-test-id"
+      authUid="parent-test-uid"
+      childNames={{ 'child-test-uid': 'Mia' }}
+    />,
+  );
+  await screen.findByRole('button', {
+    name: 'Mia countered your offer: One hour of games',
+  });
+  for (const [label, destination] of [
+    ['Mia countered your offer: One hour of games', '/offers'],
+    [
+      'Mia submitted for review: Book',
+      {
+        pathname: '/contracts/[contractId]',
+        params: { contractId: 'review-contract' },
+      },
+    ],
+    [
+      'Reward waiting for delivery: Cinema · Mia',
+      {
+        pathname: '/rewards/[rewardId]',
+        params: { rewardId: 'delivery-reward' },
+      },
+    ],
+  ] as const) {
+    fireEvent.press(screen.getByRole('button', { name: label }));
+    expect(mockNavigate).toHaveBeenLastCalledWith(destination);
+  }
+  expect(screen.getByLabelText('3 items')).toBeOnTheScreen();
+  view.unmount();
+  mockAttentionReviews = [];
+  mockAttentionRewards = [];
 });

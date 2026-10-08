@@ -2,7 +2,13 @@ import { Button } from './Button';
 import { View } from 'react-native';
 import type { EarnedReward, UserProfile } from '@chorex/domain';
 import { FormMessage } from './FormMessage';
-import { CountBadge, DesignText, homeTokens, CollectionHeading } from './Home';
+import {
+  HomeListRow,
+  CountBadge,
+  DesignText,
+  homeTokens,
+  CollectionHeading,
+} from './Home';
 import { SurfaceCard, OfferOutcome } from './OfferTerms';
 import { RewardCard } from './RewardPresentation';
 export function RewardList({
@@ -66,6 +72,53 @@ export function RewardList({
           },
         ].filter((group) => group.rewards.length > 0)
       : [{ label: undefined, rewards: visible }];
+  if (preview)
+    return (
+      <View style={{ gap: homeTokens.spacing.medium }}>
+        <CollectionHeading label="See all Rewards" onSeeAll={onSeeAll}>
+          {title}
+        </CollectionHeading>
+        {fromCache ? (
+          <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
+            Showing saved rewards. Updates may be pending.
+          </DesignText>
+        ) : null}
+        {loading ? (
+          <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
+            Loading rewards…
+          </DesignText>
+        ) : null}
+        {error ? (
+          <>
+            <FormMessage message="Your rewards could not be loaded. Try again." />
+            {onRetry ? (
+              <Button label="Try Rewards again" onPress={onRetry} />
+            ) : null}
+          </>
+        ) : null}
+        {!loading && !error && rewards.length === 0 ? (
+          <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
+            {fromCache ? 'No rewards saved yet.' : empty}
+          </DesignText>
+        ) : null}
+        {visible.slice(0, 1).map((reward) => (
+          <HomeListRow
+            key={reward.id}
+            title={reward.terms.title}
+            detail={
+              reward.status === 'PENDING_FULFILLMENT'
+                ? 'Earned · Waiting for Parent delivery'
+                : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+                  ? 'Delivered · Confirm when received'
+                  : 'Received · Receipt confirmed'
+            }
+            icon="gift-outline"
+            label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
+            onPress={() => onSelect(reward.id)}
+          />
+        ))}
+      </View>
+    );
   return (
     <SurfaceCard>
       <View

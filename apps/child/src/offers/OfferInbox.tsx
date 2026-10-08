@@ -16,6 +16,7 @@ import {
   CountBadge,
   CollectionHeading,
   HomeListRow,
+  HomeEmptyState,
   Button,
   FormMessage,
   TextField,
@@ -287,24 +288,37 @@ export function OfferInbox({
   };
 
   return (
-    <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
+    <View
+      className={
+        preview
+          ? 'gap-3'
+          : 'gap-4 rounded-3xl border border-home-border bg-home-surface p-5'
+      }
+    >
       <View className="gap-2">
         <CollectionHeading
+          count={
+            preview && displayedState.status === 'ready'
+              ? displayedState.items.length
+              : undefined
+          }
           label="See all Offers"
           onSeeAll={preview ? () => router.navigate('/offers') : undefined}
         >
           Offers
         </CollectionHeading>
-        {displayedState.status === 'ready' ? (
+        {!preview && displayedState.status === 'ready' ? (
           <CountBadge count={displayedState.items.length} />
         ) : null}
-        <Text
-          allowFontScaling={false}
-          className="text-home-muted"
-          style={dynamicType.body}
-        >
-          Agreements waiting for your response.
-        </Text>
+        {!preview ? (
+          <Text
+            allowFontScaling={false}
+            className="text-home-muted"
+            style={dynamicType.body}
+          >
+            Agreements waiting for your response.
+          </Text>
+        ) : null}
       </View>
 
       {resultMessage ? (
@@ -325,14 +339,18 @@ export function OfferInbox({
       <FormMessage message={actionError} />
 
       {displayedState.status === 'loading' ? (
-        <View className="items-center py-6">
+        <View
+          className={
+            preview ? 'flex-row items-center gap-2' : 'items-center py-6'
+          }
+        >
           <ActivityIndicator
             accessibilityLabel="Loading offers"
             color={amberAuroraColors.primaryPressed}
           />
           <Text
             allowFontScaling={false}
-            className="mt-3 text-home-muted"
+            className={preview ? 'text-home-muted' : 'mt-3 text-home-muted'}
             style={dynamicType.body}
           >
             Loading offers…
@@ -349,16 +367,20 @@ export function OfferInbox({
 
       {displayedState.status === 'ready' &&
       displayedState.items.length === 0 ? (
-        <OfferOutcome title="No new offers">
-          No offers are waiting for you.
-        </OfferOutcome>
+        preview ? (
+          <HomeEmptyState>No new offers</HomeEmptyState>
+        ) : (
+          <OfferOutcome title="No new offers">
+            No offers are waiting for you.
+          </OfferOutcome>
+        )
       ) : null}
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
         <View className="gap-4">
           {preview
             ? displayedState.items
-                .slice(0, 2)
+                .slice(0, 1)
                 .map(({ offer, revision }) => (
                   <HomeListRow
                     key={offer.id}

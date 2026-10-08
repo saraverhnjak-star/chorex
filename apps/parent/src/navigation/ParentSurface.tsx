@@ -1,3 +1,4 @@
+import { HomeAttention } from './HomeAttention';
 import { ParentFamilyProvider, useParentFamily } from './FamilyContext';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { HomeFamilyOverview } from '../family/HomeFamilyOverview';
@@ -336,28 +337,34 @@ function ParentSurfaceContent({
                 }
               </SectionHeading>
             )}
-            {area === 'home' || area === 'offers' ? (
-              <HomeSection>
-                {area === 'home' ? (
-                  <SectionHeading>Needs your attention</SectionHeading>
-                ) : (
-                  <Button
-                    label="Create Offer"
-                    onPress={() => router.push('/offers/create')}
-                  />
+            {area === 'home' ? (
+              <HomeAttention
+                familyId={familyState.home.family.id}
+                authUid={user.uid}
+                childNames={Object.fromEntries(
+                  familyState.home.children.map((child) => [
+                    child.uid,
+                    child.displayName,
+                  ]),
                 )}
+              />
+            ) : null}
+            {area === 'offers' ? (
+              <HomeSection>
+                <Button
+                  label="Create Offer"
+                  onPress={() => router.push('/offers/create')}
+                />
                 <ParentNegotiationInbox
-                  preview={area === 'home'}
                   activeChildren={familyState.home.children}
                   authUid={user.uid}
                   familyId={familyState.home.family.id}
                 />
               </HomeSection>
             ) : null}
-            {area === 'home' || area === 'contracts' ? (
+            {area === 'contracts' ? (
               <HomeSection>
                 <ReadyForReviewContracts
-                  preview={area === 'home'}
                   familyId={familyState.home.family.id}
                   authUid={user.uid}
                   childNames={Object.fromEntries(
@@ -369,10 +376,9 @@ function ParentSurfaceContent({
                 />
               </HomeSection>
             ) : null}
-            {area === 'home' || area === 'rewards' ? (
+            {area === 'rewards' ? (
               <HomeSection>
                 <PendingRewards
-                  preview={area === 'home'}
                   familyId={familyState.home.family.id}
                   authUid={user.uid}
                   childNames={Object.fromEntries(

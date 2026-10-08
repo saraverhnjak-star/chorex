@@ -25,7 +25,7 @@ export function ChildHomeSummary({
   const days =
     next === undefined ? undefined : Math.ceil((next - now) / 86400000);
   return (
-    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 24 }}>
+    <View style={{ flexDirection: 'row', gap: 8 }}>
       <SummaryMetric
         icon="checkbox-outline"
         label={

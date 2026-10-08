@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>ChoreX design fidelity comparison</title
+  ><style>
+    body {
+      margin: 24px;
+      background: #f9f5ef;
+      color: #201737;
+      font: 15px system-ui;
+    }
+    h1 {
+      font-size: 24px;
+    }
+    section {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      overflow: auto;
+      margin-bottom: 32px;
+    }
+    figure {
+      margin: 0;
+      flex: 0 0 320px;
+    }
+    figcaption {
+      height: 44px;
+      font-weight: 600;
+    }
+    img {
+      width: 320px;
+      display: block;
+    }
+    .reference {
+      width: 320px;
+      height: 726px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 36px;
+    }
+    .reference img {
+      position: absolute;
+      width: 839px;
+      max-width: none;
+      top: -20px;
+    }
+    .parent img {
+      left: -450px;
+    }
+    .child img {
+      left: -67px;
+    }
+    p {
+      max-width: 1000px;
+    }
+  </style>
+  <h1>ChoreX — canonical reference and native output</h1>
+  <p>
+    Native iPhone 17 Pro screenshots at normal system text size. Screens share a
+    displayed width; the supplied reference is clipped to its phone screen using
+    CSS only. OS safe areas and aspect ratios differ. “Actual” uses existing
+    cached app data. QA fixtures exercise populated / empty presentation only;
+    temporary routes were removed. The Expo developer gear is development
+    chrome.
+  </p>
+  <h2>Parent Home</h2>
+  <section>
+    <figure>
+      <figcaption>Canonical target</figcaption>
+      <div class="reference parent">
+        <img src="canonical.png" alt="Canonical mockup" />
+      </div>
+    </figure>
+    <figure>
+      <figcaption>Before — actual</figcaption>
+      <img src="parent-before.png" alt="parent Before — actual" />
+    </figure>
+    <figure>
+      <figcaption>After — actual</figcaption>
+      <img src="parent-after.png" alt="parent After — actual" />
+    </figure>
+    <figure>
+      <figcaption>After — populated QA fixture</figcaption>
+      <img
+        src="parent-populated-pro.png"
+        alt="parent After — populated QA fixture"
+      />
+    </figure>
+  </section>
+  <h2>Child Home</h2>
+  <section>
+    <figure>
+      <figcaption>Canonical target</figcaption>
+      <div class="reference child">
+        <img src="canonical.png" alt="Canonical mockup" />
+      </div>
+    </figure>
+    <figure>
+      <figcaption>Before — actual</figcaption>
+      <img src="child-before.png" alt="child Before — actual" />
+    </figure>
+    <figure>
+      <figcaption>After — actual</figcaption>
+      <img src="child-after.png" alt="child After — actual" />
+    </figure>
+    <figure>
+      <figcaption>After — populated QA fixture</figcaption>
+      <img
+        src="child-populated-pro.png"
+        alt="child After — populated QA fixture"
+      />
+    </figure>
+  </section>
+  <h2>Native edge cases</h2>
+  <section>
+    <figure>
+      <figcaption>parent-empty-pro</figcaption>
+      <img src="parent-empty-pro.png" alt="parent-empty-pro" />
+    </figure>
+    <figure>
+      <figcaption>parent-populated-se</figcaption>
+      <img src="parent-populated-se.png" alt="parent-populated-se" />
+    </figure>
+    <figure>
+      <figcaption>child-populated-se</figcaption>
+      <img src="child-populated-se.png" alt="child-populated-se" />
+    </figure>
+    <figure>
+      <figcaption>parent-empty-se</figcaption>
+      <img src="parent-empty-se.png" alt="parent-empty-se" />
+    </figure>
+    <figure>
+      <figcaption>parent-large-text-pro</figcaption>
+      <img src="parent-large-text-pro.png" alt="parent-large-text-pro" />
+    </figure>
+    <figure>
+      <figcaption>child-large-text-pro</figcaption>
+      <img src="child-large-text-pro.png" alt="child-large-text-pro" />
+    </figure>
+  </section>
+</html>
