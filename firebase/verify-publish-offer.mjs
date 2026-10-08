@@ -156,7 +156,7 @@ async function createDraft(parent, familyId, childUid, key, deadlineAt) {
       familyId,
       childUid,
       tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
-      reward: { title: 'Cinema', type: 'EXPERIENCE' },
+      reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' },
       deadlineAt,
       idempotencyKey: key,
     },

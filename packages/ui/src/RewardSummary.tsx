@@ -1,3 +1,4 @@
+import { RewardIcon } from './RewardIcon';
 import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EarnedReward, UserProfile } from '@chorex/domain';
@@ -66,12 +67,20 @@ export function RewardSummary({
         <TermsHeading icon="gift-outline">
           {viewer === 'PARENT' ? 'Earned reward' : 'Your earned reward'}
         </TermsHeading>
-        <DesignText
-          accessibilityRole="header"
-          style={{ fontSize: 22, fontWeight: '700', color: homeTokens.text }}
-        >
-          {reward.terms.title}
-        </DesignText>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <RewardIcon terms={reward.terms} />
+          <DesignText
+            accessibilityRole="header"
+            style={{
+              flex: 1,
+              fontSize: 22,
+              fontWeight: '700',
+              color: homeTokens.text,
+            }}
+          >
+            {reward.terms.title}
+          </DesignText>
+        </View>
         {childName ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View

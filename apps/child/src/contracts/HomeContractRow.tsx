@@ -28,6 +28,7 @@ export function HomeContractRow({
       : undefined;
   return (
     <HomeListRow
+      reward={contract.rewardTerms}
       title={contract.rewardTerms.title}
       label={`Open Contract: ${childName ? `${childName} · ` : ''}${contract.rewardTerms.title}`}
       detail={`${childName ? `${childName} · ` : ''}${contractStatusLabel(contract.status, 'CHILD')} · Due ${new Date(contract.deadlineAt).toLocaleDateString()}${state.status === 'error' ? ' · Progress unavailable' : state.status === 'ready' && state.fromCache ? ' · Saved progress' : ''}`}

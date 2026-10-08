@@ -13,7 +13,7 @@ const {
   dispatchNegotiationNotification,
 } = require('../lib/negotiationNotifications.js');
 const now = Timestamp.fromMillis(Date.UTC(2030, 0, 1)),
-  terms = { title: 'Time together', type: 'CUSTOM' };
+  terms = { title: 'Time together', type: 'CUSTOM', iconKey: 'gift' };
 function seed(db, contractId = 'contract', patch = {}) {
   const earnedAt =
     patch.earnedAt ??

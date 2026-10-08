@@ -196,7 +196,7 @@ try {
   await assertFails(
     updateDoc(doc(client, contract.path), { status: 'EXPIRED' }),
   );
-  const terms = { title: 'Time together', type: 'CUSTOM' };
+  const terms = { title: 'Time together', type: 'CUSTOM', iconKey: 'gift' };
   const earnedAt = Timestamp.fromMillis(now.toMillis() - pendingRewardDelayMs);
   async function seedReward(suffix, patch = {}) {
     const contractId = `${id}-${suffix}`,

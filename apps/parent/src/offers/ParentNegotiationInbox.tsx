@@ -274,6 +274,7 @@ export function ParentNegotiationInbox({
                 .map(({ offer, revision }) => (
                   <HomeListRow
                     key={offer.id}
+                    reward={revision.reward}
                     title={revision.reward.title}
                     detail={`${activeChildren.find((child) => child.uid === offer.childUid)?.displayName ?? 'Child'} · Your turn`}
                     label={`Open Offer: ${revision.reward.title}`}

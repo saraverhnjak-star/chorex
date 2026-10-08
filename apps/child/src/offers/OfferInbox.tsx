@@ -8,8 +8,14 @@ import {
   subscribeToCurrentChildOfferInbox,
   type ChildOfferInboxItem,
 } from '@chorex/firebase-client';
-import { rewardTypeSchema, type RewardType } from '@chorex/domain';
 import {
+  rewardTypeSchema,
+  rewardTypeDefaultIcons,
+  type RewardType,
+  type RewardIconKey,
+} from '@chorex/domain';
+import {
+  RewardIconPicker,
   ProposalTerms,
   OfferOutcome,
   ChoiceChip,
@@ -50,6 +56,7 @@ interface CounterOfferFormState {
   offerId: string;
   rewardTitle: string;
   rewardType: RewardType;
+  rewardIconKey: RewardIconKey;
   rewardDescription: string;
   note: string;
 }
@@ -241,6 +248,7 @@ export function OfferInbox({
         reward: {
           title: rewardTitle,
           type: counterOfferForm.rewardType,
+          iconKey: counterOfferForm.rewardIconKey,
           ...(counterOfferForm.rewardDescription.trim()
             ? { description: counterOfferForm.rewardDescription.trim() }
             : {}),
@@ -282,6 +290,7 @@ export function OfferInbox({
       offerId: item.offer.id,
       rewardTitle: item.revision.reward.title,
       rewardType: item.revision.reward.type,
+      rewardIconKey: item.revision.reward.iconKey,
       rewardDescription: item.revision.reward.description ?? '',
       note: '',
     });
@@ -384,6 +393,7 @@ export function OfferInbox({
                 .map(({ offer, revision }) => (
                   <HomeListRow
                     key={offer.id}
+                    reward={revision.reward}
                     title={revision.reward.title}
                     detail="New proposal · Your turn"
                     label={`Open Offer: ${revision.reward.title}`}
@@ -487,7 +497,16 @@ export function OfferInbox({
                             disabled={mutation !== undefined}
                             onPress={() =>
                               setCounterOfferForm((current) =>
-                                current ? { ...current, rewardType } : current,
+                                current
+                                  ? {
+                                      ...current,
+                                      rewardType,
+                                      rewardIconKey:
+                                        current.rewardType === rewardType
+                                          ? current.rewardIconKey
+                                          : rewardTypeDefaultIcons[rewardType],
+                                    }
+                                  : current,
                               )
                             }
                             selected={
@@ -496,6 +515,15 @@ export function OfferInbox({
                           />
                         ))}
                       </View>
+                      <RewardIconPicker
+                        value={counterOfferForm.rewardIconKey}
+                        disabled={mutation !== undefined}
+                        onChange={(rewardIconKey) =>
+                          setCounterOfferForm((current) =>
+                            current ? { ...current, rewardIconKey } : current,
+                          )
+                        }
+                      />
                       <TextField
                         editable={mutation === undefined}
                         label="Counteroffer reward description (optional)"

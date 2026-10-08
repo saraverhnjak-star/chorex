@@ -408,7 +408,11 @@ async function verifyChangesRacesAndTransport() {
         childUid: 'child',
         participantUids: ['parent', 'child'],
         source: { type: 'OFFER', offerId: 'offer', revisionId: 'revision' },
-        rewardTerms: { title: 'Frozen promise', type: 'EXPERIENCE' },
+        rewardTerms: {
+          title: 'Frozen promise',
+          type: 'EXPERIENCE',
+          iconKey: 'cinema',
+        },
         deadlineAt: now,
         status: 'READY_FOR_REVIEW',
         reviewCycle: 2,

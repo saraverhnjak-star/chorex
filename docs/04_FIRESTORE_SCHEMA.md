@@ -151,7 +151,8 @@ Revision:
   "reward": {
     "title": "Cinema",
     "description": "Choose a movie this weekend",
-    "type": "EXPERIENCE"
+    "type": "EXPERIENCE",
+    "iconKey": "cinema"
   },
   "deadlineAt": "timestamp",
   "createdAt": "serverTimestamp"
@@ -186,7 +187,8 @@ The Child inbox subscribes to `AWAITING_CHILD` Offers by `familyId`, the signed-
   "rewardTerms": {
     "title": "Cinema",
     "description": "Choose a movie this weekend",
-    "type": "EXPERIENCE"
+    "type": "EXPERIENCE",
+    "iconKey": "cinema"
   },
   "deadlineAt": "timestamp",
   "status": "ACTIVE",
@@ -291,6 +293,7 @@ ADR-043 requires zero-based round numbering. Approval records use deterministic 
   "terms": {
     "title": "Cinema",
     "type": "EXPERIENCE",
+    "iconKey": "cinema",
     "description": "Choose a movie this weekend"
   },
   "status": "PENDING_FULFILLMENT",
@@ -343,7 +346,7 @@ The minimum client feedback query is the Contract's reviews subcollection constr
 {
   "familyId": "familyId",
   "parentUid": "parentUid",
-  "reward": { "title": "Cinema", "type": "EXPERIENCE" },
+  "reward": { "title": "Cinema", "type": "EXPERIENCE", "iconKey": "cinema" },
   "eligibleChildUids": ["childA", "childB"],
   "status": "OPEN",
   "biddingEndsAt": "timestamp",
@@ -476,3 +479,7 @@ Child deadline reminders retain the future 24-hour ACTIVE window. Parent pending
 Pending-Reward reminder intents use `activityEvents/pending_reward_<sha256(rewardId)>_48h` with SYSTEM actor, PENDING_REWARD_REMINDER type, REWARD entity, Reward ID/familyId and authoritative createdAt. They reuse notificationEffects and pushReceipts; retain logical records permanently for deduplication. A `(status ASC, earnedAt ASC)` Reward index supports hourly 48-hour eligibility scans with 100-record cursor pages. Preference documents contain only the role-specific boolean, with no timestamp/role/device fields; clients can get/create/update their own valid document, not list/delete or modify another account. Preference updates use a confirmed native Firestore transaction; cached reads remain marked as saved data.
 
 Reward scans retain only an operational cursor at `reminderJobs/pendingRewards`: lastRewardId and earnedAt (both null when restarting a scan). This is server-only scheduling metadata, not Reward state or a second queue. Each hourly invocation handles at most 100 candidates and conditionally advances the cursor; existing catch-all Rules deny all client access. Event identity remains the permanent deduplication authority.
+
+## Negotiated Reward icon — ADR-047
+
+Every revision reward, accepted Contract.rewardTerms and earned Reward.terms requires the same canonical plain-string iconKey. Server commands validate the closed domain enum; counteroffer hashes include this field. Acceptance and approval copy the frozen terms without recalculating defaults. No top-level icon projection, asset path, URL or module value is persisted. Repository fixtures use the clean required schema; no existing external documents are migrated. Presentation fallback is read-only and does not relax canonical validation.

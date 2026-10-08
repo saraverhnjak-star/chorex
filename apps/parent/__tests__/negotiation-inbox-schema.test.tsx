@@ -18,7 +18,11 @@ const validItem = {
     proposedByUid: 'child-1',
     proposedByRole: 'CHILD',
     tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
-    reward: { title: 'One hour of games', type: 'PRIVILEGE' },
+    reward: {
+      title: 'One hour of games',
+      type: 'PRIVILEGE',
+      iconKey: 'screen-time' as const,
+    },
     deadlineAt: '2026-10-10T18:00:00.000Z',
     note: 'This feels fair.',
     createdAt: '2026-10-03T12:35:56.789Z',

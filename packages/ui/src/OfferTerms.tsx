@@ -1,3 +1,4 @@
+import { RewardIcon } from './RewardIcon';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -131,15 +132,23 @@ export function ProposalTerms({
         </View>
       ))}
       <TermsHeading icon="gift-outline">Reward</TermsHeading>
-      <View style={styles.reward}>
-        <DesignText style={styles.body}>
-          {revision.reward.title} · {revision.reward.type}
-        </DesignText>
-        {revision.reward.description ? (
-          <DesignText style={styles.secondary}>
-            {revision.reward.description}
+      <View
+        style={[
+          styles.reward,
+          { flexDirection: 'row', alignItems: 'center', gap: 12 },
+        ]}
+      >
+        <RewardIcon terms={revision.reward} size={40} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <DesignText style={styles.body}>
+            {revision.reward.title} · {revision.reward.type}
           </DesignText>
-        ) : null}
+          {revision.reward.description ? (
+            <DesignText style={styles.secondary}>
+              {revision.reward.description}
+            </DesignText>
+          ) : null}
+        </View>
       </View>
       <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
       <DesignText style={styles.body}>

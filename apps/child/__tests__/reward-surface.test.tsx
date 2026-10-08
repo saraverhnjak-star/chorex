@@ -35,6 +35,7 @@ const reward = {
     title: 'Cinema',
     description: 'Choose a movie',
     type: 'EXPERIENCE' as const,
+    iconKey: 'cinema' as const,
   },
   status: 'PENDING_FULFILLMENT' as const,
   earnedAt: '2026-10-05T10:00:00.000Z',

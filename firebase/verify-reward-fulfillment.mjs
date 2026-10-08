@@ -497,6 +497,7 @@ async function verifyFulfillmentRacesAndTransport() {
         title: 'Private reward',
         description: 'Private description',
         type: 'EXPERIENCE',
+        iconKey: 'cinema',
       };
       await db.doc(`contracts/${id}`).set({
         familyId: 'family',

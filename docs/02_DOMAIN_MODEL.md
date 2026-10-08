@@ -112,14 +112,29 @@ Do not represent `100x` as 100 duplicated task documents.
 
 Terms are negotiated before the contract exists. An earned reward is created only after approval.
 
+ADR-047 extends this frozen promise with a required semantic iconKey. Editable forms default EXPERIENCE to cinema, ITEM/CUSTOM to gift, MONEY to money and PRIVILEGE to screen-time. A type change resets that choice; a manual override is negotiated in the next immutable revision. Acceptance and approval preserve the exact key, with no later editing. Domain keys carry no asset references. Presentation-only fallback never changes stored terms; canonical schemas remain strict for pre-production fixtures.
+
 ```ts
 export type RewardType =
   'EXPERIENCE' | 'ITEM' | 'MONEY' | 'PRIVILEGE' | 'CUSTOM';
+
+export type RewardIconKey =
+  | 'gift'
+  | 'trip'
+  | 'cinema'
+  | 'book'
+  | 'money'
+  | 'screen-time'
+  | 'plant'
+  | 'pizza'
+  | 'ice-cream'
+  | 'game-night';
 
 export interface RewardTerms {
   title: string;
   description?: string;
   type: RewardType;
+  iconKey: RewardIconKey;
 }
 
 export interface Reward {

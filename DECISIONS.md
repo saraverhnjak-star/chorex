@@ -1927,3 +1927,17 @@ A Reward now follows PENDING_FULFILLMENT → AWAITING_CHILD_CONFIRMATION → FUL
 Keep ADR-034's one frozen promise per Contract, exactly one earned Reward atomically created on approval, separation from Contract approval and explicit Parent delivery obligation. Store deliveredAt/deliveredBy for Parent action, confirmedAt/confirmedBy for Child action and fulfilledAt equal to confirmedAt. Remove ambiguous fulfilledBy. Server commands use existing authorization, transaction/activity/idempotency conventions; Parent retries retain the original awaiting receipt even after Child confirmation.
 
 Committed REWARD_DELIVERED notifies Child; committed REWARD_RECEIVED_CONFIRMED notifies Parent through existing transactional notification conventions, without preferences. Optional pending-delivery reminders stop at AWAITING_CHILD_CONFIRMATION and preserve deduplication. Pre-production fixtures must adopt the clean new schema; legacy fulfilled records cannot manufacture a Child confirmation. No external data migration is authorized. OPEN-010/011/014 remain unresolved.
+
+# ADR-047 — Reward Icon Choice Is Part of Frozen RewardTerms
+
+**Status:** Accepted
+
+**Extends:** ADR-034's canonical RewardTerms promise; preserves ADR-029 immutable revisions, ADR-036 serialization and ADR-046 bilateral fulfillment. No lifecycle or permission decision is superseded.
+
+RewardTerms requires a ChoreX-controlled semantic `iconKey`: gift, trip, cinema, book, money, screen-time, plant, pizza, ice-cream or game-night. The domain owns this closed key set; shared presentation maps keys to existing local artwork. Persist only the plain string, never assets, paths, URLs or component names.
+
+New editable forms default by RewardType: EXPERIENCE → cinema; ITEM → gift; MONEY → money; PRIVILEGE → screen-time; CUSTOM → gift. Users may override before submission. Explicitly changing type resets the icon to the new type's default, regardless of previous manual selection; selecting the already-selected type leaves it unchanged. Counteroffer forms initialize from the current revision and preserve its key through unrelated edits. Editing permissions remain unchanged. No title inference, AI, randomness or network lookup is permitted.
+
+Each server-validated immutable revision stores the selected key. Acceptance copies it exactly into Contract.rewardTerms; approval copies those frozen terms exactly into the earned Reward. Neither surface permits icon editing afterward. Existing authorization, transactions, activity events and idempotency remain authoritative; the icon participates in request identity.
+
+Pre-production repository fixtures adopt the required canonical field. No legacy parsing relaxation or external data migration is introduced: old documents without the field fail canonical validation and should be replaced only through authorized development seeding. At presentation boundaries, a missing/unknown key falls back to the valid RewardType default, then gift if type is invalid. This display-only fallback never writes historical data.

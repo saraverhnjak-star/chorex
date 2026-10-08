@@ -112,7 +112,7 @@ export function RewardList({
                   ? 'Delivered · Confirm when received'
                   : 'Received · Receipt confirmed'
             }
-            icon="gift-outline"
+            reward={reward.terms}
             label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
             onPress={() => onSelect(reward.id)}
           />

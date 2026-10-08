@@ -282,7 +282,7 @@ try {
         },
         { title: 'Concurrent chore', targetCount: 3 },
       ],
-      reward: { title: 'Cinema', type: 'EXPERIENCE' },
+      reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'plant' },
       deadlineAt: new Date(Date.now() + 86400000).toISOString(),
       idempotencyKey: 'completion-draft-001',
     },

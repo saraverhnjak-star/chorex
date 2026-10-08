@@ -53,7 +53,7 @@ const item = {
     proposedByUid: 'parent-1',
     proposedByRole: 'PARENT',
     tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
-    reward: { title: 'Cinema', type: 'EXPERIENCE' },
+    reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' as const },
     deadlineAt: '2026-10-10T18:00:00.000Z',
     createdAt: '2026-10-03T12:34:56.789Z',
   },
@@ -77,7 +77,11 @@ it('applies realtime add, change, and remove events and cleans up subscriptions'
         ...item,
         revision: {
           ...item.revision,
-          reward: { title: 'Museum', type: 'EXPERIENCE' },
+          reward: {
+            title: 'Museum',
+            type: 'EXPERIENCE',
+            iconKey: 'cinema' as const,
+          },
         },
       },
     ]),

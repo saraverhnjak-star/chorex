@@ -33,7 +33,7 @@ function fixture(targetCount = 3) {
         participantUids: ['parent', 'child'],
         status: 'ACTIVE',
         source: { type: 'OFFER', offerId: 'offer', revisionId: 'revision' },
-        rewardTerms: { title: 'Cinema', type: 'EXPERIENCE' },
+        rewardTerms: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'plant' },
         deadlineAt: Timestamp.fromMillis(0),
         reviewCycle: 0,
         createdAt: now,
@@ -862,6 +862,17 @@ test('approval strict API and linked Review/Reward schemas reject client authori
   const result = await approve(approvalFixture());
   assert.equal(output.safeParse(result).success, true);
   assert.equal(
+    output.safeParse({
+      ...result,
+      reward: {
+        ...result.reward,
+        terms: { ...result.reward.terms, iconKey: 'pizza' },
+      },
+    }).success,
+    false,
+  );
+
+  assert.equal(
     output.safeParse({ ...result, review: { ...result.review, cycle: 1 } })
       .success,
     false,
@@ -880,7 +891,10 @@ test('approval strict API and linked Review/Reward schemas reject client authori
   assert.equal(
     output.safeParse({
       ...result,
-      reward: { ...result.reward, terms: { title: 'Changed', type: 'CUSTOM' } },
+      reward: {
+        ...result.reward,
+        terms: { title: 'Changed', type: 'CUSTOM', iconKey: 'gift' },
+      },
     }).success,
     false,
   );

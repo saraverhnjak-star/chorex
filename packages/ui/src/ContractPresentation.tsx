@@ -1,3 +1,4 @@
+import { RewardIcon } from './RewardIcon';
 import { View, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Contract, ContractTask, UserProfile } from '@chorex/domain';
@@ -107,9 +108,15 @@ export function ContractSummary({
           ) : null}
         </View>
       </View>
-      <DesignText accessibilityRole="header" style={s.agreement}>
-        {contract.rewardTerms.title}
-      </DesignText>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <RewardIcon terms={contract.rewardTerms} />
+        <DesignText
+          accessibilityRole="header"
+          style={[s.agreement, { flex: 1 }]}
+        >
+          {contract.rewardTerms.title}
+        </DesignText>
+      </View>
       <DesignText style={s.caption}>Agreed commitment</DesignText>
       {participantName ? (
         <View style={s.participant}>

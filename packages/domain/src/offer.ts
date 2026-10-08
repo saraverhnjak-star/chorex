@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { rewardIconKeySchema } from './rewardIcons';
 import {
   idempotencyKeySchema,
   userRoleSchema,
@@ -52,6 +53,7 @@ export const rewardTermsSchema = z.strictObject({
   title: titleSchema,
   description: optionalDescriptionSchema,
   type: rewardTypeSchema,
+  iconKey: rewardIconKeySchema,
 });
 
 export const offerStatusSchema = z.enum([

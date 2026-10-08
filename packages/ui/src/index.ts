@@ -68,3 +68,11 @@ export { SettingsSection, SettingsRow } from './Settings';
 
 export { EntryHeading } from './EntryHeading';
 export { SetupSection } from './SetupSection';
+
+export {
+  RewardIcon,
+  rewardIconAssets,
+  rewardIconLabels,
+  resolveRewardIconKey,
+} from './RewardIcon';
+export { RewardIconPicker } from './RewardIconPicker';

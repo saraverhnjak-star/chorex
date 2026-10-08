@@ -56,7 +56,11 @@ const item = {
     proposedByUid: 'child-1',
     proposedByRole: 'CHILD',
     tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
-    reward: { title: 'One hour of games', type: 'PRIVILEGE' },
+    reward: {
+      title: 'One hour of games',
+      type: 'PRIVILEGE',
+      iconKey: 'plant' as const,
+    },
     deadlineAt: '2026-10-10T18:00:00.000Z',
     note: 'This feels fair.',
     createdAt: '2026-10-03T12:35:56.789Z',
@@ -100,7 +104,11 @@ it('renders realtime Parent counteroffer changes and cleans up subscriptions', (
         ...item,
         revision: {
           ...item.revision,
-          reward: { title: 'Museum', type: 'EXPERIENCE' },
+          reward: {
+            title: 'Museum',
+            type: 'EXPERIENCE',
+            iconKey: 'cinema' as const,
+          },
           note: undefined,
         },
       },
@@ -204,7 +212,9 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
     'value',
     'Load the dishwasher',
   );
+  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1 title'), 'Water plants');
+  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1 target count'), '3');
   fireEvent.changeText(
     screen.getByLabelText('Task 1 description (optional)'),
@@ -214,6 +224,9 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
   fireEvent.changeText(screen.getByLabelText('Task 2 title'), 'Set the table');
   fireEvent.changeText(screen.getByLabelText('Reward title'), 'Museum');
   fireEvent.press(screen.getByRole('button', { name: 'Select experience' }));
+  expect(screen.getByText('Reward icon: Cinema')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Change icon' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Choose Plant icon' }));
   fireEvent.changeText(
     screen.getByLabelText('Deadline date (YYYY-MM-DD)'),
     '2099-10-11',
@@ -250,7 +263,11 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
         { title: 'Water plants', description: 'All pots', targetCount: 3 },
         { title: 'Set the table', targetCount: 1 },
       ],
-      reward: { title: 'Museum', type: 'EXPERIENCE' },
+      reward: {
+        title: 'Museum',
+        type: 'EXPERIENCE',
+        iconKey: 'plant' as const,
+      },
       note: 'New proposal',
     }),
   );

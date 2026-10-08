@@ -4,11 +4,13 @@ import {
   parentCounterOfferInputSchema,
   offerValidationBounds,
   rewardTypeSchema,
+  rewardTypeDefaultIcons,
   type CounterOfferInput,
   type OfferRevision,
   type RewardType,
 } from '@chorex/domain';
 import {
+  RewardIconPicker,
   SurfaceCard,
   ProposalTerms,
   ChoiceChip,
@@ -77,6 +79,7 @@ export function ParentCounterofferForm({
   const [rewardType, setRewardType] = useState<RewardType>(
     revision.reward.type,
   );
+  const [rewardIconKey, setRewardIconKey] = useState(revision.reward.iconKey);
   const [date, setDate] = useState(initialDeadline.date);
   const [time, setTime] = useState(initialDeadline.time);
   const [note, setNote] = useState('');
@@ -120,6 +123,7 @@ export function ParentCounterofferForm({
       reward: {
         title: rewardTitle,
         type: rewardType,
+        iconKey: rewardIconKey,
         ...(rewardDescription.trim()
           ? { description: rewardDescription.trim() }
           : {}),
@@ -249,10 +253,20 @@ export function ParentCounterofferForm({
                 label={`${rewardType === type ? 'Selected' : 'Select'} ${type.toLowerCase()}`}
                 selected={rewardType === type}
                 disabled={busy}
-                onPress={() => setRewardType(type)}
+                onPress={() => {
+                  if (type !== rewardType) {
+                    setRewardType(type);
+                    setRewardIconKey(rewardTypeDefaultIcons[type]);
+                  }
+                }}
               />
             ))}
           </View>
+          <RewardIconPicker
+            value={rewardIconKey}
+            disabled={busy}
+            onChange={setRewardIconKey}
+          />
           <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
           <TextField
             label="Deadline date (YYYY-MM-DD)"

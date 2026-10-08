@@ -1,3 +1,5 @@
+import { resolveRewardIconKey, rewardIconAssets } from '@chorex/ui';
+import { rewardIconKeys } from '@chorex/domain';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { PendingRewards } from '../src/rewards/PendingRewards';
 import { RewardDetail } from '../src/rewards/RewardDetail';
@@ -54,6 +56,7 @@ const reward = {
     title: 'Cinema',
     description: 'Choose a movie',
     type: 'EXPERIENCE' as const,
+    iconKey: 'cinema' as const,
   },
   status: 'PENDING_FULFILLMENT' as const,
   earnedAt: '2026-10-05T10:00:00.000Z',
@@ -210,4 +213,24 @@ it('scope changes clear state and ignore stale listeners; unrelated Parent has n
       'This reward could not be loaded or is unavailable to your account.',
     ),
   ).toBeOnTheScreen();
+});
+
+it('uses the closed icon registry and read-only fallback without replacing a valid manual choice', () => {
+  expect(Object.keys(rewardIconAssets).sort()).toEqual(
+    [...rewardIconKeys].sort(),
+  );
+  expect(rewardIconAssets.plant).toBeTruthy();
+  expect(rewardIconAssets.money).toBeTruthy();
+  expect(resolveRewardIconKey({ iconKey: 'plant', type: 'MONEY' })).toBe(
+    'plant',
+  );
+  const legacy = { type: 'PRIVILEGE' };
+  expect(resolveRewardIconKey(legacy)).toBe('screen-time');
+  expect(legacy).toEqual({ type: 'PRIVILEGE' });
+  expect(resolveRewardIconKey({ iconKey: 'unknown', type: 'MONEY' })).toBe(
+    'money',
+  );
+  expect(resolveRewardIconKey({ iconKey: 'unknown', type: 'unknown' })).toBe(
+    'gift',
+  );
 });

@@ -45,7 +45,7 @@ const mockCreateOfferDraft = jest.fn().mockResolvedValue({
     proposedByUid: 'parent-test-uid',
     proposedByRole: 'PARENT',
     tasks: [{ title: 'Load the dishwasher', targetCount: 1 }],
-    reward: { title: 'Cinema', type: 'EXPERIENCE' },
+    reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' as const },
     deadlineAt: offerDeadline,
     createdAt: '2026-10-03T12:34:56.789Z',
   },
@@ -84,6 +84,7 @@ const parentNegotiationItems = [
       reward: {
         title: 'One hour of games',
         type: 'PRIVILEGE' as const,
+        iconKey: 'screen-time' as const,
       },
       deadlineAt: '2026-10-10T18:00:00.000Z',
       note: 'This feels fair.',
@@ -350,11 +351,29 @@ it('publishes the saved Offer draft and shows the published result', async () =>
     />,
   );
 
+  expect(screen.getByText('Reward icon: Cinema')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Change icon' }));
+  expect(
+    screen.getByRole('button', { name: 'Choose Cinema icon', selected: true }),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Choose Plant icon' }));
+  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Select money' }));
+  expect(screen.getByText('Reward icon: Pocket money')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Select experience' }));
+  expect(screen.getByText('Reward icon: Cinema')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Change icon' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Choose Plant icon' }));
   fireEvent.changeText(screen.getByLabelText('Task 1'), 'Load the dishwasher');
   fireEvent.changeText(screen.getByLabelText('Reward title'), 'Cinema');
   fireEvent.press(screen.getByRole('button', { name: 'Save offer draft' }));
 
   expect(await screen.findByText('Draft saved')).toBeOnTheScreen();
+  expect(mockCreateOfferDraft).toHaveBeenCalledWith(
+    expect.objectContaining({
+      reward: expect.objectContaining({ iconKey: 'plant' }),
+    }),
+  );
   fireEvent.press(screen.getByRole('button', { name: 'Publish offer' }));
 
   expect(await screen.findByText('Offer published')).toBeOnTheScreen();
@@ -423,7 +442,7 @@ it('combines actionable attention sources and preserves each existing destinatio
         offerId: 'review-offer',
         revisionId: 'review-revision',
       },
-      rewardTerms: { title: 'Book', type: 'ITEM' },
+      rewardTerms: { title: 'Book', type: 'ITEM', iconKey: 'gift' as const },
       deadlineAt: timestamp,
       status: 'READY_FOR_REVIEW',
       reviewCycle: 0,
@@ -438,7 +457,11 @@ it('combines actionable attention sources and preserves each existing destinatio
       contractId: 'approved-contract',
       parentUid: 'parent-test-uid',
       childUid: 'child-test-uid',
-      terms: { title: 'Cinema', type: 'EXPERIENCE' },
+      terms: {
+        title: 'Cinema',
+        type: 'EXPERIENCE',
+        iconKey: 'cinema' as const,
+      },
       status: 'PENDING_FULFILLMENT',
       earnedAt: timestamp,
     },

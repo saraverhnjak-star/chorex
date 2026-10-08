@@ -14,6 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { homeTokens } from './theme';
+import type { RewardTerms } from '@chorex/domain';
+import { RewardIcon } from './RewardIcon';
 export { homeTokens } from './theme';
 export function DesignText({ style, ...props }: TextProps) {
   const { fontScale } = useWindowDimensions();
@@ -420,12 +422,14 @@ export function HomeListRow({
   grouped = false,
   separator = false,
   icon = 'checkbox-outline',
+  reward,
 }: {
   title: string;
   detail: string;
   label: string;
   onPress: () => void;
   icon?: Icon;
+  reward?: Pick<RewardTerms, 'iconKey' | 'type'>;
   progress?: { completed: number; required: number };
   grouped?: boolean;
   separator?: boolean;
@@ -447,14 +451,18 @@ export function HomeListRow({
           : undefined,
       ]}
     >
-      <View style={[s.avatar, { width: 36, height: 36 }]}>
-        <Ionicons
-          accessible={false}
-          name={icon}
-          size={24}
-          color={homeTokens.success}
-        />
-      </View>
+      {reward ? (
+        <RewardIcon terms={reward} size={36} />
+      ) : (
+        <View style={[s.avatar, { width: 36, height: 36 }]}>
+          <Ionicons
+            accessible={false}
+            name={icon}
+            size={24}
+            color={homeTokens.success}
+          />
+        </View>
+      )}
       <View style={{ flex: 1 }}>
         <Text style={s.rowTitle}>{title}</Text>
         <Text style={s.caption}>{detail}</Text>

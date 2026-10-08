@@ -11,10 +11,13 @@ import {
 import {
   offerValidationBounds,
   rewardTypeSchema,
+  rewardIconKeySchema,
+  rewardTypeDefaultIcons,
   type CreateOfferDraftOutput,
   type PublishOfferOutput,
 } from '@chorex/domain';
 import {
+  RewardIconPicker,
   SurfaceCard,
   ProposalTerms,
   ChoiceChip,
@@ -57,6 +60,7 @@ const formSchema = z.strictObject({
     .min(1, 'Enter a reward title.')
     .max(offerValidationBounds.titleMaxLength),
   rewardType: rewardTypeSchema,
+  rewardIconKey: rewardIconKeySchema,
   rewardDescription: z
     .string()
     .trim()
@@ -184,6 +188,7 @@ export function OfferDraftComposer({
       tasks: [{ title: '', targetCount: '1' }],
       rewardTitle: '',
       rewardType: 'EXPERIENCE',
+      rewardIconKey: rewardTypeDefaultIcons.EXPERIENCE,
       rewardDescription: '',
       ...deadline,
     },
@@ -191,6 +196,7 @@ export function OfferDraftComposer({
   const { fields, append, remove } = useFieldArray({ control, name: 'tasks' });
   const selectedChildUid = useWatch({ control, name: 'childUid' });
   const selectedRewardType = useWatch({ control, name: 'rewardType' });
+  const selectedRewardIcon = useWatch({ control, name: 'rewardIconKey' });
 
   useEffect(() => {
     if (
@@ -220,6 +226,7 @@ export function OfferDraftComposer({
       reward: {
         title: form.rewardTitle,
         type: form.rewardType,
+        iconKey: form.rewardIconKey,
         ...(rewardDescription ? { description: rewardDescription } : {}),
       },
       deadlineAt,
@@ -269,6 +276,7 @@ export function OfferDraftComposer({
       tasks: [{ title: '', targetCount: '1' }],
       rewardTitle: '',
       rewardType: 'EXPERIENCE',
+      rewardIconKey: rewardTypeDefaultIcons.EXPERIENCE,
       rewardDescription: '',
       ...defaultDeadline(),
     });
@@ -415,13 +423,30 @@ export function OfferDraftComposer({
               <ChoiceChip
                 key={rewardType}
                 label={`${selectedRewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
-                onPress={() =>
-                  setValue('rewardType', rewardType, { shouldValidate: true })
-                }
+                disabled={isSubmitting}
+                onPress={() => {
+                  if (rewardType !== selectedRewardType) {
+                    setValue('rewardType', rewardType, {
+                      shouldValidate: true,
+                    });
+                    setValue(
+                      'rewardIconKey',
+                      rewardTypeDefaultIcons[rewardType],
+                      { shouldValidate: true },
+                    );
+                  }
+                }}
                 selected={selectedRewardType === rewardType}
               />
             ))}
           </View>
+          <RewardIconPicker
+            value={selectedRewardIcon}
+            disabled={isSubmitting}
+            onChange={(key) =>
+              setValue('rewardIconKey', key, { shouldValidate: true })
+            }
+          />
           <Controller
             control={control}
             name="rewardDescription"

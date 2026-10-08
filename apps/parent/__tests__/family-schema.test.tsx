@@ -165,7 +165,11 @@ describe('Offer draft schemas', () => {
     familyId: 'family-id',
     childUid: 'child-id',
     tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
-    reward: { title: 'Cinema', type: 'EXPERIENCE' as const },
+    reward: {
+      title: 'Cinema',
+      type: 'EXPERIENCE' as const,
+      iconKey: 'cinema' as const,
+    },
     deadlineAt,
     idempotencyKey: 'offer-draft-001',
   };
@@ -179,6 +183,7 @@ describe('Offer draft schemas', () => {
           title: '  Cinema  ',
           description: '  Choose the film  ',
           type: 'EXPERIENCE',
+          iconKey: 'cinema' as const,
         },
       }),
     ).toEqual({
@@ -187,11 +192,27 @@ describe('Offer draft schemas', () => {
         title: 'Cinema',
         description: 'Choose the film',
         type: 'EXPERIENCE',
+        iconKey: 'cinema' as const,
       },
     });
   });
 
   it('rejects authoritative fields, abusive bounds, and past deadlines', () => {
+    for (const iconKey of [undefined, 'not-a-chorex-icon']) {
+      expect(
+        createOfferDraftInputSchema.safeParse({
+          ...validInput,
+          reward: { ...validInput.reward, iconKey },
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      createOfferDraftInputSchema.parse({
+        ...validInput,
+        reward: { ...validInput.reward, iconKey: 'plant' },
+      }).reward.iconKey,
+    ).toBe('plant');
+
     expect(
       createOfferDraftInputSchema.safeParse({
         ...validInput,

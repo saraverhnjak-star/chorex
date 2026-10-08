@@ -116,3 +116,7 @@ Backend/domain, Firestore, authorization, reminder and notification behavior rem
 ## Recommended next design slice
 
 Refresh existing account/settings and notification/reminder preference surfaces, with the same shared tokens and accessible controls. Keep that separate from product/security policy changes and preserve existing permission education, explicit OS permission actions and role-specific preferences. Auth, pairing and family onboarding can follow as an explicitly scoped later slice.
+
+## Later consistency update — 2026-10-08
+
+ADR-047 adds a negotiated RewardTerms.iconKey and a compact picker in existing editable Offer forms. Offer, Contract and earned Reward surfaces now use the frozen selected artwork. See [Reward icon selection acceptance](REWARD_ICON_SELECTION_ACCEPTANCE.md). The historical slice results above remain unchanged.

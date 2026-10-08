@@ -117,3 +117,7 @@ No backend/domain source changed, so Functions/emulator suites were not run for 
 The existing inline Home composition can become lengthy with many Offers and long agreement terms. Separate details, compact expandable lists, history/change comparison and persistent waiting/terminal surfaces need an explicit product/read-model scope; they were not invented in this slice. Native evidence here uses default text size; broader accessibility/localization testing belongs to the planned later pass.
 
 Recommended Slice 3: Contract/task progress and review visual refresh, using the same current-agreement hierarchy and shared terms primitives while preserving immutable accepted terms and server-authoritative progress/review commands.
+
+## Later consistency update — 2026-10-08
+
+ADR-047 adds a negotiated RewardTerms.iconKey and a compact picker in existing editable Offer forms. Offer, Contract and earned Reward surfaces now use the frozen selected artwork. See [Reward icon selection acceptance](REWARD_ICON_SELECTION_ACCEPTANCE.md). The historical slice results above remain unchanged.

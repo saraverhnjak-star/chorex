@@ -91,6 +91,7 @@ function AttentionContent({
       title: 'Reward waiting for delivery',
       detail: `${r.terms.title} · ${childNames[r.childUid] ?? 'Child'}`,
       icon: 'gift-outline' as const,
+      reward: r.terms,
       onPress: () =>
         router.push({
           pathname: '/rewards/[rewardId]',
@@ -129,6 +130,7 @@ export function HomeAttentionList({
     title: string;
     detail: string;
     icon: React.ComponentProps<typeof HomeListRow>['icon'];
+    reward?: React.ComponentProps<typeof HomeListRow>['reward'];
     onPress: () => void;
   }[];
   loading?: boolean;
@@ -162,6 +164,7 @@ export function HomeAttentionList({
               title={item.title}
               detail={item.detail}
               icon={item.icon}
+              reward={item.reward}
               label={`${item.title}: ${item.detail}`}
               onPress={item.onPress}
               grouped

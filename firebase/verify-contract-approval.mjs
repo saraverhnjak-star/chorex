@@ -232,7 +232,11 @@ async function verifyApprovalTransactionsAndTransport() {
       childUid: 'child',
       participantUids: ['parent', 'child'],
       source: { type: 'OFFER', offerId: 'offer', revisionId: 'revision' },
-      rewardTerms: { title: 'Frozen cinema', type: 'EXPERIENCE' },
+      rewardTerms: {
+        title: 'Frozen cinema',
+        type: 'EXPERIENCE',
+        iconKey: 'cinema',
+      },
       deadlineAt: now,
       status: 'READY_FOR_REVIEW',
       reviewCycle: 2,

@@ -259,7 +259,7 @@ async function verifyResubmissionTransactions() {
       status: 'CHANGES_REQUESTED',
       reviewCycle: 2,
       source: { type: 'OFFER', offerId: 'offer', revisionId: 'revision' },
-      rewardTerms: { title: 'Cinema', type: 'EXPERIENCE' },
+      rewardTerms: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' },
       deadlineAt: now,
       createdAt: now,
       updatedAt: now,

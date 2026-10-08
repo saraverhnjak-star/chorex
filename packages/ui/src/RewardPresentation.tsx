@@ -1,3 +1,4 @@
+import { RewardIcon } from './RewardIcon';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { EarnedReward, UserProfile } from '@chorex/domain';
@@ -67,24 +68,7 @@ export function RewardCard({
       className="active:opacity-70"
       style={s.card}
     >
-      <View
-        style={[s.icon, { backgroundColor: rewardTone(reward.status, viewer) }]}
-      >
-        <Ionicons
-          accessible={false}
-          name={
-            reward.status === 'FULFILLED'
-              ? 'checkmark-circle-outline'
-              : 'gift-outline'
-          }
-          size={26}
-          color={
-            reward.status === 'FULFILLED'
-              ? homeTokens.success
-              : homeTokens.secondary
-          }
-        />
-      </View>
+      <RewardIcon terms={reward.terms} />
       <View style={s.content}>
         <DesignText style={s.title}>{reward.terms.title}</DesignText>
         {childName ? (
@@ -187,13 +171,6 @@ const s = StyleSheet.create({
     borderColor: homeTokens.border,
     borderRadius: homeTokens.radius.card,
     backgroundColor: homeTokens.surface,
-  },
-  icon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   content: { flex: 1, minWidth: 0, gap: 4 },
   title: { fontSize: 16, fontWeight: '600', color: homeTokens.text },

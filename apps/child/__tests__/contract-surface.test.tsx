@@ -108,6 +108,7 @@ const contract = {
   rewardTerms: {
     title: 'Cinema',
     type: 'EXPERIENCE',
+    iconKey: 'cinema' as const,
     description: 'Choose a movie',
   },
   deadlineAt: '2026-10-10T18:00:00.000Z',

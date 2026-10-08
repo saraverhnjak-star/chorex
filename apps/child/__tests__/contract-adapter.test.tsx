@@ -77,7 +77,11 @@ const contractData = {
   childUid: 'child-1',
   participantUids: ['parent-1', 'child-1'],
   source: { type: 'OFFER', offerId: 'offer-1', revisionId: 'revision-1' },
-  rewardTerms: { title: 'Cinema', type: 'EXPERIENCE' },
+  rewardTerms: {
+    title: 'Cinema',
+    type: 'EXPERIENCE',
+    iconKey: 'cinema' as const,
+  },
   deadlineAt: timestamp,
   status: 'ACTIVE',
   reviewCycle: 0,
@@ -551,7 +555,7 @@ const rewardData = {
   contractId: 'contract-1',
   parentUid: 'parent-1',
   childUid: 'child-1',
-  terms: { title: 'Cinema', type: 'EXPERIENCE' },
+  terms: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' as const },
   status: 'PENDING_FULFILLMENT',
   earnedAt: timestamp,
 };

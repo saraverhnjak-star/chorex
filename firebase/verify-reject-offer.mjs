@@ -146,7 +146,7 @@ async function createDraft(parent, familyId, childUid, key) {
       familyId,
       childUid,
       tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
-      reward: { title: 'Cinema', type: 'EXPERIENCE' },
+      reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' },
       deadlineAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       idempotencyKey: key,
     },
@@ -399,7 +399,7 @@ try {
       {
         offerId: source.offer.id,
         currentRevisionId: source.revision.id,
-        reward: { title: 'Games', type: 'PRIVILEGE' },
+        reward: { title: 'Games', type: 'PRIVILEGE', iconKey: 'screen-time' },
         idempotencyKey: `${key}-counter`,
       },
       child.idToken,
@@ -612,7 +612,7 @@ try {
         ? {
             tasks: race.counter.revision.tasks,
             deadlineAt: race.counter.revision.deadlineAt,
-            reward: { title: 'Other reward', type: 'CUSTOM' },
+            reward: { title: 'Other reward', type: 'CUSTOM', iconKey: 'gift' },
           }
         : {}),
     };

@@ -177,3 +177,10 @@ export {
   type ConfirmRewardReceivedInputValue,
   type ConfirmRewardReceivedOutput,
 } from './review';
+
+export {
+  rewardIconKeys,
+  rewardIconKeySchema,
+  rewardTypeDefaultIcons,
+  type RewardIconKey,
+} from './rewardIcons';

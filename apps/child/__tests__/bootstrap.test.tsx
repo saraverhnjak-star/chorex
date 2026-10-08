@@ -68,6 +68,7 @@ const childOfferInboxItems = [
         title: 'Cinema',
         description: 'Choose a movie',
         type: 'EXPERIENCE',
+        iconKey: 'plant' as const,
       },
       deadlineAt: '2026-10-10T18:00:00.000Z',
       createdAt: '2026-10-03T12:34:56.789Z',
@@ -106,7 +107,11 @@ const mockAcceptOffer = jest.fn().mockResolvedValue({
       offerId: 'offer-test-id',
       revisionId: 'revision-test-id',
     },
-    rewardTerms: { title: 'Cinema', type: 'EXPERIENCE' },
+    rewardTerms: {
+      title: 'Cinema',
+      type: 'EXPERIENCE',
+      iconKey: 'cinema' as const,
+    },
     deadlineAt: '2026-10-10T18:00:00.000Z',
     status: 'ACTIVE',
     reviewCycle: 0,
@@ -149,6 +154,7 @@ const mockCounterOffer = jest.fn().mockResolvedValue({
       title: 'One hour of games',
       description: 'After dinner',
       type: 'PRIVILEGE',
+      iconKey: 'screen-time' as const,
     },
     deadlineAt: '2026-10-10T18:00:00.000Z',
     note: 'This feels fair.',
@@ -380,7 +386,9 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     screen.getByLabelText('Counteroffer reward title'),
     'One hour of games',
   );
+  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Select privilege' }));
+  expect(screen.getByText('Reward icon: Screen time')).toBeOnTheScreen();
   fireEvent.changeText(
     screen.getByLabelText('Counteroffer reward description (optional)'),
     'After dinner',
@@ -398,6 +406,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     reward: {
       title: 'One hour of games',
       type: 'PRIVILEGE',
+      iconKey: 'screen-time' as const,
       description: 'After dinner',
     },
     note: 'This feels fair.',

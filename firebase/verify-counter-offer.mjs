@@ -166,7 +166,7 @@ async function createDraft(parent, familyId, childUid, key) {
           targetCount: 2,
         },
       ],
-      reward: { title: 'Cinema', type: 'EXPERIENCE' },
+      reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'plant' },
       deadlineAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       idempotencyKey: key,
     },
@@ -249,6 +249,7 @@ try {
       title: 'One hour of games',
       description: 'After dinner',
       type: 'PRIVILEGE',
+      iconKey: 'book',
     },
     note: 'This feels fair.',
     idempotencyKey: 'counter-offer-001',
@@ -413,9 +414,16 @@ try {
   await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
     callFunction(
       'counterOffer',
+      { ...input, reward: { ...input.reward, iconKey: 'pizza' } },
+      child.idToken,
+    ),
+  );
+  await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
+    callFunction(
+      'counterOffer',
       {
         ...input,
-        reward: { title: 'Different reward', type: 'CUSTOM' },
+        reward: { title: 'Different reward', type: 'CUSTOM', iconKey: 'gift' },
       },
       child.idToken,
     ),
@@ -479,6 +487,7 @@ try {
       title: 'Museum trip',
       description: 'On Saturday',
       type: 'EXPERIENCE',
+      iconKey: 'plant',
     },
     note: 'How about these terms?',
     idempotencyKey: 'parent-counter-main-001',
@@ -632,7 +641,7 @@ try {
   for (const changed of [
     { tasks: [{ title: 'Other', targetCount: 1 }] },
     { deadlineAt: new Date(Date.now() + 100000).toISOString() },
-    { reward: { title: 'Other', type: 'CUSTOM' } },
+    { reward: { title: 'Other', type: 'CUSTOM', iconKey: 'gift' } },
   ]) {
     await expectCallableError('IDEMPOTENCY_CONFLICT', () =>
       callFunction(
@@ -697,7 +706,7 @@ try {
     {
       offerId: draft.offer.id,
       currentRevisionId: parentFirst.revision.id,
-      reward: { title: 'Games again', type: 'PRIVILEGE' },
+      reward: { title: 'Games again', type: 'PRIVILEGE', iconKey: 'book' },
       idempotencyKey: 'child-after-parent',
     },
     child.idToken,
@@ -779,7 +788,7 @@ try {
       'counterOffer',
       {
         ...raceBase,
-        reward: { title: 'Race reward', type: 'CUSTOM' },
+        reward: { title: 'Race reward', type: 'CUSTOM', iconKey: 'gift' },
         idempotencyKey: 'counter-race-counter-001',
       },
       child.idToken,

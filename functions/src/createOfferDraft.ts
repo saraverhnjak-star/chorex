@@ -201,6 +201,7 @@ export async function executeCreateOfferDraft(
   const persistedReward = {
     title: input.reward.title,
     type: input.reward.type,
+    iconKey: input.reward.iconKey,
     ...(input.reward.description
       ? { description: input.reward.description }
       : {}),

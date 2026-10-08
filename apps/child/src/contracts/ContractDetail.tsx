@@ -10,6 +10,7 @@ import {
   ContractSummary,
   SurfaceCard,
   TermsHeading,
+  RewardIcon,
   FormMessage,
   ReviewFeedback,
   ReviewHistory,
@@ -150,6 +151,7 @@ export function ContractDetail({
       )}
       <SurfaceCard>
         <TermsHeading icon="gift-outline">Promised reward</TermsHeading>
+        <RewardIcon terms={contract.rewardTerms} />
         <Text
           allowFontScaling={false}
           accessibilityLabel={`Promised reward: ${contract.rewardTerms.title}, ${contract.rewardTerms.type}`}

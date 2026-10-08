@@ -23,7 +23,11 @@ it('validates the canonical active Contract and its initial task', () => {
         offerId: 'offer-1',
         revisionId: 'revision-1',
       },
-      rewardTerms: { title: 'Cinema', type: 'EXPERIENCE' },
+      rewardTerms: {
+        title: 'Cinema',
+        type: 'EXPERIENCE',
+        iconKey: 'cinema' as const,
+      },
       deadlineAt: '2026-10-05T10:00:00.000Z',
       status: 'ACTIVE',
       reviewCycle: 0,
@@ -102,6 +106,7 @@ it('validates reward-only counterOffer input and its current Child revision', ()
     reward: {
       title: 'Extra screen time',
       type: 'PRIVILEGE' as const,
+      iconKey: 'screen-time' as const,
     },
     note: 'Could we make it an hour?',
     idempotencyKey: 'counter-offer-001',
@@ -160,7 +165,7 @@ it('validates complete Parent counteroffer terms and the matching waiting state'
     offerId: 'offer-1',
     currentRevisionId: 'revision-2',
     tasks: [{ title: 'Water plants', description: 'All pots', targetCount: 3 }],
-    reward: { title: 'Museum', type: 'EXPERIENCE' },
+    reward: { title: 'Museum', type: 'EXPERIENCE', iconKey: 'cinema' as const },
     deadlineAt: '2026-10-10T18:00:00.000Z',
     idempotencyKey: 'parent-counter-001',
   };
@@ -232,7 +237,11 @@ it('requires output tasks to belong to the accepted Contract', () => {
         offerId: 'offer-1',
         revisionId: 'revision-1',
       },
-      rewardTerms: { title: 'Cinema', type: 'EXPERIENCE' },
+      rewardTerms: {
+        title: 'Cinema',
+        type: 'EXPERIENCE',
+        iconKey: 'cinema' as const,
+      },
       deadlineAt: '2026-10-05T10:00:00.000Z',
       status: 'ACTIVE',
       reviewCycle: 0,

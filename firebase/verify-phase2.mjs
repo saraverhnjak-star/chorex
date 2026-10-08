@@ -168,7 +168,7 @@ async function createDraft(parent, familyId, childUid, key) {
           targetCount: 2,
         },
       ],
-      reward: { title: 'Cinema', type: 'EXPERIENCE' },
+      reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' },
       deadlineAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       idempotencyKey: key,
     },
@@ -376,6 +376,7 @@ try {
           title: 'Private reward title',
           description: 'Private reward description',
           type: 'CUSTOM',
+          iconKey: 'gift',
         },
         note: 'Private note',
         ...terms,
@@ -538,7 +539,7 @@ try {
   const rev3Input = {
     offerId: rounds.offer.id,
     currentRevisionId: rev2.revision.id,
-    reward: { title: 'New reward', type: 'CUSTOM' },
+    reward: { title: 'New reward', type: 'CUSTOM', iconKey: 'gift' },
     ...parentTerms,
     idempotencyKey: 'rounds-parent',
   };
@@ -666,7 +667,11 @@ try {
             ? {
                 tasks: childTerms.revision.tasks,
                 deadlineAt: childTerms.revision.deadlineAt,
-                reward: { title: 'Other terms', type: 'CUSTOM' },
+                reward: {
+                  title: 'Other terms',
+                  type: 'CUSTOM',
+                  iconKey: 'gift',
+                },
               }
             : {}),
         },

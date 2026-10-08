@@ -54,6 +54,7 @@ function requestPayloadHash(input: CounterOfferInput): string {
       reward: {
         title: input.reward.title,
         type: input.reward.type,
+        iconKey: input.reward.iconKey,
         ...(input.reward.description === undefined
           ? {}
           : { description: input.reward.description }),
@@ -362,6 +363,7 @@ export async function executeCounterOffer(
     const persistedReward = {
       title: input.reward.title,
       type: input.reward.type,
+      iconKey: input.reward.iconKey,
       ...(input.reward.description === undefined
         ? {}
         : { description: input.reward.description }),
