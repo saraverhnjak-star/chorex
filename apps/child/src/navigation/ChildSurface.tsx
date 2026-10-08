@@ -1,0 +1,316 @@
+import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
+import { useFocusEffect, Redirect } from 'expo-router';
+import { ChildHomeSummary } from '../ChildHomeSummary';
+import {
+  HomeScreenFrame,
+  HomeSection,
+  HomeHeader,
+  HomeGreeting,
+  SectionHeading,
+  ReminderPreferenceCard,
+  Button,
+  NotificationPermissionCard,
+  FormMessage,
+  Screen,
+  TextField,
+  amberAuroraColors,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
+import { EarnedRewards } from '../rewards/EarnedRewards';
+import { ActiveContracts } from '../contracts/ActiveContracts';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, Linking, Text, View } from 'react-native';
+import { useReminderPreference } from '@chorex/firebase-client';
+import { useNotificationEducation } from '@chorex/notifications';
+import { useChildSession } from '../auth/session';
+import { getNotificationErrorMessage } from '../notifications/messages';
+import { OfferInbox } from '../offers/OfferInbox';
+import { getPairingErrorMessage } from '../pairing/messages';
+
+function newIdempotencyKey(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function ChildSurface(props: {
+  area?: 'home' | 'offers' | 'contracts' | 'rewards' | 'more';
+}) {
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  const family = useChildFamily();
+  if (!family)
+    return (
+      <ChildFamilyProvider>
+        <ChildSurface {...props} />
+      </ChildFamilyProvider>
+    );
+  return focused ? <ChildSurfaceContent {...props} /> : null;
+}
+function ChildSurfaceContent({
+  area = 'home',
+}: {
+  area?: 'home' | 'offers' | 'contracts' | 'rewards' | 'more';
+}) {
+  const session = useChildSession();
+  const dynamicType = useDynamicTypeStyles();
+  const [token, setToken] = useState('');
+  const idempotencyKey = useRef<string | undefined>(undefined);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string>();
+  const { state: familyState, reload: loadFamily } = useChildFamily()!;
+
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string>();
+  const uid = session.user?.uid;
+  const notifications = session.notifications;
+  const reminder = useReminderPreference(session.user?.uid, 'CHILD');
+
+  const education = useNotificationEducation(
+    familyState.status === 'ready' ? uid : undefined,
+    notifications.state.permission,
+  );
+
+  const enableNotifications = () => {
+    if (
+      !education.showEducation &&
+      notifications.state.permission?.status === 'undetermined'
+    ) {
+      education.revisit();
+      return;
+    }
+    education.skip();
+    void notifications.enable();
+  };
+
+  const signOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    setSignOutError(undefined);
+    try {
+      await session.signOut();
+    } catch {
+      setSignOutError('This device could not be signed out. Try again.');
+      setSigningOut(false);
+    }
+  };
+
+  if (session.user) {
+    return (
+      <HomeScreenFrame child>
+        <View>
+          <HomeHeader
+            child
+            name={
+              familyState.status === 'ready'
+                ? familyState.home.profile.displayName
+                : 'Child'
+            }
+          />
+          {familyState.status === 'loading' ? (
+            <View className="items-center py-12">
+              <ActivityIndicator
+                accessibilityLabel="Loading your Child profile"
+                color={amberAuroraColors.primaryPressed}
+                size="large"
+              />
+              <Text
+                allowFontScaling={false}
+                className="mt-4 text-home-muted"
+                style={dynamicType.body}
+              >
+                Loading your family…
+              </Text>
+            </View>
+          ) : null}
+
+          {familyState.status === 'error' ? (
+            <View className="mt-8 gap-4">
+              <FormMessage message={familyState.message} />
+              <Button label="Try again" onPress={() => void loadFamily()} />
+            </View>
+          ) : null}
+
+          {familyState.status === 'ready' ? (
+            <View className="gap-5">
+              {area === 'home' ? (
+                <HomeGreeting
+                  child
+                  name={familyState.home.profile.displayName}
+                />
+              ) : (
+                <SectionHeading>
+                  {
+                    (
+                      {
+                        offers: 'Offers',
+                        contracts: 'My chores',
+                        rewards: 'Rewards',
+                        more: 'More',
+                      } as const
+                    )[area]
+                  }
+                </SectionHeading>
+              )}
+              {area === 'home' ? (
+                <ChildHomeSummary
+                  familyId={familyState.home.family.id}
+                  authUid={session.user.uid}
+                />
+              ) : null}
+
+              {area === 'contracts' || area === 'home' ? (
+                <HomeSection>
+                  <ActiveContracts
+                    preview={area === 'home'}
+                    familyId={familyState.home.family.id}
+                    authUid={session.user.uid}
+                  />
+                </HomeSection>
+              ) : null}
+              {area === 'offers' || area === 'home' ? (
+                <HomeSection>
+                  <OfferInbox
+                    preview={area === 'home'}
+                    authUid={session.user.uid}
+                    familyId={familyState.home.family.id}
+                  />
+                </HomeSection>
+              ) : null}
+              {area === 'rewards' || area === 'home' ? (
+                <HomeSection>
+                  <EarnedRewards
+                    preview={area === 'home'}
+                    familyId={familyState.home.family.id}
+                    authUid={session.user.uid}
+                  />
+                </HomeSection>
+              ) : null}
+              {area === 'more' ? (
+                <HomeSection>
+                  <ReminderPreferenceCard
+                    label="Deadline reminders"
+                    enabled={reminder.state.enabled}
+                    busy={reminder.state.busy}
+                    fromCache={reminder.state.fromCache}
+                    error={reminder.state.error}
+                    onChange={(enabled) => {
+                      void reminder.save(enabled);
+                    }}
+                  />
+                  <NotificationPermissionCard
+                    benefit="Get updates when you receive new offers or your Parent reviews your work."
+                    education={education.showEducation}
+                    busy={
+                      notifications.state.status === 'loading' ||
+                      notifications.state.status === 'checking'
+                    }
+                    registered={notifications.state.status === 'registered'}
+                    quiet={notifications.state.permission?.quiet}
+                    error={
+                      notifications.state.status === 'error'
+                        ? getNotificationErrorMessage(notifications.state.error)
+                        : undefined
+                    }
+                    settingsRequired={
+                      notifications.state.permission?.status === 'denied' &&
+                      notifications.state.permission.canAskAgain === false
+                    }
+                    onEnable={enableNotifications}
+                    onSkip={education.skip}
+                    onSettings={() => {
+                      void Linking.openSettings().catch(() => undefined);
+                    }}
+                  />
+                </HomeSection>
+              ) : null}
+            </View>
+          ) : null}
+
+          {area === 'more' ? (
+            <View className="mt-6 gap-4">
+              <FormMessage message={signOutError} />
+              <Button
+                label="Sign out"
+                loading={signingOut}
+                onPress={() => void signOut()}
+                variant="secondary"
+              />
+            </View>
+          ) : null}
+        </View>
+      </HomeScreenFrame>
+    );
+  }
+
+  if (area !== 'home' && session.status === 'loading') return null;
+  if (area !== 'home') return <Redirect href="/" />;
+  const pairDevice = async () => {
+    const currentKey = idempotencyKey.current ?? newIdempotencyKey();
+    idempotencyKey.current = currentKey;
+    setSubmitting(true);
+    setError(undefined);
+    try {
+      await session.pair(token, currentKey);
+    } catch (pairingError) {
+      setError(getPairingErrorMessage(pairingError));
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Screen>
+      <View className="flex-1 justify-center py-12">
+        <Text
+          allowFontScaling={false}
+          className="font-semibold uppercase tracking-widest text-text-muted"
+          style={dynamicType.small}
+        >
+          Child app
+        </Text>
+        <Text
+          allowFontScaling={false}
+          accessibilityRole="header"
+          className="mt-2 font-bold text-text"
+          style={dynamicType.title}
+        >
+          Pair this device
+        </Text>
+        <Text
+          allowFontScaling={false}
+          className="mt-3 text-text-muted"
+          style={dynamicType.body}
+        >
+          Enter the one-time token shown in the Parent app.
+        </Text>
+
+        <View className="mt-8 gap-5 rounded-3xl border border-border bg-surface-warm p-5">
+          <FormMessage message={error} />
+          <TextField
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!submitting}
+            label="Pairing token"
+            onChangeText={(value) => {
+              setToken(value);
+              idempotencyKey.current = undefined;
+              setError(undefined);
+            }}
+            onSubmitEditing={() => void pairDevice()}
+            returnKeyType="done"
+            value={token}
+          />
+          <Button
+            disabled={!token.trim()}
+            label="Pair device"
+            loading={submitting}
+            onPress={() => void pairDevice()}
+          />
+        </View>
+      </View>
+    </Screen>
+  );
+}

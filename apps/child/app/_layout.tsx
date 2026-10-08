@@ -1,3 +1,4 @@
+import { AppNavigation } from '../src/navigation/AppNavigation';
 import { useEffect } from 'react';
 import {
   configureForegroundNotifications,
@@ -82,7 +83,13 @@ function ChildNavigator() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return session.user ? (
+    <AppNavigation>
+      <Stack screenOptions={{ headerShown: false }} />
+    </AppNavigation>
+  ) : (
+    <Stack screenOptions={{ headerShown: false }} />
+  );
 }
 
 export default function RootLayout() {

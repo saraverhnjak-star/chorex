@@ -1,6 +1,10 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { OfferInbox } from '../src/offers/OfferInbox';
 
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ navigate: jest.fn() }),
+}));
+
 const mockUnsubscribe = jest.fn();
 let emitItems: ((items: readonly unknown[]) => void) | undefined;
 let emitError: ((error: unknown) => void) | undefined;

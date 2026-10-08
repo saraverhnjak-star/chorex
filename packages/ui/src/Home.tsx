@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -43,14 +37,12 @@ const Text = DesignText;
 type Icon = React.ComponentProps<typeof Ionicons>['name'];
 const HomeContext = createContext({
   active: false,
-  jump: (_id: string) => {},
-  register: (_id: string, _node: View | null) => {},
+  navigate: (_id: string) => {},
 });
 export function DesignThemeProvider({ children }: { children: ReactNode }) {
+  const context = useContext(HomeContext);
   return (
-    <HomeContext.Provider
-      value={{ active: true, jump: () => {}, register: () => {} }}
-    >
+    <HomeContext.Provider value={{ ...context, active: true }}>
       {children}
     </HomeContext.Provider>
   );
@@ -58,69 +50,34 @@ export function DesignThemeProvider({ children }: { children: ReactNode }) {
 export function useHomeTheme() {
   return useContext(HomeContext).active;
 }
-export function HomeScreenFrame({
+export type NavigationItem = { id: string; label: string; icon: Icon };
+export function NavigationFrame({
   children,
-  child = false,
+  items,
+  active,
+  onNavigate,
 }: {
   children: ReactNode;
-  child?: boolean;
+  items: readonly NavigationItem[];
+  active: string;
+  onNavigate: (id: string) => void;
 }) {
-  const scroll = useRef<ScrollView>(null);
-  const nodes = useRef<Record<string, View | null>>({});
-  const content = useRef<View>(null);
+  const { fontScale } = useWindowDimensions();
+  // Keep five concise destinations readable at narrow widths; full accessible labels remain available.
+  const labelSize = 12 * Math.min(fontScale, 1.3);
   const insets = useSafeAreaInsets();
-  const [selected, setSelected] = useState('home');
-  const jump = (id: string) => {
-    setSelected(id);
-    if (id === 'home') scroll.current?.scrollTo({ y: 0, animated: true });
-    else if (content.current)
-      nodes.current[id]?.measureLayout(
-        content.current,
-        (_x, y) => scroll.current?.scrollTo({ y, animated: true }),
-        () => {},
-      );
-  };
-  const items: { id: string; label: string; icon: Icon }[] = [
-    { id: 'home', label: 'Home', icon: 'home-outline' },
-    { id: 'offers', label: 'Offers', icon: 'document-text-outline' },
-    {
-      id: 'contracts',
-      label: child ? 'My chores' : 'Contracts',
-      icon: 'checkbox-outline',
-    },
-    { id: 'rewards', label: 'Rewards', icon: 'gift-outline' },
-    { id: 'more', label: 'More', icon: 'ellipsis-horizontal' },
-  ];
   return (
-    <HomeContext.Provider
-      value={{
-        active: true,
-        jump,
-        register: (id, node) => {
-          nodes.current[id] = node;
-        },
-      }}
-    >
-      <View style={[s.frame, { paddingTop: insets.top }]}>
-        <ScrollView
-          ref={scroll}
-          contentInsetAdjustmentBehavior="never"
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[s.content, { paddingTop: 12 }]}
-          showsVerticalScrollIndicator={false}
-        >
-          <View ref={content} collapsable={false}>
-            {children}
-          </View>
-        </ScrollView>
+    <HomeContext.Provider value={{ active: true, navigate: onNavigate }}>
+      <View style={s.frame}>
+        <View style={{ flex: 1 }}>{children}</View>
         <View style={[s.nav, { paddingBottom: Math.max(insets.bottom, 8) }]}>
           {items.map((item) => (
             <Pressable
               key={item.id}
               accessibilityRole="button"
               accessibilityLabel={item.label}
-              accessibilityState={{ selected: selected === item.id }}
-              onPress={() => jump(item.id)}
+              accessibilityState={{ selected: active === item.id }}
+              onPress={() => onNavigate(item.id)}
               className="active:opacity-60"
               style={s.navItem}
             >
@@ -129,22 +86,26 @@ export function HomeScreenFrame({
                 name={item.icon}
                 size={24}
                 color={
-                  selected === item.id ? homeTokens.coral : homeTokens.secondary
+                  active === item.id ? homeTokens.coral : homeTokens.secondary
                 }
               />
-              <Text
+              <NativeText
+                allowFontScaling={false}
                 style={[
                   s.caption,
                   {
+                    textAlign: 'center',
+                    fontSize: labelSize,
+                    lineHeight: labelSize * 1.35,
                     color:
-                      selected === item.id
+                      active === item.id
                         ? homeTokens.coral
                         : homeTokens.secondary,
                   },
                 ]}
               >
                 {item.label}
-              </Text>
+              </NativeText>
             </Pressable>
           ))}
         </View>
@@ -152,21 +113,64 @@ export function HomeScreenFrame({
     </HomeContext.Provider>
   );
 }
-export function HomeSection({
-  id,
+export function HomeScreenFrame({
   children,
 }: {
-  id: string;
   children: ReactNode;
+  child?: boolean;
 }) {
-  const { register } = useContext(HomeContext);
+  const insets = useSafeAreaInsets();
+  return (
+    <DesignThemeProvider>
+      <View style={[s.frame, { paddingTop: insets.top }]}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="never"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[s.content, { paddingTop: 12 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      </View>
+    </DesignThemeProvider>
+  );
+}
+export function HomeSection({ children }: { children: ReactNode }) {
+  return <View style={s.section}>{children}</View>;
+}
+export function CollectionHeading({
+  children,
+  onSeeAll,
+  label = 'See all',
+}: {
+  children: ReactNode;
+  onSeeAll?: () => void;
+  label?: string;
+}) {
   return (
     <View
-      ref={(node) => register(id, node)}
-      collapsable={false}
-      style={s.section}
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: 8,
+      }}
     >
-      {children}
+      <View style={{ flexGrow: 1, flexShrink: 1 }}>
+        <SectionHeading>{children}</SectionHeading>
+      </View>
+      {onSeeAll ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          onPress={onSeeAll}
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
+          <Text style={{ fontSize: 14, color: homeTokens.coral }}>
+            See all →
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -177,7 +181,7 @@ export function HomeHeader({
   name: string;
   child?: boolean;
 }) {
-  const { jump } = useContext(HomeContext);
+  const { navigate } = useContext(HomeContext);
   return (
     <View style={s.header}>
       <View style={{ flex: 1 }}>
@@ -191,7 +195,7 @@ export function HomeHeader({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Notification settings"
-        onPress={() => jump('more')}
+        onPress={() => navigate('more')}
         className="active:opacity-60"
         style={s.iconButton}
       >
@@ -205,12 +209,12 @@ export function HomeHeader({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Family profile"
-        onPress={() => jump(child ? 'more' : 'family')}
+        onPress={() => navigate(child ? 'more' : 'family')}
         style={s.avatar}
       >
-        <Text style={s.initial}>
+        <NativeText allowFontScaling={false} style={s.initial}>
           {name.trim().slice(0, 1).toUpperCase() || 'C'}
-        </Text>
+        </NativeText>
       </Pressable>
     </View>
   );
@@ -245,7 +249,7 @@ export function SectionHeading({ children }: { children: ReactNode }) {
 export function QuickActions() {
   const { width, fontScale } = useWindowDimensions();
   const wideText = fontScale > 1.3 || width < 360;
-  const { jump } = useContext(HomeContext);
+  const { navigate } = useContext(HomeContext);
   const actions: { label: string; id: string; icon: Icon; color: string }[] = [
     {
       label: 'Create Offer',
@@ -281,7 +285,7 @@ export function QuickActions() {
             accessibilityRole="button"
             accessibilityLabel={action.label}
             key={action.id}
-            onPress={() => jump(action.id)}
+            onPress={() => navigate(action.id)}
             className="active:opacity-60"
             style={[
               s.tile,
@@ -473,7 +477,14 @@ const s = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
   },
-  navItem: { flex: 1, minHeight: 48, alignItems: 'center', gap: 4 },
+  navItem: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+    gap: 4,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

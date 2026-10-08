@@ -1,8 +1,13 @@
 import { useDeviceRegistrationLifecycle as mockUseDeviceRegistrationLifecycle } from '@chorex/notifications';
-import { useState as mockUseState } from 'react';
+import { useState as mockUseState, useEffect as mockUseEffect } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { createPairingSession } from '@chorex/firebase-client';
+import {
+  createPairingSession,
+  readCurrentParentFamily,
+} from '@chorex/firebase-client';
 import HomeScreen from '../app/(app)/index';
+import { ParentSurface } from '../src/navigation/ParentSurface';
+import { AppNavigation } from '../src/navigation/AppNavigation';
 import { OfferDraftComposer } from '../src/offers/OfferDraftComposer';
 
 const mockRegisterCurrentDevice = jest
@@ -85,7 +90,14 @@ const mockSubscribeToCurrentParentNegotiationInbox = jest.fn(
   },
 );
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+const mockNavigate = jest.fn();
+let mockPath = '/';
+jest.mock('expo-router', () => ({
+  Redirect: () => null,
+  usePathname: () => mockPath,
+  useFocusEffect: (effect: () => void) => mockUseEffect(effect, [effect]),
+  useRouter: () => ({ navigate: mockNavigate, push: mockNavigate }),
+}));
 
 jest.mock('@chorex/firebase-client', () => ({
   useContractDetail: () => ({ status: 'loading' }),
@@ -208,13 +220,50 @@ jest.mock('../src/notifications/messages', () => ({
 }));
 
 it('renders the parent screen through the public shared UI package', async () => {
-  render(<HomeScreen />);
+  const view = render(
+    <AppNavigation>
+      <HomeScreen />
+    </AppNavigation>,
+  );
   expect(screen.getByRole('header', { name: 'ChoreX' })).toBeOnTheScreen();
   expect(await screen.findByText('Hello, Alex!')).toBeOnTheScreen();
   expect(
     screen.getByRole('header', { name: 'Quick actions' }),
   ).toBeOnTheScreen();
-  expect(screen.getAllByText('Mia')).toHaveLength(2);
+  expect(screen.getByText('Mia')).toBeOnTheScreen();
+  expect(screen.queryByText('Create an offer draft')).toBeNull();
+  expect(screen.queryByText('This feels fair.')).toBeNull();
+  for (const [label, route] of [
+    ['Offers', '/offers'],
+    ['Contracts', '/contracts'],
+    ['Rewards', '/rewards'],
+    ['More', '/more'],
+    ['Home', '/'],
+    ['See all Offers', '/offers'],
+    ['See all Contracts', '/contracts'],
+    ['See all Rewards', '/rewards'],
+    ['Create Offer', '/offers/create'],
+    ['Review Submissions', '/contracts'],
+    ['Manage Rewards', '/rewards'],
+    ['Family Overview', '/family'],
+  ]) {
+    fireEvent.press(screen.getByRole('button', { name: label }));
+    expect(mockNavigate).toHaveBeenLastCalledWith(route);
+  }
+  mockPath = '/rewards/reward-1';
+  view.rerender(
+    <AppNavigation>
+      <HomeScreen />
+    </AppNavigation>,
+  );
+  expect(screen.getByRole('button', { name: 'Rewards' })).toBeSelected();
+  mockPath = '/more';
+  view.rerender(
+    <AppNavigation>
+      <ParentSurface area="more" />
+    </AppNavigation>,
+  );
+  await screen.findByRole('header', { name: 'More' });
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
   expect(
@@ -228,6 +277,12 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(screen.getByRole('button', { name: 'Not now' })).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('PARENT');
+  view.rerender(
+    <AppNavigation>
+      <ParentSurface area="family" />
+    </AppNavigation>,
+  );
+  await screen.findByText('Add a child');
   fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
   expect(await screen.findByText('AbCdEfGhIjKlMnOpQrStUw')).toBeOnTheScreen();
   expect(createPairingSession).toHaveBeenCalledWith(
@@ -237,11 +292,23 @@ it('renders the parent screen through the public shared UI package', async () =>
     }),
   );
   expect(screen.getByText('Add a child')).toBeOnTheScreen();
-  expect(screen.getByText('Create an offer draft')).toBeOnTheScreen();
+  view.rerender(
+    <AppNavigation>
+      <ParentSurface area="create" />
+    </AppNavigation>,
+  );
+  expect(await screen.findByText('Create an offer draft')).toBeOnTheScreen();
+  view.rerender(
+    <AppNavigation>
+      <ParentSurface area="offers" />
+    </AppNavigation>,
+  );
+  await screen.findByText('Counteroffers');
   expect(screen.getByText('Counteroffers')).toBeOnTheScreen();
   expect(screen.getByText('Your turn')).toBeOnTheScreen();
   expect(screen.getByText('One hour of games · PRIVILEGE')).toBeOnTheScreen();
   expect(screen.getByText('This feels fair.')).toBeOnTheScreen();
+  expect(readCurrentParentFamily).toHaveBeenCalledTimes(1);
 });
 
 it('publishes the saved Offer draft and shows the published result', async () => {

@@ -111,9 +111,7 @@ it('empty/error/cache state and scoped listener cleanup cannot retain another fa
   expect(screen.queryByText('Cinema')).toBeNull();
   act(() => mockFailure(new Error('denied')));
   expect(
-    screen.getByText(
-      'Your rewards could not be loaded. Reopen this screen to try again.',
-    ),
+    screen.getByText('Your rewards could not be loaded. Try again.'),
   ).toBeOnTheScreen();
 });
 it('Child detail shows frozen terms/status/timestamps and never exposes Parent controls', () => {

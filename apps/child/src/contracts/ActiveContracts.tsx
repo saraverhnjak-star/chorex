@@ -5,35 +5,37 @@ import { useRouter } from 'expo-router';
 import { useActiveContracts } from '@chorex/firebase-client';
 import {
   Button,
+  CollectionHeading,
   CountBadge,
   OfferOutcome,
   FormMessage,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 
-export function ActiveContracts({
+function ActiveContractsContent({
   familyId,
   authUid,
   childNames = {},
+  preview = false,
+  onRetry,
 }: {
+  onRetry?: () => void;
+  preview?: boolean;
   familyId: string;
   authUid: string;
   childNames?: Readonly<Record<string, string>>;
 }) {
   const state = useActiveContracts(familyId, authUid);
-  const [expanded, setExpanded] = useState(false);
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   return (
     <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
-      <Text
-        allowFontScaling={false}
-        accessibilityRole="header"
-        className="font-bold text-home-text"
-        style={[styles.body, { fontSize: 21 }]}
+      <CollectionHeading
+        label="See all My chores"
+        onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
       >
-        Active Contracts
-      </Text>
+        Active agreements
+      </CollectionHeading>
       {state.status === 'ready' ? (
         <CountBadge count={state.contracts.length} />
       ) : null}
@@ -48,7 +50,12 @@ export function ActiveContracts({
         </Text>
       ) : null}
       {state.status === 'error' ? (
-        <FormMessage message="Your Contracts could not be loaded. Reopen this screen to try again." />
+        <>
+          <FormMessage message="Your Contracts could not be loaded. Try again." />
+          {onRetry ? (
+            <Button label="Try Contracts again" onPress={onRetry} />
+          ) : null}
+        </>
       ) : null}
       {state.status === 'ready' ? (
         <>
@@ -68,7 +75,7 @@ export function ActiveContracts({
                 : 'No active Contracts yet.'}
             </OfferOutcome>
           ) : (
-            (expanded ? state.contracts : state.contracts.slice(0, 2)).map(
+            (preview ? state.contracts.slice(0, 2) : state.contracts).map(
               (contract) => (
                 <HomeContractRow
                   key={contract.id}
@@ -85,19 +92,23 @@ export function ActiveContracts({
               ),
             )
           )}
-          {state.contracts.length > 2 ? (
-            <Button
-              label={
-                expanded
-                  ? 'Show fewer Contracts'
-                  : `View all Contracts (${state.contracts.length})`
-              }
-              variant="secondary"
-              onPress={() => setExpanded((value) => !value)}
-            />
-          ) : null}
         </>
       ) : null}
     </View>
+  );
+}
+
+export function ActiveContracts(
+  props: Parameters<typeof ActiveContractsContent>[0],
+) {
+  const [attempt, setAttempt] = useState(0);
+  return (
+    <>
+      <ActiveContractsContent
+        key={attempt}
+        {...props}
+        onRetry={() => setAttempt((value) => value + 1)}
+      />
+    </>
   );
 }

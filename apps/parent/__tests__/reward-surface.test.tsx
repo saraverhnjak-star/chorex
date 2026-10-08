@@ -8,7 +8,9 @@ const mockFulfill = jest.fn(),
 let mockList: (value: unknown) => void,
   mockReward: (value: unknown) => void,
   mockFailure: (error: unknown) => void;
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush, navigate: mockPush }),
+}));
 jest.mock('@chorex/firebase-client', () => ({
   ...jest.requireActual('../../../packages/firebase-client/src/rewardHooks'),
   RewardClientError: class extends Error {

@@ -7,6 +7,11 @@ import {
 import RootLayout from '../app/_layout';
 import { resolveChildNotificationRoute } from '../src/notifications/routing';
 
+jest.mock('../src/navigation/FamilyContext', () => ({
+  ChildFamilyProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
+}));
+
 let mockSession: {
   status: 'loading' | 'ready' | 'error';
   user: { uid: string } | null;
@@ -40,6 +45,7 @@ jest.mock('expo-router', () => {
   };
   return {
     Stack,
+    usePathname: () => '/',
     useRouter: () => mockRouter,
     useRootNavigationState: () =>
       mockRouterKey ? { key: mockRouterKey } : undefined,
@@ -140,7 +146,7 @@ it('ready/background response uses this binary route mapping; receipt alone neve
       ),
     ),
   );
-  expect(mockReplace).toHaveBeenLastCalledWith('/');
+  expect(mockReplace).toHaveBeenLastCalledWith('/offers');
 });
 it('explicit Child entity mapping preserves current semantic routes and rejects unsupported/private/path payloads', () => {
   for (const type of [
@@ -162,7 +168,7 @@ it('explicit Child entity mapping preserves current semantic routes and rejects 
       entityId: 'offer-1',
     }),
   );
-  expect(resolveChildNotificationRoute(offer!)).toBe('/');
+  expect(resolveChildNotificationRoute(offer!)).toBe('/offers');
   for (const patch of [
     { entityType: 'AUCTION' },
     { entityId: '../other' },

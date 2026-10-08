@@ -1,6 +1,10 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ParentNegotiationInbox } from '../src/offers/ParentNegotiationInbox';
 
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ navigate: jest.fn() }),
+}));
+
 const mockAccept = jest.fn();
 const mockCounter = jest.fn();
 const mockReject = jest.fn();

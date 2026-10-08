@@ -58,9 +58,11 @@ export default function RewardScreen() {
           }
         />
         <Button
-          label="Back to home"
+          label="Back"
           variant="outline"
-          onPress={() => router.replace('/')}
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace('/rewards')
+          }
         />
       </View>
     </Screen>

@@ -31,9 +31,11 @@ export default function ContractScreen() {
           authUid={session.user.uid}
         />
         <Button
-          label="Back to home"
+          label="Back"
           variant="outline"
-          onPress={() => router.replace('/')}
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.replace('/contracts')
+          }
         />
       </View>
     </Screen>

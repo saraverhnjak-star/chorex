@@ -8,6 +8,8 @@ import {
 
 const mockRequestChanges = jest.fn();
 const mockApprove = jest.fn();
+const mockBack = jest.fn();
+let mockCanGoBack = false;
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockSessionUser = { uid: 'parent-1' };
@@ -29,7 +31,13 @@ let mockTasks: (value: unknown) => void;
 let mockError: (error: unknown) => void;
 let mockList: (value: unknown) => void;
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({
+    push: mockPush,
+    navigate: mockPush,
+    canGoBack: () => mockCanGoBack,
+    back: mockBack,
+    replace: mockReplace,
+  }),
   useLocalSearchParams: () => ({ contractId: 'contract-1' }),
 }));
 jest.mock('@chorex/firebase-client', () => {
@@ -249,14 +257,20 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
   expect(mockListStop).toHaveBeenCalled();
 });
 
-it('opens the stable-ID detail route with a heading and accessible home navigation', async () => {
+it('opens the stable-ID detail route with a heading and natural Back navigation and a safe collection fallback', async () => {
   render(<ContractScreen />);
   await act(async () => {});
   expect(screen.getByRole('header', { name: 'Contract' })).toBeOnTheScreen();
   emitReady();
   expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Back to home' }));
-  expect(mockReplace).toHaveBeenCalledWith('/');
+  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  expect(mockReplace).toHaveBeenCalledWith('/contracts');
+  mockReplace.mockClear();
+  mockCanGoBack = true;
+  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  expect(mockBack).toHaveBeenCalledTimes(1);
+  expect(mockReplace).not.toHaveBeenCalled();
+  mockCanGoBack = false;
 });
 
 it('receives READY_FOR_REVIEW through the existing listener and exposes approval', () => {

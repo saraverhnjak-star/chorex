@@ -109,7 +109,7 @@ it('routes Offer metadata to inbox and acceptance to the existing Contract surfa
         entityId: 'entity',
         familyId: 'family',
       }),
-    ).toBe(type === 'OFFER_ACCEPTED' ? '/contracts/entity' : '/');
+    ).toBe(type === 'OFFER_ACCEPTED' ? '/contracts/entity' : '/offers');
   }
   expect(
     negotiationNotificationRoute({

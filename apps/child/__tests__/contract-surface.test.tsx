@@ -6,6 +6,8 @@ import { ActiveContracts } from '../src/contracts/ActiveContracts';
 const mockComplete = jest.fn();
 const mockSubmit = jest.fn();
 const mockIsContractClientError = jest.fn((_error: unknown) => false);
+const mockBack = jest.fn();
+let mockCanGoBack = false;
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockSessionUser = { uid: 'child-1' };
@@ -27,7 +29,13 @@ let mockTasks: (value: unknown) => void;
 let mockError: (error: unknown) => void;
 let mockList: (value: unknown) => void;
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({
+    push: mockPush,
+    navigate: mockPush,
+    canGoBack: () => mockCanGoBack,
+    back: mockBack,
+    replace: mockReplace,
+  }),
   useLocalSearchParams: () => ({ contractId: 'contract-1' }),
 }));
 jest.mock('@chorex/firebase-client', () => {
@@ -256,14 +264,20 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
   expect(mockListStop).toHaveBeenCalled();
 });
 
-it('opens the stable-ID detail route with a heading and accessible home navigation', async () => {
+it('opens the stable-ID detail route with a heading and natural Back navigation and a safe collection fallback', async () => {
   render(<ContractScreen />);
   await act(async () => {});
   expect(screen.getByRole('header', { name: 'Contract' })).toBeOnTheScreen();
   emitReady();
   expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Back to home' }));
-  expect(mockReplace).toHaveBeenCalledWith('/');
+  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  expect(mockReplace).toHaveBeenCalledWith('/contracts');
+  mockReplace.mockClear();
+  mockCanGoBack = true;
+  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  expect(mockBack).toHaveBeenCalledTimes(1);
+  expect(mockReplace).not.toHaveBeenCalled();
+  mockCanGoBack = false;
 });
 
 it('prevents rapid taps and waits for realtime counts after backend confirmation', async () => {
@@ -849,7 +863,9 @@ it('distinguishes the current request from historical context and adds no histor
 });
 
 it('keeps every Contract reachable when Home shows a compact preview', () => {
-  render(<ActiveContracts familyId="family-1" authUid="child-1" />);
+  const view = render(
+    <ActiveContracts preview familyId="family-1" authUid="child-1" />,
+  );
   const third = {
     ...contract,
     id: 'contract-3',
@@ -870,8 +886,17 @@ it('keeps every Contract reachable when Home shows a compact preview', () => {
     }),
   ).toBeNull();
   fireEvent.press(
-    screen.getByRole('button', { name: 'View all Contracts (3)' }),
+    screen.getAllByRole('button', {
+      name: `Open Contract: ${contract.rewardTerms.title}`,
+    })[0],
   );
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: '/contracts/[contractId]',
+    params: { contractId: contract.id },
+  });
+  fireEvent.press(screen.getByRole('button', { name: 'See all My chores' }));
+  expect(mockPush).toHaveBeenLastCalledWith('/contracts');
+  view.rerender(<ActiveContracts familyId="family-1" authUid="child-1" />);
   fireEvent.press(
     screen.getByRole('button', {
       name: `Open Contract: ${third.rewardTerms.title}`,
@@ -881,7 +906,9 @@ it('keeps every Contract reachable when Home shows a compact preview', () => {
     pathname: '/contracts/[contractId]',
     params: { contractId: 'contract-3' },
   });
-  fireEvent.press(screen.getByRole('button', { name: 'Show fewer Contracts' }));
+  view.rerender(
+    <ActiveContracts preview familyId="family-1" authUid="child-1" />,
+  );
   expect(
     screen.queryByRole('button', {
       name: `Open Contract: ${third.rewardTerms.title}`,

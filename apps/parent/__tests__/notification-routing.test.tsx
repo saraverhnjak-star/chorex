@@ -40,6 +40,7 @@ jest.mock('expo-router', () => {
   };
   return {
     Stack,
+    usePathname: () => '/',
     useRouter: () => mockRouter,
     useRootNavigationState: () =>
       mockRouterKey ? { key: mockRouterKey } : undefined,
@@ -140,7 +141,7 @@ it('ready/background response uses this binary route mapping; receipt alone neve
       ),
     ),
   );
-  expect(mockReplace).toHaveBeenLastCalledWith('/');
+  expect(mockReplace).toHaveBeenLastCalledWith('/offers');
 });
 it('explicit Parent entity mapping preserves current semantic routes and rejects unsupported/private/path payloads', () => {
   for (const type of [
@@ -162,7 +163,7 @@ it('explicit Parent entity mapping preserves current semantic routes and rejects
       entityId: 'offer-1',
     }),
   );
-  expect(resolveParentNotificationRoute(offer!)).toBe('/');
+  expect(resolveParentNotificationRoute(offer!)).toBe('/offers');
   for (const patch of [
     { entityType: 'AUCTION' },
     { entityId: '../other' },

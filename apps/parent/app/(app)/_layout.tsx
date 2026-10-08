@@ -1,5 +1,9 @@
 import { Stack } from 'expo-router';
-
+import { AppNavigation } from '../../src/navigation/AppNavigation';
 export default function AuthenticatedLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <AppNavigation>
+      <Stack screenOptions={{ headerShown: false }} />
+    </AppNavigation>
+  );
 }

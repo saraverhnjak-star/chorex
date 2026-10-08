@@ -1,11 +1,12 @@
-import { useState as mockUseState } from 'react';
+import { useState as mockUseState, useEffect as mockUseEffect } from 'react';
 import {
   fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react-native';
-import HomeScreen from '../app/index';
+import { ChildSurface as HomeScreen } from '../src/navigation/ChildSurface';
+import { AppNavigation } from '../src/navigation/AppNavigation';
 import { ChildSessionProvider } from '../src/auth/session';
 
 let mockAuthUser: { uid: string; email: null } | null = null;
@@ -160,7 +161,14 @@ const mockRemoveCurrentDeviceRegistration = jest
   .fn()
   .mockResolvedValue(undefined);
 
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+const mockNavigate = jest.fn();
+let mockPath = '/';
+jest.mock('expo-router', () => ({
+  Redirect: () => null,
+  usePathname: () => mockPath,
+  useFocusEffect: (effect: () => void) => mockUseEffect(effect, [effect]),
+  useRouter: () => ({ push: mockNavigate, navigate: mockNavigate }),
+}));
 
 jest.mock('@chorex/firebase-client', () => ({
   useContractDetail: () => ({ status: 'loading' }),
@@ -239,7 +247,9 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   mockAuthUser = null;
   const firstLaunch = render(
     <ChildSessionProvider>
-      <HomeScreen />
+      <AppNavigation>
+        <HomeScreen />
+      </AppNavigation>
     </ChildSessionProvider>,
   );
   expect(
@@ -252,6 +262,29 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
   expect(await screen.findByText('Hi, Mia!')).toBeOnTheScreen();
   expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen();
+  expect(screen.queryByText('Load the dishwasher · 2×')).toBeNull();
+  for (const [label, route] of [
+    ['My chores', '/contracts'],
+    ['Offers', '/offers'],
+    ['Rewards', '/rewards'],
+    ['More', '/more'],
+    ['Home', '/'],
+    ['See all My chores', '/contracts'],
+    ['See all Offers', '/offers'],
+    ['See all Rewards', '/rewards'],
+  ]) {
+    fireEvent.press(screen.getByRole('button', { name: label }));
+    expect(mockNavigate).toHaveBeenLastCalledWith(route);
+  }
+  mockPath = '/contracts/contract-1';
+  firstLaunch.rerender(
+    <ChildSessionProvider>
+      <AppNavigation>
+        <HomeScreen area="offers" />
+      </AppNavigation>
+    </ChildSessionProvider>,
+  );
+  expect(screen.getByRole('button', { name: 'My chores' })).toBeSelected();
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Accept offer' }));
@@ -263,6 +296,14 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     idempotencyKey: expect.stringMatching(/^accept-/),
   });
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
+  firstLaunch.rerender(
+    <ChildSessionProvider>
+      <AppNavigation>
+        <HomeScreen area="more" />
+      </AppNavigation>
+    </ChildSessionProvider>,
+  );
+  await screen.findByRole('header', { name: 'More' });
   fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
   expect(
     screen.getByText(
@@ -285,11 +326,12 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   firstLaunch.unmount();
   const secondLaunch = render(
     <ChildSessionProvider>
-      <HomeScreen />
+      <HomeScreen area="offers" />
     </ChildSessionProvider>,
   );
-  await waitFor(() => expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen());
-  expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole('header', { name: 'ChoreX' })).toBeOnTheScreen(),
+  );
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));
   expect(screen.getByText('Reject this offer?')).toBeOnTheScreen();
@@ -309,7 +351,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   secondLaunch.unmount();
   render(
     <ChildSessionProvider>
-      <HomeScreen />
+      <HomeScreen area="offers" />
     </ChildSessionProvider>,
   );
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();

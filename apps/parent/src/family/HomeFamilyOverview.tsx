@@ -1,22 +1,31 @@
+import { useRouter } from 'expo-router';
 import { Text, View } from 'react-native';
 import type { ParentFamilyHome } from '@chorex/firebase-client';
 import {
   useActiveContracts,
   useReadyForReviewContracts,
 } from '@chorex/firebase-client';
-import { homeTokens, SectionHeading } from '@chorex/ui';
+import { homeTokens, CollectionHeading } from '@chorex/ui';
 export function HomeFamilyOverview({
   home,
   authUid,
+  preview = false,
 }: {
+  preview?: boolean;
   home: ParentFamilyHome;
   authUid: string;
 }) {
+  const router = useRouter();
   const active = useActiveContracts(home.family.id, authUid);
   const review = useReadyForReviewContracts(home.family.id, authUid);
   return (
     <View style={{ gap: 12 }}>
-      <SectionHeading>Family overview</SectionHeading>
+      <CollectionHeading
+        label="See all Family"
+        onSeeAll={preview ? () => router.navigate('/family') : undefined}
+      >
+        Family overview
+      </CollectionHeading>
       <View
         style={{
           padding: 16,
@@ -32,7 +41,7 @@ export function HomeFamilyOverview({
             No child profiles yet.
           </Text>
         ) : (
-          home.children.map((child) => (
+          (preview ? home.children.slice(0, 2) : home.children).map((child) => (
             <View
               key={child.uid}
               style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}

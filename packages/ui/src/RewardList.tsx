@@ -1,9 +1,9 @@
+import { Button } from './Button';
 import { View } from 'react-native';
 import type { EarnedReward, UserProfile } from '@chorex/domain';
 import { FormMessage } from './FormMessage';
-import { CountBadge, DesignText, homeTokens, SectionHeading } from './Home';
-import { SurfaceCard } from './OfferTerms';
-import { OfferOutcome } from './OfferTerms';
+import { CountBadge, DesignText, homeTokens, CollectionHeading } from './Home';
+import { SurfaceCard, OfferOutcome } from './OfferTerms';
 import { RewardCard } from './RewardPresentation';
 export function RewardList({
   title,
@@ -15,7 +15,13 @@ export function RewardList({
   onSelect,
   childNames = {},
   viewer = 'CHILD',
+  preview = false,
+  onSeeAll,
+  onRetry,
 }: {
+  preview?: boolean;
+  onSeeAll?: () => void;
+  onRetry?: () => void;
   title: string;
   empty: string;
   loading: boolean;
@@ -26,27 +32,40 @@ export function RewardList({
   childNames?: Readonly<Record<string, string>>;
   viewer?: UserProfile['accountType'];
 }) {
+  const visible = preview
+    ? (viewer === 'CHILD'
+        ? [
+            ...rewards.filter(
+              (reward) => reward.status === 'AWAITING_CHILD_CONFIRMATION',
+            ),
+            ...rewards.filter(
+              (reward) => reward.status !== 'AWAITING_CHILD_CONFIRMATION',
+            ),
+          ]
+        : rewards
+      ).slice(0, 2)
+    : rewards;
   const groups =
-    viewer === 'CHILD'
+    viewer === 'CHILD' && !preview
       ? [
           {
             label: 'Confirm receipt',
-            rewards: rewards.filter(
+            rewards: visible.filter(
               (reward) => reward.status === 'AWAITING_CHILD_CONFIRMATION',
             ),
           },
           {
             label: 'Waiting for Parent',
-            rewards: rewards.filter(
+            rewards: visible.filter(
               (reward) => reward.status === 'PENDING_FULFILLMENT',
             ),
           },
           {
             label: 'Received',
-            rewards: rewards.filter((reward) => reward.status === 'FULFILLED'),
+            rewards: visible.filter((reward) => reward.status === 'FULFILLED'),
           },
         ].filter((group) => group.rewards.length > 0)
-      : [{ label: undefined, rewards }];
+      : [{ label: undefined, rewards: visible }];
   return (
     <SurfaceCard>
       <View
@@ -57,7 +76,9 @@ export function RewardList({
           gap: homeTokens.spacing.small,
         }}
       >
-        <SectionHeading>{title}</SectionHeading>
+        <CollectionHeading label="See all Rewards" onSeeAll={onSeeAll}>
+          {title}
+        </CollectionHeading>
         <CountBadge count={rewards.length} />
       </View>
       {loading ? (
@@ -69,7 +90,12 @@ export function RewardList({
         </DesignText>
       ) : null}
       {error ? (
-        <FormMessage message="Your rewards could not be loaded. Reopen this screen to try again." />
+        <>
+          <FormMessage message="Your rewards could not be loaded. Try again." />
+          {onRetry ? (
+            <Button label="Try Rewards again" onPress={onRetry} />
+          ) : null}
+        </>
       ) : null}
       {fromCache ? (
         <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>

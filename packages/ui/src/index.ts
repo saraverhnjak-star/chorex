@@ -57,3 +57,9 @@ export {
   RewardFulfillmentProgress,
   rewardStatusLabel,
 } from './RewardPresentation';
+
+export {
+  NavigationFrame,
+  CollectionHeading,
+  type NavigationItem,
+} from './Home';
