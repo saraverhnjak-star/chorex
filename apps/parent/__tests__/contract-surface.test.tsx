@@ -343,7 +343,7 @@ it('approval confirms deliberately, guards duplicate taps, waits for receipt and
   ).not.toBeOnTheScreen();
   expect(
     screen.getByText(
-      'You approved this agreement. The reward is earned and still needs to be fulfilled.',
+      'You approved this agreement. The reward is earned. Check Rewards for delivery and receipt details.',
     ),
   ).toBeOnTheScreen();
 });

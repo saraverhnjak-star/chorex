@@ -100,4 +100,6 @@ Evidence: [iPhone picker](design/reward-icon-selection/iphone-picker.png), [coun
 
 ## Preserved boundaries
 
+2026-10-08 follow-up: the [final Phase 5.5 Design & UX audit](PHASE_5_5_FINAL_DESIGN_UX_AUDIT.md) completed representative interactive SE composer/picker checks at ordinary and accessibility-medium text, including manual selection and RewardType reset, plus larger-text Parent counteroffer preservation/review. The earlier failed observation above remains historical; the new evidence closes that UI gap without claiming a new native server round trip. Temporary preview code was removed.
+
 No unrelated lifecycle, authorization, Firestore rules/indexes, notification behavior, domain command capability, app routing, dependency or native config was changed. Approval remains separate from delivery and Child receipt confirmation. No commit, push or deployment.

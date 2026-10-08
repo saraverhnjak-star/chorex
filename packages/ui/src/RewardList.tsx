@@ -92,7 +92,11 @@ export function RewardList({
           <>
             <FormMessage message="Your rewards could not be loaded. Try again." />
             {onRetry ? (
-              <Button label="Try Rewards again" onPress={onRetry} />
+              <Button
+                variant="outline"
+                label="Try Rewards again"
+                onPress={onRetry}
+              />
             ) : null}
           </>
         ) : null}
@@ -146,7 +150,11 @@ export function RewardList({
         <>
           <FormMessage message="Your rewards could not be loaded. Try again." />
           {onRetry ? (
-            <Button label="Try Rewards again" onPress={onRetry} />
+            <Button
+              variant="outline"
+              label="Try Rewards again"
+              onPress={onRetry}
+            />
           ) : null}
         </>
       ) : null}

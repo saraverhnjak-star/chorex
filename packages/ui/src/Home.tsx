@@ -232,7 +232,7 @@ export function HomeHeader({
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Family profile"
+        accessibilityLabel={child ? 'Settings' : 'Family profile'}
         onPress={() => navigate(child ? 'more' : 'family')}
         style={s.avatar}
       >

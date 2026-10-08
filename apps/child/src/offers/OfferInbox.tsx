@@ -26,7 +26,7 @@ import {
   Button,
   FormMessage,
   TextField,
-  amberAuroraColors,
+  homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import {
@@ -325,7 +325,7 @@ export function OfferInbox({
             className="text-home-muted"
             style={dynamicType.body}
           >
-            Agreements waiting for your response.
+            Offers waiting for your response.
           </Text>
         ) : null}
       </View>
@@ -355,7 +355,7 @@ export function OfferInbox({
         >
           <ActivityIndicator
             accessibilityLabel="Loading offers"
-            color={amberAuroraColors.primaryPressed}
+            color={homeTokens.coral}
           />
           <Text
             allowFontScaling={false}
@@ -464,6 +464,7 @@ export function OfferInbox({
                         Make a counteroffer
                       </Text>
                       <Text
+                        allowFontScaling={false}
                         className="text-home-muted"
                         style={dynamicType.small}
                       >

@@ -198,8 +198,8 @@ export function ApproveContractAction({
           className="text-home-muted"
           style={styles.body}
         >
-          You approved this agreement. The reward is earned and still needs to
-          be fulfilled.
+          You approved this agreement. The reward is earned. Check Rewards for
+          delivery and receipt details.
         </Text>
       ) : confirmed ? (
         <Text

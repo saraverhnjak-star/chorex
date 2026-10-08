@@ -67,7 +67,7 @@ export function ContractSummary({
           : status === 'CHANGES_REQUESTED'
             ? 'Your turn · Address the feedback, then resubmit. Your recorded progress is preserved.'
             : status === 'APPROVED'
-              ? 'Your Parent approved this agreement. Your reward is earned and waiting to be fulfilled.'
+              ? 'Your Parent approved this agreement. Your reward is earned. Check Rewards for delivery and receipt details.'
               : undefined
       : status === 'ACTIVE'
         ? `${participantName ?? 'Your Child'} is working on this agreement.`

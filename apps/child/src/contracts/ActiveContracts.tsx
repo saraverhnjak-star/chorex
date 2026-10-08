@@ -60,7 +60,11 @@ function ActiveContractsContent({
         <>
           <FormMessage message="Your Contracts could not be loaded. Try again." />
           {onRetry ? (
-            <Button label="Try Contracts again" onPress={onRetry} />
+            <Button
+              variant="outline"
+              label="Try Contracts again"
+              onPress={onRetry}
+            />
           ) : null}
         </>
       ) : null}

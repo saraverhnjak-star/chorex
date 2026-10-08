@@ -18,7 +18,6 @@ import {
   NotificationPermissionCard,
   FormMessage,
   TextField,
-  amberAuroraColors,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { PendingRewards } from '../rewards/PendingRewards';
@@ -242,10 +241,10 @@ function ParentSurfaceContent({
         />
 
         {familyState.status === 'loading' ? (
-          <View className="flex-1 items-center justify-center py-16">
+          <View className="items-center py-6">
             <ActivityIndicator
               accessibilityLabel="Loading your Parent profile"
-              color={amberAuroraColors.primaryPressed}
+              color={homeTokens.coral}
               size="large"
             />
             <Text
@@ -469,13 +468,7 @@ function ParentSurfaceContent({
                 {area === 'family' ? (
                   <View>
                     <View className="rounded-3xl border border-home-border bg-home-surface p-5">
-                      <Text
-                        allowFontScaling={false}
-                        className="font-bold text-home-text"
-                        style={dynamicType.title}
-                      >
-                        Children
-                      </Text>
+                      <SectionHeading>Children</SectionHeading>
                       {familyState.home.children.length === 0 ? (
                         <Text
                           allowFontScaling={false}

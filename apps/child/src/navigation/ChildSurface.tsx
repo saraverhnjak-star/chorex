@@ -16,7 +16,7 @@ import {
   Screen,
   EntryHeading,
   TextField,
-  amberAuroraColors,
+  homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { EarnedRewards } from '../rewards/EarnedRewards';
@@ -114,10 +114,10 @@ function ChildSurfaceContent({
             }
           />
           {familyState.status === 'loading' ? (
-            <View className="items-center py-12">
+            <View className="items-center py-6">
               <ActivityIndicator
                 accessibilityLabel="Loading your Child profile"
-                color={amberAuroraColors.primaryPressed}
+                color={homeTokens.coral}
                 size="large"
               />
               <Text

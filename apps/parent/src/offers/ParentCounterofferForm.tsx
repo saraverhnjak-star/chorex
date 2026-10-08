@@ -152,14 +152,22 @@ export function ParentCounterofferForm({
       >
         {proposal ? 'Review your counteroffer' : 'Edit counteroffer terms'}
       </Text>
-      <Text className="text-home-muted" style={dynamicType.small}>
+      <Text
+        allowFontScaling={false}
+        className="text-home-muted"
+        style={dynamicType.small}
+      >
         Your changes become a new proposal for the Child to review.
       </Text>
       <FormMessage message={error} />
       {proposal ? (
         <>
           <ProposalTerms revision={proposal} author="Your new proposal" />
-          <Text className="text-home-muted" style={dynamicType.body}>
+          <Text
+            allowFontScaling={false}
+            className="text-home-muted"
+            style={dynamicType.body}
+          >
             The child will need to agree to this new proposal.
           </Text>
           <Button

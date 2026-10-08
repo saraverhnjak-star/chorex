@@ -17,7 +17,7 @@ import {
   HomeListRow,
   Button,
   FormMessage,
-  amberAuroraColors,
+  homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import {
@@ -237,7 +237,7 @@ export function ParentNegotiationInbox({
         <View className="items-center py-6">
           <ActivityIndicator
             accessibilityLabel="Loading counteroffers"
-            color={amberAuroraColors.primaryPressed}
+            color={homeTokens.coral}
           />
           <Text
             allowFontScaling={false}
@@ -335,6 +335,7 @@ export function ParentNegotiationInbox({
                     ) : confirmation === identity ? (
                       <View className="gap-3">
                         <Text
+                          allowFontScaling={false}
                           accessibilityLiveRegion="polite"
                           className="text-home-text"
                           style={dynamicType.body}

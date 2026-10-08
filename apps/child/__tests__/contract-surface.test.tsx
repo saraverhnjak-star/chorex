@@ -575,7 +575,7 @@ it('realtime approval communicates an earned, pending reward without execution a
   expect(screen.getByLabelText('Contract status: APPROVED')).toBeOnTheScreen();
   expect(
     screen.getByText(
-      'Your Parent approved this agreement. Your reward is earned and waiting to be fulfilled.',
+      'Your Parent approved this agreement. Your reward is earned. Check Rewards for delivery and receipt details.',
     ),
   ).toBeOnTheScreen();
   expect(

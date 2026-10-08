@@ -176,6 +176,8 @@ Selecting the same winning bid twice creates one contract only.
 
 This phase may be executed before optional Phase 6. It is required before a public production release even if auctions remain deferred.
 
+Phase 5.5 design acceptance is **PASS** following the [final Design & UX consistency audit](PHASE_5_5_FINAL_DESIGN_UX_AUDIT.md), including representative small-screen/larger-text observations and ADR-046/047 presentation checks. Phase 7 may begin. Phase 5 native/push acceptance remains **PARTIAL** with its outstanding observations tracked separately; this design verdict does not certify production release readiness.
+
 Build:
 
 - App Check enforcement;
