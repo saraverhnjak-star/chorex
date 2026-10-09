@@ -1,3 +1,5 @@
 # Shared configuration
 
 The public `tsconfig.base.json` entry preserves strict TypeScript settings. The module exports the development project ID and validates explicit emulator mode, local/private IPv4 host, and ports from 1 to 65535. App composition reads Expo environment variables; configuration itself has no native or Firebase dependencies.
+
+`crashlytics.cjs` shares one native/runtime collection policy: emulator/local/test OFF, production ON; `EXPO_PUBLIC_CRASHLYTICS_VALIDATION=true` is a dedicated development-project opt-in. Production EAS profiles reject missing/non-production Firebase mode, and production rejects validation opt-in. `withCrashlytics.cjs` uses Expo's existing config-plugin API to generate each app's ignored `firebase.json` during prebuild and validate its native Firebase app registration. That generated file is separate from the backend Firebase CLI configuration at repository root. Rebuild after policy changes; remove validation opt-in and reinstall a normal development binary afterward. Do not reuse validation binaries as production artifacts.

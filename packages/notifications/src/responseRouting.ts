@@ -39,6 +39,7 @@ function responseParts(response: unknown, defaultActionIdentifier: string) {
 // One instance per app JS process: no domain cache or persisted navigation history.
 export function createNotificationResponseCoordinator(
   defaultActionIdentifier: string,
+  reportUnexpectedError?: (error: unknown) => void,
 ) {
   const consumed = new Set<string>();
   let readiness: NotificationRoutingReadiness = {
@@ -66,7 +67,8 @@ export function createNotificationResponseCoordinator(
     // Consume before navigation so reentrant renders cannot deliver it twice.
     try {
       sink(intent);
-    } catch {
+    } catch (error) {
+      reportUnexpectedError?.(error);
       /* No navigation retry loop or payload logging. */
     }
   }

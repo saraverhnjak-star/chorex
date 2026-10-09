@@ -1,3 +1,16 @@
+import {
+  ClientErrorFallback,
+  Screen,
+  homeTokens,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
+import {
+  reportBoundaryError,
+  recordOperationalError,
+  setObservabilityContext,
+  routeCategory,
+} from '@chorex/firebase-client/observability';
+import type { ErrorBoundaryProps } from 'expo-router';
 import { AppNavigation } from '../src/navigation/AppNavigation';
 import { useEffect, useState } from 'react';
 import {
@@ -7,15 +20,30 @@ import {
 } from '@chorex/notifications';
 import '../global.css';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { Stack, useRouter, useRootNavigationState } from 'expo-router';
+import {
+  Stack,
+  useRouter,
+  useRootNavigationState,
+  usePathname,
+} from 'expo-router';
 import { resolveChildNotificationRoute } from '../src/notifications/routing';
-import { Screen, homeTokens, useDynamicTypeStyles } from '@chorex/ui';
 import { configureFirebase } from '../src/firebase';
 import { ChildSessionProvider, useChildSession } from '../src/auth/session';
 
 function ChildNavigator() {
   const session = useChildSession();
   const router = useRouter();
+  const pathname = usePathname();
+  useEffect(
+    () =>
+      setObservabilityContext({
+        routeCategory:
+          !session.user && pathname === '/'
+            ? 'PAIRING'
+            : routeCategory(pathname),
+      }),
+    [pathname, session.user],
+  );
   const routerReady = Boolean(useRootNavigationState()?.key);
   useEffect(() => {
     configureForegroundNotifications();
@@ -105,7 +133,12 @@ export default function RootLayout() {
         () => {
           if (active) setBootstrap('ready');
         },
-        () => {
+        (error) => {
+          recordOperationalError(
+            error,
+            'bootstrap',
+            'FIREBASE_BOOTSTRAP_FAILED',
+          );
           if (active) setBootstrap('error');
         },
       );
@@ -142,4 +175,8 @@ export default function RootLayout() {
       <ChildNavigator />
     </ChildSessionProvider>
   );
+}
+
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <ClientErrorFallback {...props} report={reportBoundaryError} />;
 }

@@ -1,3 +1,4 @@
+import { recordOperationalError } from '@chorex/firebase-client/observability';
 import {
   createNotificationResponseCoordinator,
   listenForNotificationResponsesWithDependencies,
@@ -65,6 +66,12 @@ function normalizePermission(
 }
 
 const defaultDependencies: NotificationRegistrationDependencies = {
+  reportUnexpectedError: (error) =>
+    recordOperationalError(
+      error,
+      'pushRegistration',
+      'PUSH_REGISTRATION_FAILED',
+    ),
   getAuthenticatedUid: () => getAuth(getApp()).currentUser?.uid ?? null,
   getInstallationId: () => SecureStore.getItemAsync(installationIdKey),
   setInstallationId: (installationId) =>
@@ -96,7 +103,12 @@ const defaultDependencies: NotificationRegistrationDependencies = {
         ),
         new Promise<never>((_, reject) => {
           timeout = setTimeout(
-            () => reject(new Error('TOKEN_TIMEOUT')),
+            () =>
+              reject(
+                Object.assign(new Error('TOKEN_TIMEOUT'), {
+                  code: 'NETWORK_UNAVAILABLE',
+                }),
+              ),
             15_000,
           );
         }),
@@ -156,6 +168,12 @@ export {
 
 const responseCoordinator = createNotificationResponseCoordinator(
   Notifications.DEFAULT_ACTION_IDENTIFIER,
+  (error) =>
+    recordOperationalError(
+      error,
+      'notificationRouting',
+      'NOTIFICATION_ROUTING_FAILED',
+    ),
 );
 export function updateNotificationRoutingReadiness(
   readiness: NotificationRoutingReadiness,

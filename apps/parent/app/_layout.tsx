@@ -1,3 +1,16 @@
+import {
+  ClientErrorFallback,
+  Screen,
+  homeTokens,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
+import {
+  reportBoundaryError,
+  recordOperationalError,
+  setObservabilityContext,
+  routeCategory,
+} from '@chorex/firebase-client/observability';
+import type { ErrorBoundaryProps } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   configureForegroundNotifications,
@@ -6,9 +19,13 @@ import {
 } from '@chorex/notifications';
 import '../global.css';
 import { ActivityIndicator, Text, View } from 'react-native';
-import { Stack, useRouter, useRootNavigationState } from 'expo-router';
+import {
+  Stack,
+  useRouter,
+  useRootNavigationState,
+  usePathname,
+} from 'expo-router';
 import { resolveParentNotificationRoute } from '../src/notifications/routing';
-import { Screen, homeTokens, useDynamicTypeStyles } from '@chorex/ui';
 import { configureFirebase } from '../src/firebase';
 import { ParentSessionProvider, useParentSession } from '../src/auth/session';
 
@@ -66,6 +83,11 @@ function SessionErrorScreen() {
 function ParentNavigator() {
   const session = useParentSession();
   const router = useRouter();
+  const pathname = usePathname();
+  useEffect(
+    () => setObservabilityContext({ routeCategory: routeCategory(pathname) }),
+    [pathname],
+  );
   const routerReady = Boolean(useRootNavigationState()?.key);
   useEffect(() => {
     configureForegroundNotifications();
@@ -113,7 +135,12 @@ export default function RootLayout() {
         () => {
           if (active) setBootstrap('ready');
         },
-        () => {
+        (error) => {
+          recordOperationalError(
+            error,
+            'bootstrap',
+            'FIREBASE_BOOTSTRAP_FAILED',
+          );
           if (active) setBootstrap('error');
         },
       );
@@ -128,4 +155,8 @@ export default function RootLayout() {
       <ParentNavigator />
     </ParentSessionProvider>
   );
+}
+
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <ClientErrorFallback {...props} report={reportBoundaryError} />;
 }

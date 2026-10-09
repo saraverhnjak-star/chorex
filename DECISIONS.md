@@ -1736,7 +1736,7 @@ The MVP should default to the simplest usable model unless user research indicat
 
 ## OPEN-007 — App-Level Analytics and Crash Reporting
 
-Crashlytics is expected to be useful.
+Crash reporting is RESOLVED by ADR-049: Firebase Crashlytics is adopted for both mobile apps. Product analytics and its event taxonomy remain intentionally OPEN / DEFERRED.
 
 The analytics solution and exact event taxonomy should be chosen later, before production release rather than during initial bootstrap.
 
@@ -1955,3 +1955,19 @@ Local emulator development uses the supported native debug provider only in a de
 Explicit production mode requires a release JS build, a separate expected Firebase project ID matching the native Firebase app, and environment-supplied native files; the development project and emulator endpoints are rejected. Existing emulator mode cannot run in release builds. This enables a guarded production bootstrap without supplying production identities/configuration or changing Console settings.
 
 Integration and monitoring precede enforcement. This slice does not enable Firestore Console enforcement or callable `enforceAppCheck`. A later explicitly approved rollout must validate both binaries and the pre-auth `redeemPairingSession` path, then configure per-callable v2 enforcement and Firestore service enforcement. App Check is not Auth, membership/role authorization, rate limiting, individual Child-device session revocation or an OPEN-014 resolution. Storage is unused and receives no enforcement configuration.
+
+# ADR-049 — Privacy-Minimized Mobile Crash Reporting
+
+**Status:** Accepted
+
+**Extends:** Technical Architecture sections 3/13 and Security Model section 12. Resolves only the crash-reporting portion of OPEN-007; analytics vendor, event taxonomy and user-behavior tracking remain OPEN / DEFERRED.
+
+Parent and Child adopt `@react-native-firebase/crashlytics` 26.4.0, matching their existing native Firebase SDK modules. A small adapter in `packages/firebase-client` owns initialization, bounded context, sanitized non-fatal reporting and boundary reports. Screens do not call Crashlytics directly. The SDK owns uncaught JS/native handling; ChoreX does not install another global exception handler. Expo Router's root ErrorBoundary preserves retry/recovery and records caught render failures once as non-fatal boundary errors (a caught error is not a native fatal crash). SDK exception-handler chaining is disabled to avoid duplicate fatal reports.
+
+Collection defaults OFF for emulator/development/test builds, including release-mode local bundles. Production mode defaults ON with the guarded production Firebase project/native-file selection from ADR-048. A dedicated validation build may explicitly enable collection only against the development project; it must be rebuilt/reinstalled and must not expose permanent validation UI. Native RN Firebase configuration is generated during prebuild from the same environment policy as the JS bootstrap. Observability startup is cached and fail-soft; it does not wait for App Check tokens or block app startup. Central native/runtime policy leaves room for later privacy requirements; no new consent/settings UI is decided here. The installed iOS SDK persists collection overrides for cold startup, so native flags and restart/rebuild are required; a JS setter alone is not an immediate native collection kill switch.
+
+No application-level user ID is set. Do not call setUserId with UID, family ID, email or a hashed replacement. SDK installation/session identifiers remain SDK-managed. Allowed custom context is app variant, bundled app/build version, platform, environment, authenticated boolean, route category and an allowlisted operation. No entity IDs or application content are attached. Prohibited data includes Child/Parent/family names, emails, Offer/task/Reward titles/descriptions, review notes, free text, Auth/App Check/push tokens, pairing codes/tokens/session IDs, request payloads, credentials, proof URLs and Firestore documents. Crashlytics is not a general logging sink.
+
+Expected domain/auth/permission/stale-state/offline/cancellation outcomes remain UI-only. Only allowlisted unexpected normalized failures and malformed data/invariants are eligible. Non-fatal reports contain a new categorical Error with an application frame-only stack; original SDK messages, URLs, payloads and arbitrary error properties are not forwarded. Automatic native/uncaught SDK crash reports can include SDK-generated messages/stacks; application code must never construct sensitive errors, and native receipt/privacy inspection is a release gate. Sparse breadcrumbs contain only fixed bootstrap/auth categories. No Firebase Analytics, session replay, performance monitoring or user-behavior instrumentation is added.
+
+Privacy/store disclosures, actual Console fatal/non-fatal receipt, JS stack reconstruction and native symbols must be verified before public release. Integration is not proof of symbolication or Console delivery. App Check enforcement remains OFF; accessibility and Phase 5 verification debt remain independent.

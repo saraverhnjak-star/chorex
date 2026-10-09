@@ -78,3 +78,5 @@ export {
 export { RewardIconPicker } from './RewardIconPicker';
 
 export { FocusHeading, announceAction } from './accessibility';
+
+export { ClientErrorFallback } from './ClientErrorFallback';

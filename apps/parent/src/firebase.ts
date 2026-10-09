@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+import { initializeObservability } from '@chorex/firebase-client/observability';
 import { Platform } from 'react-native';
 import { initializeFirebase } from '@chorex/firebase-client';
 
@@ -7,6 +9,19 @@ export function configureFirebase() {
       'Firebase development setup requires a native iOS or Android client.',
     );
   }
+  void initializeObservability({
+    appVariant: 'PARENT',
+    platform: Platform.OS,
+    mode: process.env.EXPO_PUBLIC_FIREBASE_MODE,
+    validation: process.env.EXPO_PUBLIC_CRASHLYTICS_VALIDATION,
+    developmentBuild: __DEV__,
+    appVersion: Constants.expoConfig?.version,
+    buildVersion:
+      Platform.OS === 'ios'
+        ? Constants.expoConfig?.ios?.buildNumber
+        : String(Constants.expoConfig?.android?.versionCode ?? ''),
+    nativePolicy: Constants.expoConfig?.extra?.observability,
+  });
   return initializeFirebase(
     {
       mode: process.env.EXPO_PUBLIC_FIREBASE_MODE,

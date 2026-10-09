@@ -44,3 +44,7 @@ firebase-debug.*.log
 /packages/domain/lib/
 ui-debug.log
 firestore-debug.log
+
+# Generated RN Firebase client policy (Expo prebuild)
+apps/parent/firebase.json
+apps/child/firebase.json

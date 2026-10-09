@@ -1,3 +1,4 @@
+import { recordOperationalError } from './observabilityCore';
 import {
   contractReviewSchema,
   type ContractReview,
@@ -26,7 +27,10 @@ export class ContractReadError extends Error {
   }
 }
 export function translateContractReadError(error: unknown): ContractReadError {
-  if (error instanceof ContractReadError) return error;
+  if (error instanceof ContractReadError) {
+    recordOperationalError(error, 'contractRead', error.code);
+    return error;
+  }
   const code =
     typeof error === 'object' && error !== null && 'code' in error
       ? String(error.code)
@@ -35,6 +39,7 @@ export function translateContractReadError(error: unknown): ContractReadError {
     return new ContractReadError('FORBIDDEN');
   if (code.endsWith('unavailable'))
     return new ContractReadError('NETWORK_UNAVAILABLE');
+  recordOperationalError(error, 'contractRead', 'READ_FAILED');
   return new ContractReadError('READ_FAILED');
 }
 function iso(value: unknown): string {

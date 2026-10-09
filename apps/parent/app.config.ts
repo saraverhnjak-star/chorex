@@ -1,8 +1,14 @@
+import { crashlyticsPolicy } from '@chorex/config/crashlytics';
 import type { ExpoConfig } from 'expo/config';
 
 // Temporary local-development identifiers; not production identity decisions.
 const easProjectId = process.env.EXPO_PUBLIC_PARENT_EAS_PROJECT_ID?.trim();
 
+const observability = crashlyticsPolicy({
+  mode: process.env.EXPO_PUBLIC_FIREBASE_MODE,
+  validation: process.env.EXPO_PUBLIC_CRASHLYTICS_VALIDATION,
+  buildProfile: process.env.EAS_BUILD_PROFILE,
+});
 const production = process.env.EXPO_PUBLIC_FIREBASE_MODE === 'production';
 const iosFirebaseFile = production
   ? process.env.CHOREX_PARENT_GOOGLE_SERVICES_IOS
@@ -44,15 +50,29 @@ const config: ExpoConfig = {
     package: 'dev.chorex.bootstrap.parent',
     googleServicesFile: androidFirebaseFile,
   },
-  ...(easProjectId
-    ? { extra: { eas: { projectId: easProjectId } } }
-    : undefined),
+  extra: {
+    ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
+    observability: {
+      enabled: observability.enabled,
+      environment: observability.environment,
+    },
+  },
   plugins: [
     'expo-router',
     'expo-dev-client',
     '@react-native-firebase/app',
     '@react-native-firebase/auth',
     '@react-native-firebase/app-check',
+    '@react-native-firebase/crashlytics',
+    [
+      '../../packages/config/withCrashlytics.cjs',
+      {
+        mode: process.env.EXPO_PUBLIC_FIREBASE_MODE,
+        validation: process.env.EXPO_PUBLIC_CRASHLYTICS_VALIDATION,
+        buildProfile: process.env.EAS_BUILD_PROFILE,
+        projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+      },
+    ],
     'expo-notifications',
     'expo-secure-store',
     ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }],

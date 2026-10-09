@@ -5,7 +5,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./observability": "./src/observability.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -16,6 +17,7 @@
     "@react-native-firebase/app": "26.4.0",
     "@react-native-firebase/app-check": "26.4.0",
     "@react-native-firebase/auth": "26.4.0",
+    "@react-native-firebase/crashlytics": "26.4.0",
     "@react-native-firebase/firestore": "26.4.0",
     "@react-native-firebase/functions": "26.4.0",
     "@types/react": "19.2.18",
@@ -25,12 +27,13 @@
   },
   "peerDependencies": {
     "@react-native-firebase/app": "26.4.0",
+    "@react-native-firebase/app-check": "26.4.0",
     "@react-native-firebase/auth": "26.4.0",
     "@react-native-firebase/firestore": "26.4.0",
     "@react-native-firebase/functions": "26.4.0",
     "react": "19.2.3",
     "react-native": "0.86.3",
-    "@react-native-firebase/app-check": "26.4.0"
+    "@react-native-firebase/crashlytics": "26.4.0"
   },
   "dependencies": {
     "@chorex/config": "workspace:*",

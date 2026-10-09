@@ -44,6 +44,7 @@ export function permissionUndetermined(
 }
 
 export interface NotificationRegistrationDependencies {
+  reportUnexpectedError?: (error: unknown) => void;
   readonly getAuthenticatedUid: () => string | null;
   readonly getInstallationId: () => Promise<string | null>;
   readonly setInstallationId: (installationId: string) => Promise<void>;
@@ -153,6 +154,7 @@ export async function registerCurrentDeviceWithDependencies(
     return { status: 'registered' };
   } catch (error) {
     if (error instanceof NotificationRegistrationError) throw error;
+    dependencies.reportUnexpectedError?.(error);
     throw new NotificationRegistrationError(
       notificationRegistrationErrorCodes.registrationFailed,
     );

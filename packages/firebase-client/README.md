@@ -1,6 +1,6 @@
 # Native Firebase client boundary
 
-Provides typed development initialization for native App, Auth, Firestore, and Functions modules, authentication, family/profile reads, Offer commands, and realtime Offer inbox adapters. Configuration is validated before service access, the native project must be `chorex-dev`, and services are routed to emulators. Invalid configuration throws; there is no production fallback.
+Provides typed native Firebase initialization, authentication, family/profile reads, commands and realtime adapters. ADR-048 validates development emulator configuration against `chorex-dev`, or explicitly configured production mode against a separate matching native project. Invalid configuration throws; there is no implicit production fallback.
 
 A process-global registry preserves setup across Fast Refresh. Changing configuration or a partial setup failure requires restarting the development client.
 
@@ -51,3 +51,13 @@ All listeners include metadata changes, expose native fromCache, clear stale sco
 `observeContractReviews(contractScope, callback, onError)` and `useContractReviews(contract, authUid)` read `/contracts/{id}/reviews` with familyId/contractId equality constraints and cycle ascending, without truncating older rounds. The scope uses shared Contract identity fields. Returned shared ContractReview values retain zero-based cycles and normalized native createdAt. The adapter validates family/Contract/Parent author, requires REQUEST_CHANGES feedback, detects duplicate cycles and returns deterministic ascending history. It does not infer a review from current Contract status or constrain history to the current cycle.
 
 The hook handles metadata/cache, error/unsubscribe and stale identity callbacks, retaining its listener through status/cycle changes. Current-feedback APIs and mutation schemas remain unchanged. Both app details present cycle + 1 as Review numbering, with immutable feedback, friendly decision copy and date; no edit/reply/acknowledgement or custom persisted cache exists.
+
+## Crash/error observability (ADR-049)
+
+`@chorex/firebase-client/observability` owns Crashlytics 26.4.0. App bootstrap calls `initializeObservability` once without awaiting it before the guarded Firebase bootstrap. Both app roots export Expo Router boundaries using the shared retry fallback. Caught render errors are non-fatal; the SDK owns uncaught JS/native fatal handling with handler chaining disabled.
+
+`recordOperationalError` accepts only fixed operations and reportable normalized codes. Expected business/auth/permission/offline outcomes are ignored. Unknown operational failures, malformed read models, unexpected push infrastructure and navigation exceptions are sanitized. Reports never forward original messages, payloads, URLs, entity/user IDs or arbitrary properties. Selected frame function names and coordinates survive with a neutral `app.js` filename; retain exact build source maps for manual investigation. Reporting is bounded/deduplicated per operation/code per JS process. Adapter failure never changes normal error mapping or recovery.
+
+Only app variant/version/build, platform/environment, authenticated boolean and route category are custom attributes. There is no `setUserId`, Analytics or user behavior tracking. `setObservabilityContext` reconstructs allowed keys; breadcrumbs are fixed bootstrap/auth transitions only. SDK-generated automatic crash data remains a separate privacy/disclosure review gate.
+
+Native changes require a fresh prebuild/binary. See the [environment, Console and release checklist](../../docs/PHASE_7_SLICE_3_CRASHLYTICS_OBSERVABILITY_ACCEPTANCE.md).

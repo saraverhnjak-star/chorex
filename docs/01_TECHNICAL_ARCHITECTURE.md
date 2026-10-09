@@ -343,6 +343,8 @@ Use:
 - Crashlytics for native crash reporting;
 - GitHub Actions for lint/typecheck/test and optional EAS triggers.
 
+ADR-049 adopts Crashlytics 26.4.0 in both apps through the shared Firebase client observability adapter. Native prebuild and runtime use one collection policy: development/emulator OFF, dedicated development validation opt-in, production ON. Reports use bounded non-identifying categories, no application user ID and no Analytics. OPEN-007 remains open for product analytics. Console receipt and symbolication are release gates.
+
 EAS Update may be introduced later for compatible JS/assets updates. Treat native dependency/config changes as requiring a new binary build.
 
 ## 14. Deferred technology choices

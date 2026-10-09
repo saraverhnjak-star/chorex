@@ -194,6 +194,8 @@ Phase 7 Slice 1 integrates App Check in both native apps and establishes the foc
 
 Phase 7 Slice 2 accessibility implementation and local validation are complete. Native accessibility acceptance remains PARTIAL: representative larger-text layouts were inspected, but audible VoiceOver traversal, native focus behavior and one Accessibility Inspector warning require follow-up. See the [Slice 2 acceptance record](PHASE_7_SLICE_2_ACCESSIBILITY_ACCEPTANCE.md). The next hardening slice may proceed with these gates tracked explicitly.
 
+Phase 7 Slice 3 adopts Crashlytics under ADR-049 and resolves the crash-reporting portion of OPEN-007. Product analytics remains OPEN / DEFERRED. See the [Slice 3 implementation, native evidence and release gates](PHASE_7_SLICE_3_CRASHLYTICS_OBSERVABILITY_ACCEPTANCE.md). Console report receipt and symbolication must be verified before release; existing accessibility and Phase 5 debt remain independent.
+
 ## Phase 8 - Optional proof media
 
 Only if user testing proves it is needed.

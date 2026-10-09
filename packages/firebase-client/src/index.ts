@@ -1,4 +1,10 @@
 import {
+  recordOperationalError,
+  setObservabilityContext,
+  logDiagnosticBreadcrumb,
+  type DiagnosticOperation,
+} from './observabilityCore';
+import {
   reminderPreferenceEnabled,
   reminderPreferenceData,
   pushDeviceMetadataSchema,
@@ -154,6 +160,15 @@ import {
   type FirebaseBootstrapInput,
 } from '@chorex/config/app-check';
 
+function reportClientFailure<T extends { code: string }>(
+  original: unknown,
+  normalized: T,
+  operation: DiagnosticOperation,
+): T {
+  recordOperationalError(original, operation, normalized.code);
+  return normalized;
+}
+
 export type {
   AcceptOfferOutput,
   ChildOfferInboxItem,
@@ -242,12 +257,18 @@ export function initializeFirebase(
     };
     registry.__chorexDevelopmentFirebase = { fingerprint, services };
     return services;
-  })().catch(() => {
-    // SDK errors may contain attestation/request details. Expose only a stable setup code.
-    throw new Error(
-      'FIREBASE_BOOTSTRAP_FAILED: restart the native app and verify configuration.',
-    );
-  });
+  })()
+    .then((services) => {
+      logDiagnosticBreadcrumb('bootstrap_completed');
+      return services;
+    })
+    .catch((error) => {
+      recordOperationalError(error, 'bootstrap', 'FIREBASE_BOOTSTRAP_FAILED');
+      // SDK errors may contain attestation/request details. Expose only a stable setup code.
+      throw new Error(
+        'FIREBASE_BOOTSTRAP_FAILED: restart the native app and verify configuration.',
+      );
+    });
   registry.__chorexFirebaseBootstrap = { fingerprint, ready };
   return ready;
 }
@@ -473,11 +494,16 @@ export function observeAuthState(
   try {
     return firebaseOnAuthStateChanged(
       getInitializedAuth(),
-      (user) => listener(user ? toAuthUser(user) : null),
-      (error) => onError(translateAuthError(error)),
+      (user) => {
+        setObservabilityContext({ authenticated: Boolean(user) });
+        logDiagnosticBreadcrumb(user ? 'authenticated' : 'unauthenticated');
+        listener(user ? toAuthUser(user) : null);
+      },
+      (error) =>
+        onError(reportClientFailure(error, translateAuthError(error), 'auth')),
     );
   } catch (error) {
-    onError(translateAuthError(error));
+    onError(reportClientFailure(error, translateAuthError(error), 'auth'));
     return () => undefined;
   }
 }
@@ -493,7 +519,7 @@ export async function registerWithEmailAndPassword(
     );
     return toAuthUser(result.user);
   } catch (error) {
-    throw translateAuthError(error);
+    throw reportClientFailure(error, translateAuthError(error), 'auth');
   }
 }
 
@@ -508,7 +534,7 @@ export async function signInWithEmailAndPassword(
     );
     return toAuthUser(result.user);
   } catch (error) {
-    throw translateAuthError(error);
+    throw reportClientFailure(error, translateAuthError(error), 'auth');
   }
 }
 
@@ -522,7 +548,7 @@ export async function signInWithChildCustomToken(
     );
     return toAuthUser(result.user);
   } catch (error) {
-    throw translateAuthError(error);
+    throw reportClientFailure(error, translateAuthError(error), 'auth');
   }
 }
 
@@ -530,7 +556,7 @@ export async function signOutCurrentUser(): Promise<void> {
   try {
     await firebaseSignOut(getInitializedAuth());
   } catch (error) {
-    throw translateAuthError(error);
+    throw reportClientFailure(error, translateAuthError(error), 'auth');
   }
 }
 
@@ -664,11 +690,13 @@ async function readCurrentParentProfileProjection(): Promise<ParentProfileProjec
       familyIds: parseFamilyIds(data.familyIds),
     };
   } catch (error) {
-    if (error instanceof FamilyClientError) throw error;
+    if (error instanceof FamilyClientError)
+      throw reportClientFailure(error, error, 'familyRead');
     if (typeof error === 'object' && error !== null && 'issues' in error) {
+      recordOperationalError(error, 'familyRead', 'PROFILE_READ_FAILED');
       throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
     }
-    throw translateFamilyError(error);
+    throw reportClientFailure(error, translateFamilyError(error), 'familyRead');
   }
 }
 
@@ -702,11 +730,13 @@ async function readCurrentChildProfileProjection(): Promise<ChildProfileProjecti
       familyIds: parseFamilyIds(data.familyIds),
     };
   } catch (error) {
-    if (error instanceof FamilyClientError) throw error;
+    if (error instanceof FamilyClientError)
+      throw reportClientFailure(error, error, 'familyRead');
     if (typeof error === 'object' && error !== null && 'issues' in error) {
+      recordOperationalError(error, 'familyRead', 'PROFILE_READ_FAILED');
       throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
     }
-    throw translateFamilyError(error);
+    throw reportClientFailure(error, translateFamilyError(error), 'familyRead');
   }
 }
 
@@ -754,11 +784,13 @@ export async function readCurrentChildFamily(): Promise<ChildFamilyHome> {
       }),
     };
   } catch (error) {
-    if (error instanceof FamilyClientError) throw error;
+    if (error instanceof FamilyClientError)
+      throw reportClientFailure(error, error, 'familyRead');
     if (typeof error === 'object' && error !== null && 'issues' in error) {
+      recordOperationalError(error, 'familyRead', 'PROFILE_READ_FAILED');
       throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
     }
-    throw translateFamilyError(error);
+    throw reportClientFailure(error, translateFamilyError(error), 'familyRead');
   }
 }
 
@@ -860,7 +892,14 @@ function subscribeToOfferInbox<T>(
         ),
       ),
     onItems,
-    (error) => onError(translateOfferInboxError(error)),
+    (error) =>
+      onError(
+        reportClientFailure(
+          error,
+          translateOfferInboxError(error),
+          'offerRead',
+        ),
+      ),
   );
 
   let unsubscribe: () => void;
@@ -868,7 +907,11 @@ function subscribeToOfferInbox<T>(
     unsubscribe = onSnapshot(offersQuery, coordinator.push, coordinator.fail);
   } catch (error) {
     coordinator.stop();
-    throw translateOfferInboxError(error);
+    throw reportClientFailure(
+      error,
+      translateOfferInboxError(error),
+      'offerRead',
+    );
   }
 
   return () => {
@@ -997,11 +1040,13 @@ export async function readCurrentParentFamily(): Promise<ParentFamilyHome | null
         ),
     };
   } catch (error) {
-    if (error instanceof FamilyClientError) throw error;
+    if (error instanceof FamilyClientError)
+      throw reportClientFailure(error, error, 'familyRead');
     if (typeof error === 'object' && error !== null && 'issues' in error) {
+      recordOperationalError(error, 'familyRead', 'PROFILE_READ_FAILED');
       throw new FamilyClientError(familyClientErrorCodes.profileReadFailed);
     }
-    throw translateFamilyError(error);
+    throw reportClientFailure(error, translateFamilyError(error), 'familyRead');
   }
 }
 
@@ -1020,7 +1065,11 @@ export async function createFamily(
     const result = await callable(parsedInput.data);
     return createFamilyOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'createFamily',
+    );
   }
 }
 
@@ -1039,7 +1088,11 @@ export async function createChild(
     const result = await callable(parsedInput.data);
     return createChildOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'createChild',
+    );
   }
 }
 
@@ -1058,7 +1111,11 @@ export async function createOfferDraft(
     const result = await callable(parsedInput.data);
     return createOfferDraftOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'createOfferDraft',
+    );
   }
 }
 
@@ -1077,7 +1134,11 @@ export async function publishOffer(
     const result = await callable(parsedInput.data);
     return publishOfferOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'publishOffer',
+    );
   }
 }
 
@@ -1096,7 +1157,11 @@ export async function acceptOffer(
     const result = await callable(parsedInput.data);
     return acceptOfferOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'acceptOffer',
+    );
   }
 }
 
@@ -1115,7 +1180,11 @@ export async function rejectOffer(
     const result = await callable(parsedInput.data);
     return rejectOfferOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'rejectOffer',
+    );
   }
 }
 
@@ -1134,7 +1203,11 @@ export async function counterOffer(
     const result = await callable(parsedInput.data);
     return counterOfferOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'counterOffer',
+    );
   }
 }
 
@@ -1153,7 +1226,11 @@ export async function createPairingSession(
     const result = await callable(parsedInput.data);
     return createPairingSessionOutputSchema.parse(result.data);
   } catch (error) {
-    throw translateFamilyError(error);
+    throw reportClientFailure(
+      error,
+      translateFamilyError(error),
+      'createPairingSession',
+    );
   }
 }
 
@@ -1172,7 +1249,11 @@ export async function redeemPairingSession(
     const result = await callable(parsedInput.data);
     return redeemPairingSessionOutputSchema.parse(result.data);
   } catch (error) {
-    throw translatePairingError(error);
+    throw reportClientFailure(
+      error,
+      translatePairingError(error),
+      'redeemPairingSession',
+    );
   }
 }
 
@@ -1369,7 +1450,11 @@ export async function recordTaskCompletion(
       throw new ContractClientError(contractClientErrorCodes.unknown);
     return output;
   } catch (error) {
-    throw translateContractCommandError(error);
+    throw reportClientFailure(
+      error,
+      translateContractCommandError(error),
+      'recordTaskCompletion',
+    );
   }
 }
 
@@ -1414,7 +1499,11 @@ export async function submitContractForReview(
       throw new ContractClientError(contractClientErrorCodes.unknown);
     return output;
   } catch (error) {
-    throw translateContractCommandError(error);
+    throw reportClientFailure(
+      error,
+      translateContractCommandError(error),
+      'submitContractForReview',
+    );
   }
 }
 
@@ -1437,7 +1526,11 @@ export async function approveContract(
       throw new ContractClientError(contractClientErrorCodes.unknown);
     return output;
   } catch (error) {
-    throw translateContractCommandError(error);
+    throw reportClientFailure(
+      error,
+      translateContractCommandError(error),
+      'approveContract',
+    );
   }
 }
 
@@ -1460,7 +1553,11 @@ export async function requestContractChanges(
       throw new ContractClientError(contractClientErrorCodes.unknown);
     return output;
   } catch (error) {
-    throw translateContractCommandError(error);
+    throw reportClientFailure(
+      error,
+      translateContractCommandError(error),
+      'requestContractChanges',
+    );
   }
 }
 export function observeCurrentContractReview(
@@ -1558,7 +1655,10 @@ async function executeRewardClientCommand(
       throw new RewardClientError('UNKNOWN_REWARD_FAILURE');
     return output;
   } catch (error) {
-    if (error instanceof RewardClientError) throw error;
+    if (error instanceof RewardClientError) {
+      recordOperationalError(error, command, error.code);
+      throw error;
+    }
     const stable = readCallableDetailsCode(error);
     if (
       stable &&
@@ -1578,6 +1678,7 @@ async function executeRewardClientCommand(
       ].includes(provider ?? '')
     )
       throw new RewardClientError('NETWORK_UNAVAILABLE');
+    recordOperationalError(error, command, 'UNKNOWN_REWARD_FAILURE');
     throw new RewardClientError('UNKNOWN_REWARD_FAILURE');
   }
 }
