@@ -1,0 +1,35 @@
+{
+  "functions": {
+    "source": "../functions",
+    "codebase": "default"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 19099
+    },
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 18080
+    },
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 15001
+    },
+    "hub": {
+      "host": "127.0.0.1",
+      "port": 14400
+    },
+    "logging": {
+      "host": "127.0.0.1",
+      "port": 14500
+    },
+    "ui": {
+      "enabled": false
+    }
+  }
+}

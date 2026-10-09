@@ -1,3 +1,4 @@
+import { requireAccountActive } from './accountDeletionAuthorization';
 import { createHash, randomBytes } from 'node:crypto';
 import {
   createPairingSessionInputSchema,
@@ -166,6 +167,7 @@ export async function executeCreatePairingSession(
 
   const result = await firestore.runTransaction<PairingSessionResult>(
     async (transaction) => {
+      await requireAccountActive(firestore, transaction, actorUid);
       const [
         idempotencySnapshot,
         parentMembershipSnapshot,

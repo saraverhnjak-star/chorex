@@ -184,3 +184,4 @@ export {
   rewardTypeDefaultIcons,
   type RewardIconKey,
 } from './rewardIcons';
+export * from './accountDeletion';

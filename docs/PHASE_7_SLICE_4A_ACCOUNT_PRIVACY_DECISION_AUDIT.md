@@ -1,6 +1,6 @@
 # Phase 7 Slice 4A — Account lifecycle and privacy decision audit
 
-Date: 2026-10-09. Status: **AUDIT COMPLETE; all policy decisions PROPOSED, awaiting explicit approval.** This document changes no runtime behavior. No deletion, Auth revocation, UI, tests, export implementation, commit, push or deployment is authorized by this audit. No new ADR number is allocated.
+Date: 2026-10-09. Status: **AUDIT COMPLETE; decision package subsequently approved as ADR-050.** This audit is a historical decision package; its PROPOSED sections record the original alternatives. Explicit user approval for Slice 4B is now recorded in ADR-050. This audit itself changes no runtime behavior. No deletion, Auth revocation, UI, tests, export implementation, commit, push or deployment is authorized by this audit. No new ADR number is allocated.
 
 ## Authority and evidence
 

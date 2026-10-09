@@ -372,3 +372,9 @@ Verified against current official documentation during this architecture pass:
 - Firestore rules conditions: https://firebase.google.com/docs/firestore/security/rules-conditions
 - Firebase custom authentication: https://firebase.google.com/docs/auth/admin/create-custom-tokens
 - Firebase App Check: https://firebase.google.com/products/app-check
+
+## Administrative account erasure — ADR-050
+
+ADR-050 explicitly authorizes sole-Parent/single-family full-family administrative erasure and safe identity-only incomplete-onboarding deletion. Immutable revisions, completions, reviews, events and reminder/effect dedup records remain immutable during normal operation, but are removed with the family. This replaces any implication that reminder/dedup history survives family deletion permanently. Active obligations are removed without cancellation/approval/fulfillment transitions. OPEN-010/011/014 remain open.
+
+Deletion requires Firebase password reauthentication and a server auth_time within five minutes, server-owned relationship verification, persistent authorization fences and an independent retry-safe worker. Parent Auth is deleted last. Terminal operation metadata is retained seven days, then purged. Shared/ambiguous/multi-family cases fail safely. Parent Privacy & Data explains scope; no standalone Child deletion/export/extra privacy toggles. Installation metadata is retained. Processor diagnostics, offline copies and queued pushes have separate limits and release disclosure gates. See the Phase 7 Slice 4A inventory and ADR-050 for the approved policy.

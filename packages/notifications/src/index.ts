@@ -201,3 +201,21 @@ export {
   useNotificationEducation,
   type DeviceRegistrationLifecycle,
 } from './lifecycle';
+
+export async function abandonDeletedAccountNotifications(): Promise<void> {
+  await registrationCoordinator.abandonDeletedAccount();
+  responseCoordinator.update({
+    authStatus: 'ready',
+    uid: null,
+    routerReady: false,
+  });
+  try {
+    Notifications.clearLastNotificationResponse();
+  } catch {
+    /* Native tray cleanup must not block SDK sign-out. */
+  }
+  await Promise.allSettled([
+    Notifications.dismissAllNotificationsAsync(),
+    Notifications.setBadgeCountAsync(0),
+  ]);
+}

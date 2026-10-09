@@ -1,3 +1,4 @@
+import { familyIsDeleting } from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import {
   reminderPreferenceEnabled,
@@ -37,6 +38,7 @@ export async function eligiblePendingReward(
   if (!parsed.success || rewardId !== contractRewardId(parsed.data.contractId))
     return false;
   const value = parsed.data;
+  if (await familyIsDeleting(db, tx, value.familyId)) return false;
   // IDs from persisted records must still be safe before constructing Admin paths.
   if (
     [value.contractId, value.familyId, value.parentUid, value.childUid].some(

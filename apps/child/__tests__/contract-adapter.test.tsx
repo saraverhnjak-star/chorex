@@ -1,4 +1,5 @@
 import {
+  clearAccountSession,
   upsertCurrentPushDevice,
   saveReminderPreference,
   subscribeReminderPreference,
@@ -44,12 +45,20 @@ const mockListen = jest.fn((_ref, _options, callback, failure) => {
 });
 jest.mock('@react-native-firebase/app-check', () => ({}));
 jest.mock('@react-native-firebase/app', () => ({}));
-jest.mock('@react-native-firebase/auth', () => ({}));
+const mockSignOut = jest.fn(async () => undefined);
+const mockTerminate = jest.fn(async () => undefined);
+const mockClearPersistence = jest.fn(async () => undefined);
+jest.mock('@react-native-firebase/auth', () => ({
+  signOut: () => mockSignOut(),
+}));
 jest.mock('@react-native-firebase/functions', () => ({
   httpsCallable: (service: unknown, name: string) =>
     mockHttpsCallable(service, name),
 }));
 jest.mock('@react-native-firebase/firestore', () => ({
+  terminate: () => mockTerminate(),
+  clearPersistence: () => mockClearPersistence(),
+  getFirestore: () => ({}),
   runTransaction: (
     db: unknown,
     callback: (transaction: typeof mockTransaction) => Promise<void>,
@@ -852,4 +861,23 @@ it('reads missing own preferences as enabled and confirms a role-specific save t
   await expect(saveReminderPreference('other', 'CHILD', false)).rejects.toThrow(
     'AUTH_REQUIRED',
   );
+});
+
+it('account teardown detaches cached listeners, signs out with the SDK, terminates and logically clears persistence', async () => {
+  const stop = observeTasks(
+    'contract-test',
+    () => {},
+    () => {},
+  );
+  await clearAccountSession();
+  expect(mockSignOut).toHaveBeenCalled();
+  expect(mockTerminate).toHaveBeenCalled();
+  expect(mockClearPersistence).toHaveBeenCalled();
+  expect(mockSignOut.mock.invocationCallOrder.at(-1)).toBeLessThan(
+    mockTerminate.mock.invocationCallOrder.at(-1)!,
+  );
+  expect(mockTerminate.mock.invocationCallOrder.at(-1)).toBeLessThan(
+    mockClearPersistence.mock.invocationCallOrder.at(-1)!,
+  );
+  stop();
 });

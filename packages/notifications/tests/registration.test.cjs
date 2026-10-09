@@ -252,3 +252,15 @@ test('failed cleanup leaves Auth valid and retry removes targeting without chang
   assert.equal(f.devices.size, 0);
   assert.equal(f.id, 'installation-1');
 });
+test('deletion teardown drains registration without attempting denied backend cleanup or clearing installation metadata', async () => {
+  const f = fixture();
+  const coordinator = createRegistrationSessionCoordinator(f.dependencies);
+  f.dependencies.deleteDevice = async () => {
+    throw Error('old auth is invalid');
+  };
+  await coordinator.abandonDeletedAccount();
+  await assert.rejects(coordinator.register('CHILD'), {
+    code: 'AUTH_REQUIRED',
+  });
+  assert.equal(f.id, 'installation-1');
+});

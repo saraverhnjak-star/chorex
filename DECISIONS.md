@@ -1971,3 +1971,17 @@ No application-level user ID is set. Do not call setUserId with UID, family ID, 
 Expected domain/auth/permission/stale-state/offline/cancellation outcomes remain UI-only. Only allowlisted unexpected normalized failures and malformed data/invariants are eligible. Non-fatal reports contain a new categorical Error with an application frame-only stack; original SDK messages, URLs, payloads and arbitrary error properties are not forwarded. Automatic native/uncaught SDK crash reports can include SDK-generated messages/stacks; application code must never construct sensitive errors, and native receipt/privacy inspection is a release gate. Sparse breadcrumbs contain only fixed bootstrap/auth categories. No Firebase Analytics, session replay, performance monitoring or user-behavior instrumentation is added.
 
 Privacy/store disclosures, actual Console fatal/non-fatal receipt, JS stack reconstruction and native symbols must be verified before public release. Integration is not proof of symbolication or Console delivery. App Check enforcement remains OFF; accessibility and Phase 5 verification debt remain independent.
+
+# ADR-050 — MVP Account/Family Administrative Deletion and Privacy Surface
+
+**Status:** Accepted (explicit user approval, 2026-10-09).
+
+**Extends:** ADR-016/048/049. Explicitly supersedes post-family-deletion permanent reminder/dedup retention in docs 04/06/07 and clarifies overview/domain/state-machine immutability: history is immutable while a family exists, but removed by full-family administrative erasure. No ordinary task undo, cancellation or expiry semantics change.
+
+The authenticated sole Parent of a single family may erase the account, entire family, all nested/top-level domain/internal data and exclusively owned Child Auth identities. Incomplete onboarding supports safe identity-only deletion. Reject ambiguous/shared/multi-family relationships before destructive writes; no guardian transfer or standalone Child deletion in Slice 4B. Active Offers/Contracts/Rewards are removed directly, never transitioned to CANCELLED/APPROVED/FULFILLED. OPEN-010/011/014 remain open.
+
+Require Firebase email/password reauthentication and server-validated auth_time no more than five minutes old (reject missing/malformed/future values). Passwords pass only through Firebase credential APIs, never through deletion commands/storage/logs. Cleanup is server-authoritative, durable, fenced, idempotent and retry-safe, independent of client presence; Parent Auth is deleted last. Minimal terminal operation/fence metadata is purged after seven days; unresolved operations remain recoverable. No permanent product audit survives erasure.
+
+Parent has a small Privacy & Data screen with concise data/crash/notification disclosures and deletion entry, including pre-family onboarding access. No export, analytics controls, Crashlytics toggle, guardian transfer or independent Child-delete UI. Preserve installation UUID and education metadata; tear down account/session state and logically clear native cache without claiming forensic/remote-offline erasure. Processor crash/log/backup retention is separately disclosed; current Crashlytics has no account UID for selective report deletion.
+
+Independent Child removal applicability, policy/external deletion-request URLs, exception handling, processor retention and legal/store review remain public-release gates. No legal compliance conclusion is made.

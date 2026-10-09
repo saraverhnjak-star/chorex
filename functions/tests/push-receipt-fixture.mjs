@@ -17,6 +17,10 @@ export function receiptDatabase() {
   const doc = (path) => ({
     path,
     id: path.split('/').at(-1),
+    parent: {
+      parent: path.includes('/') ? { id: path.split('/').at(-3) } : null,
+    },
+    delete: async () => records.delete(path),
     collection: (name) => query(`${path}/${name}`),
     get: async () => snapshot(path),
   });
@@ -51,19 +55,25 @@ export function receiptDatabase() {
         ),
       get: async () => {
         let docs = [...records.keys()]
-          .filter(
-            (key) =>
-              key.startsWith(`${path}/`) &&
-              key.split('/').length === path.split('/').length + 1,
+          .filter((key) =>
+            path.startsWith('__group_')
+              ? key.split('/').at(-2) === path.slice(8)
+              : key.startsWith(`${path}/`) &&
+                key.split('/').length === path.split('/').length + 1,
           )
           .map(snapshot)
           .filter((snap) =>
             filters.every(([field, op, value]) =>
-              op === '=='
-                ? snap.data()[field] === value
-                : op === '>'
-                  ? number(snap.data()[field]) > number(value)
-                  : number(snap.data()[field]) <= number(value),
+              op === 'array-contains'
+                ? Array.isArray(snap.data()[field]) &&
+                  snap.data()[field].includes(value)
+                : op === '=='
+                  ? snap.data()[field] === value
+                  : op === '>'
+                    ? number(
+                        field === '__name__' ? snap.id : snap.data()[field],
+                      ) > number(field === '__name__' ? value.id : value)
+                    : number(snap.data()[field]) <= number(value),
             ),
           );
         if (sort)
@@ -88,6 +98,12 @@ export function receiptDatabase() {
     records,
     doc,
     collection: query,
+    collectionGroup: (name) => query(`__group_${name}`),
+    recursiveDelete: async (ref) => {
+      for (const path of [...records.keys()])
+        if (path === ref.path || path.startsWith(`${ref.path}/`))
+          records.delete(path);
+    },
     batch: () => {
       const changes = [];
       return {
@@ -106,7 +122,7 @@ export function receiptDatabase() {
             ),
           );
         const tx = {
-          get: async (ref) => snapshot(ref.path),
+          get: async (ref) => (ref.path ? snapshot(ref.path) : ref.get()),
           set: (ref, value) => write(ref, value, false),
           update: (ref, value) => write(ref, value, true),
           create: (ref, value) => {

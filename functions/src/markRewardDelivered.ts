@@ -1,3 +1,4 @@
+import { requireAccountActive } from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
 import {
@@ -65,6 +66,7 @@ async function executeRewardTransition(
     idempotency = db.doc(`idempotency/${identity}`),
     activity = db.doc(`activityEvents/activity_${identity}`);
   return db.runTransaction(async (tx) => {
+    await requireAccountActive(db, tx, actorUid);
     const [snapshot, receipt] = await Promise.all([
       tx.get(ref),
       tx.get(idempotency),

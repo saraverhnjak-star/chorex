@@ -1,3 +1,4 @@
+import { requireAccountActive } from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import {
   approveContractInputSchema,
@@ -71,6 +72,7 @@ export async function executeParentReviewDecision(
   const ref = firestore.doc(`contracts/${input.contractId}`);
   const idempotency = firestore.doc(`idempotency/${identity}`);
   return firestore.runTransaction(async (tx) => {
+    await requireAccountActive(firestore, tx, actorUid);
     const [snapshot, receipt] = await Promise.all([
       tx.get(ref),
       tx.get(idempotency),

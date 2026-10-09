@@ -1,3 +1,4 @@
+import { familyIsDeleting } from './accountDeletionAuthorization';
 import { reminderPreferenceEnabled } from '@chorex/domain';
 import { createHash } from 'node:crypto';
 import { Timestamp, type Firestore } from 'firebase-admin/firestore';
@@ -40,6 +41,11 @@ export async function generateContractDeadlineReminders(
         ]);
         const contract = snapshot.data();
         const commitTime = clock();
+        if (
+          typeof contract?.familyId === 'string' &&
+          (await familyIsDeleting(firestore, tx, contract.familyId))
+        )
+          return false;
         if (
           existing.exists ||
           !contract ||

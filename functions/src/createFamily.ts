@@ -1,3 +1,4 @@
+import { requireAccountActive } from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import {
   createFamilyInputSchema,
@@ -125,6 +126,7 @@ export async function executeCreateFamily(
   );
 
   const familyId = await firestore.runTransaction(async (transaction) => {
+    await requireAccountActive(firestore, transaction, uid);
     const idempotencySnapshot = await transaction.get(idempotencyReference);
     if (idempotencySnapshot.exists) {
       const record = parseIdempotencyRecord(idempotencySnapshot.data());

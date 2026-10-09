@@ -8,7 +8,7 @@ import {
 import { ChildSurface as HomeScreen } from '../src/navigation/ChildSurface';
 import { AppNavigation } from '../src/navigation/AppNavigation';
 import { ChildSessionProvider } from '../src/auth/session';
-import { signOutCurrentUser } from '@chorex/firebase-client';
+import { clearAccountSession } from '@chorex/firebase-client';
 
 let mockAuthUser: { uid: string; email: null } | null = null;
 let mockAuthListener: ((user: typeof mockAuthUser) => void) | undefined;
@@ -179,6 +179,8 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('@chorex/firebase-client', () => ({
+  observeAccountDeletion: () => () => {},
+  clearAccountSession: jest.fn(async () => undefined),
   useContractDetail: () => ({ status: 'loading' }),
   useReminderPreference: () => ({
     state: { enabled: true, busy: false },
@@ -213,6 +215,7 @@ jest.mock('@chorex/firebase-client', () => ({
 }));
 
 jest.mock('@chorex/notifications', () => ({
+  abandonDeletedAccountNotifications: async () => {},
   useNotificationEducation: () => {
     const [showEducation, setShowEducation] = mockUseState(true);
     return {
@@ -347,7 +350,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   );
 
   fireEvent.press(screen.getByRole('button', { name: 'Sign out' }));
-  await waitFor(() => expect(signOutCurrentUser).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(clearAccountSession).toHaveBeenCalledTimes(1));
   expect(mockRemoveCurrentDeviceRegistration).toHaveBeenCalledTimes(1);
   firstLaunch.unmount();
   const secondLaunch = render(

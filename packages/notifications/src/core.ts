@@ -229,6 +229,10 @@ export function createRegistrationSessionCoordinator(
       inFlight = result;
       return result;
     },
+    async abandonDeletedAccount() {
+      pausedUid = dependencies.getAuthenticatedUid() ?? undefined;
+      await inFlight.catch(() => undefined);
+    },
     async remove() {
       const uid = dependencies.getAuthenticatedUid();
       if (!uid)

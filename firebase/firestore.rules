@@ -2,11 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && !exists(/databases/$(database)/documents/deletionFences/$(request.auth.uid));
     }
 
     function isActiveFamilyMember(familyId) {
       return isSignedIn()
+        && !exists(/databases/$(database)/documents/familyDeletionFences/$(familyId))
         && exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid))
         && get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.status == 'ACTIVE';
     }
@@ -16,6 +18,10 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role == 'PARENT';
     }
 
+    match /deletionFences/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
     match /users/{uid} {
       allow get: if isSignedIn() && request.auth.uid == uid;
       allow list, write: if false;
@@ -42,7 +48,8 @@ service cloud.firestore {
 
       match /devices/{deviceId} {
         function isDeviceOwner() {
-          return isSignedIn() && request.auth.uid == uid;
+          return isSignedIn() && request.auth.uid == uid
+            && exists(/databases/$(database)/documents/users/$(uid));
         }
 
         function hasValidDeviceShape() {

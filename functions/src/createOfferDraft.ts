@@ -1,3 +1,4 @@
+import { requireAccountActive } from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import {
   createOfferDraftInputSchema,
@@ -223,6 +224,7 @@ export async function executeCreateOfferDraft(
   );
 
   await firestore.runTransaction(async (transaction) => {
+    await requireAccountActive(firestore, transaction, actorUid);
     const [idempotencySnapshot, parentSnapshot, childSnapshot] =
       await Promise.all([
         transaction.get(idempotencyReference),

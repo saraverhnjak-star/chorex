@@ -643,6 +643,11 @@ function ParentSurfaceContent({
             {area === 'more' ? (
               <SettingsSection title="Account actions">
                 <SettingsRow
+                  title="Privacy & Data"
+                  icon="shield-checkmark-outline"
+                  onPress={() => router.push('/privacy')}
+                />
+                <SettingsRow
                   last
                   title="Sign out"
                   showChevron={false}
@@ -655,12 +660,19 @@ function ParentSurfaceContent({
                 />
               </SettingsSection>
             ) : (
-              <Button
-                label="Sign out"
-                loading={signingOut}
-                onPress={handleSignOut}
-                variant="secondary"
-              />
+              <View className="gap-3">
+                <Button
+                  label="Privacy & Data"
+                  variant="secondary"
+                  onPress={() => router.push('/privacy')}
+                />
+                <Button
+                  label="Sign out"
+                  loading={signingOut}
+                  onPress={handleSignOut}
+                  variant="secondary"
+                />
+              </View>
             )}
           </View>
         ) : null}

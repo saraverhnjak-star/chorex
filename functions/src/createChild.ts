@@ -1,3 +1,8 @@
+import {
+  requireAccountActive,
+  withDeletionSafeEffect,
+  userFence,
+} from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import {
   createChildInputSchema,
@@ -164,7 +169,7 @@ async function ensureChildAuthUser(
   }
 }
 
-export async function executeCreateChild(
+async function executeCreateChildInternal(
   firestore: Firestore,
   auth: Auth,
   actorUid: string,
@@ -188,6 +193,7 @@ export async function executeCreateChild(
   );
 
   await firestore.runTransaction(async (transaction) => {
+    await requireAccountActive(firestore, transaction, actorUid);
     const [idempotencySnapshot, membershipSnapshot] = await Promise.all([
       transaction.get(idempotencyReference),
       transaction.get(actorMembershipReference),
@@ -227,6 +233,7 @@ export async function executeCreateChild(
   const activityReference = firestore.doc(`activityEvents/${activityEventId}`);
 
   await firestore.runTransaction(async (transaction) => {
+    await requireAccountActive(firestore, transaction, actorUid);
     const [idempotencySnapshot, membershipSnapshot, profileSnapshot] =
       await Promise.all([
         transaction.get(idempotencyReference),
@@ -318,4 +325,15 @@ export async function executeCreateChild(
       joinedAt: parseTimestamp(membershipData.joinedAt),
     },
   });
+}
+
+export async function executeCreateChild(
+  firestore: Firestore,
+  auth: Auth,
+  actorUid: string,
+  rawInput: unknown,
+): Promise<CreateChildOutput> {
+  return withDeletionSafeEffect(firestore, [userFence(actorUid)], () =>
+    executeCreateChildInternal(firestore, auth, actorUid, rawInput),
+  );
 }

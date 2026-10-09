@@ -1,4 +1,10 @@
 import {
+  familyIsDeleting,
+  familyFence,
+  withDeletionSafeEffect,
+  AccountDeletionError,
+} from './accountDeletionAuthorization';
+import {
   eligiblePendingReward,
   pendingRewardReminderId,
 } from './pendingRewardReminders';
@@ -275,7 +281,7 @@ const leaseMs = 120000;
 
 // One deterministic effect record is owned by its committed activity event.
 // Expo has no exactly-once send primitive: ambiguous transport failures can repeat a physical push.
-export async function dispatchNegotiationNotification(
+async function dispatchNegotiationNotificationInternal(
   firestore: Firestore,
   eventId: string,
   transport: ExpoTransport,
@@ -289,6 +295,11 @@ export async function dispatchNegotiationNotification(
       tx.get(effectRef),
     ]);
     const event = eventSnapshot.data();
+    if (
+      event?.familyId &&
+      (await familyIsDeleting(firestore, tx, event.familyId))
+    )
+      return;
     if (
       !event ||
       ![
@@ -695,6 +706,12 @@ export async function dispatchNegotiationNotification(
           registrations: bindings[offset + index],
         })),
       );
+    if (
+      await firestore.runTransaction((tx) =>
+        familyIsDeleting(firestore, tx, intent.data.familyId),
+      )
+    )
+      return;
     const tickets = messages.length ? await transport(messages, retain) : [];
     if (
       tickets.length !== messages.length ||
@@ -744,5 +761,24 @@ export async function dispatchNegotiationNotification(
       return retryable;
     });
     if (retry) throw new Error('NOTIFICATION_DELIVERY_RETRY');
+  }
+}
+
+export async function dispatchNegotiationNotification(
+  firestore: Firestore,
+  eventId: string,
+  transport: ExpoTransport,
+): Promise<void> {
+  const event = await firestore.doc(`activityEvents/${eventId}`).get();
+  if (typeof event.data()?.familyId !== 'string') return;
+  try {
+    await withDeletionSafeEffect(
+      firestore,
+      [familyFence(event.data()!.familyId)],
+      () =>
+        dispatchNegotiationNotificationInternal(firestore, eventId, transport),
+    );
+  } catch (error) {
+    if (!(error instanceof AccountDeletionError)) throw error;
   }
 }

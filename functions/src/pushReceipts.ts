@@ -1,3 +1,4 @@
+import { userFence } from './accountDeletionAuthorization';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   Timestamp,
@@ -73,6 +74,7 @@ export async function invalidatePushRegistrations(
   bindings: readonly RegistrationBinding[],
 ) {
   await db.runTransaction(async (tx) => {
+    if (await bindingsDeleting(db, tx, bindings)) return;
     const devices = await readBindings(db, tx, bindings);
     disableBindings(tx, bindings, devices);
   });
@@ -308,6 +310,11 @@ export async function processPushReceipts(
       )
         return;
       if (
+        validBindings(data.registrations) &&
+        (await bindingsDeleting(db, tx, data.registrations))
+      )
+        return;
+      if (
         typeof data.ticketId !== 'string' ||
         !data.ticketId ||
         !validBindings(data.registrations) ||
@@ -427,4 +434,18 @@ export async function processPushReceipts(
     await batch.commit();
   }
   return claimed.length;
+}
+
+async function bindingsDeleting(
+  db: Firestore,
+  tx: Transaction,
+  bindings: readonly RegistrationBinding[],
+): Promise<boolean> {
+  const uids = [
+    ...new Set(bindings.map((binding) => binding.devicePath.split('/')[1])),
+  ];
+  const fences = await Promise.all(
+    uids.map((uid) => tx.get(db.doc(userFence(uid)))),
+  );
+  return fences.some((fence) => fence.exists);
 }

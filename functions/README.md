@@ -37,3 +37,9 @@ Run `pnpm emulators:verify:reward-fulfillment` from the repository root for the 
 Only `DeviceNotRegistered` disables an exact current registration; token fingerprints plus captured lastSeenAt protect later refresh/registration. Device cleanup changes only pushEnabled, leaving Auth and family membership unchanged. Message/provider errors terminate without disabling valid devices. Receipt documents are server-only, contain no raw tokens or notification copy, and need the two checked-in composite indexes.
 
 Run `pnpm emulators:verify:push-receipts` for injected fake-Expo send→ticket→receipt→next-send verification and Rules checks. It uses Auth/Firestore only to avoid background trigger competition. The scheduled callback intentionally makes no live Expo calls in emulators. Existing Phase 2–4 verification continues to exercise the committed-event function trigger with emulator send tickets. No deployment is performed by these checks.
+
+## Administrative account deletion (ADR-050)
+
+`deleteParentAccount` accepts a recently password-reauthenticated Parent and atomically reserves a fenced deletion scope. `accountDeletionWorker` runs every minute, drains bounded external-effect leases, checkpoints recursive cleanup and removes Parent Auth last. Accepted work survives client disconnect and membership/Auth removal; terminal operation/fence metadata expires after seven days. Unsupported shared/malformed or oversized scopes fail closed before destructive writes. No domain cancellation/fulfillment transition is emitted.
+
+Operation/fence/effect collections are server-owned. Do not remove a fence to recover a failed job: inspect its durable phase and retry through the trusted worker. Repeated failures emit `CLEANUP_RETRY_REQUIRED` without account/content diagnostics. Deploying the callable, scheduled worker and updated Rules together requires a separate authorized deployment; this slice does not deploy them.

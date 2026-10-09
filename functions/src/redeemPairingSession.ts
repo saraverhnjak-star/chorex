@@ -1,3 +1,8 @@
+import {
+  requireAccountActive,
+  withDeletionSafeEffect,
+  userFence,
+} from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import {
   pairingCommandErrorCodes,
@@ -171,6 +176,26 @@ export async function executeRedeemPairingSession(
                 status: 'error' as const,
                 code: pairingCommandErrorCodes.pairingInvalid,
               };
+      if (sessionResult.status === 'ready' && sessionDocument) {
+        await requireAccountActive(
+          firestore,
+          transaction,
+          sessionResult.childUid,
+        );
+        const member = await transaction.get(
+          firestore.doc(
+            `families/${sessionDocument.data().familyId}/members/${sessionResult.childUid}`,
+          ),
+        );
+        if (
+          member.data()?.status !== 'ACTIVE' ||
+          member.data()?.role !== 'CHILD'
+        )
+          return {
+            status: 'error',
+            code: pairingCommandErrorCodes.pairingInvalidated,
+          };
+      }
       const failed = sessionResult.status === 'error';
 
       transaction.set(rateLimitReference, {
@@ -218,7 +243,11 @@ export async function executeRedeemPairingSession(
   }
 
   try {
-    const customToken = await mintCustomToken(auth, result.childUid);
+    const customToken = await withDeletionSafeEffect(
+      firestore,
+      [userFence(result.childUid)],
+      () => mintCustomToken(auth, result.childUid),
+    );
     return redeemPairingSessionOutputSchema.parse({ customToken });
   } catch {
     warn('Pairing redemption service unavailable', {

@@ -1,3 +1,4 @@
+import { requireAccountActive } from './accountDeletionAuthorization';
 import { createHash } from 'node:crypto';
 import {
   contractCommandErrorCodes,
@@ -85,6 +86,7 @@ export async function executeRecordTaskCompletion(
   const idempotencyReference = firestore.doc(`idempotency/${identity}`);
 
   return firestore.runTransaction(async (transaction) => {
+    await requireAccountActive(firestore, transaction, actorUid);
     const [contractSnapshot, idempotencySnapshot] = await Promise.all([
       transaction.get(contractReference),
       transaction.get(idempotencyReference),

@@ -4,19 +4,22 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
 } from 'react';
 import {
   observeAuthState,
+  observeAccountDeletion,
+  clearAccountSession,
   registerWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signOutCurrentUser,
   type AuthClientError,
   type AuthCredentials,
   type AuthUser,
 } from '@chorex/firebase-client';
 import {
   removeCurrentDeviceRegistration,
+  abandonDeletedAccountNotifications,
   useDeviceRegistrationLifecycle,
   type DeviceRegistrationLifecycle,
 } from '@chorex/notifications';
@@ -44,14 +47,43 @@ export function ParentSessionProvider({ children }: { children: ReactNode }) {
     error: null,
   });
 
+  const teardown = useRef(false);
+
   useEffect(
     () =>
       observeAuthState(
-        (user) => setState({ status: 'ready', user, error: null }),
+        (user) => {
+          if (!teardown.current)
+            setState({ status: 'ready', user, error: null });
+        },
         (error) => setState({ status: 'error', user: null, error }),
       ),
     [],
   );
+
+  const uid = state.status === 'ready' ? state.user?.uid : undefined;
+  useEffect(() => {
+    if (!uid) return;
+    return observeAccountDeletion(uid, () => {
+      if (teardown.current) return;
+      teardown.current = true;
+      setState({ status: 'loading', user: null, error: null });
+      void abandonDeletedAccountNotifications()
+        .then(clearAccountSession)
+        .then(() => {
+          teardown.current = false;
+          setState({ status: 'ready', user: null, error: null });
+        })
+        .catch(() => {
+          // Keep protected UI closed if native cache teardown fails.
+          setState({
+            status: 'error',
+            user: null,
+            error: { code: 'UNKNOWN_AUTH_FAILURE' } as AuthClientError,
+          });
+        });
+    });
+  }, [uid]);
 
   const notifications = useDeviceRegistrationLifecycle(
     'PARENT',
@@ -66,7 +98,21 @@ export function ParentSessionProvider({ children }: { children: ReactNode }) {
       signIn: signInWithEmailAndPassword,
       signOut: async () => {
         await removeCurrentDeviceRegistration();
-        await signOutCurrentUser();
+        teardown.current = true;
+        setState({ status: 'loading', user: null, error: null });
+        try {
+          await abandonDeletedAccountNotifications();
+          await clearAccountSession();
+          teardown.current = false;
+          setState({ status: 'ready', user: null, error: null });
+        } catch (error) {
+          setState({
+            status: 'error',
+            user: null,
+            error: { code: 'UNKNOWN_AUTH_FAILURE' } as AuthClientError,
+          });
+          throw error;
+        }
       },
     }),
     [state, notifications],

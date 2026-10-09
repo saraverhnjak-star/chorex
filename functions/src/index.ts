@@ -1,3 +1,6 @@
+import { executeDeleteParentAccount } from './deleteParentAccount';
+import { processAccountDeletions } from './accountDeletionWorker';
+import { AccountDeletionError } from './accountDeletionAuthorization';
 import { generatePendingRewardReminders } from './pendingRewardReminders';
 import { generateContractDeadlineReminders } from './contractDeadlineReminders';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
@@ -133,6 +136,7 @@ export const createFamily = onCall(async (request) => {
   try {
     return await executeCreateFamily(firestore, request.auth.uid, request.data);
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof CreateFamilyCommandError) throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
   }
@@ -154,6 +158,7 @@ export const createChild = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof CreateChildCommandError) throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
   }
@@ -174,6 +179,7 @@ export const createOfferDraft = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof CreateOfferDraftCommandError) {
       throw callableError(error);
     }
@@ -192,6 +198,7 @@ export const publishOffer = onCall(async (request) => {
   try {
     return await executePublishOffer(firestore, request.auth.uid, request.data);
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof PublishOfferCommandError) {
       throw callableError(error);
     }
@@ -210,6 +217,7 @@ export const acceptOffer = onCall(async (request) => {
   try {
     return await executeAcceptOffer(firestore, request.auth.uid, request.data);
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof AcceptOfferCommandError) {
       throw callableError(error);
     }
@@ -228,6 +236,7 @@ export const rejectOffer = onCall(async (request) => {
   try {
     return await executeRejectOffer(firestore, request.auth.uid, request.data);
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof RejectOfferCommandError) {
       throw callableError(error);
     }
@@ -246,6 +255,7 @@ export const counterOffer = onCall(async (request) => {
   try {
     return await executeCounterOffer(firestore, request.auth.uid, request.data);
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof CounterOfferCommandError) {
       throw callableError(error);
     }
@@ -268,6 +278,7 @@ export const createPairingSession = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof CreatePairingSessionCommandError) {
       throw callableError(error);
     }
@@ -320,6 +331,7 @@ export const redeemPairingSession = onCall(
         request.data,
       );
     } catch (error) {
+      if (error instanceof AccountDeletionError) throw deletionError(error);
       if (error instanceof RedeemPairingSessionCommandError) {
         throw callableError(error);
       }
@@ -363,6 +375,7 @@ export const recordTaskCompletion = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof RecordTaskCompletionCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
@@ -377,6 +390,7 @@ export const submitContractForReview = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof SubmitContractForReviewCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
@@ -391,6 +405,7 @@ export const approveContract = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof ApproveContractCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
@@ -405,6 +420,7 @@ export const requestContractChanges = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof RequestContractChangesCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
@@ -419,6 +435,7 @@ export const markRewardDelivered = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof RewardFulfillmentCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
@@ -433,6 +450,7 @@ export const confirmRewardReceived = onCall(async (request) => {
       request.data,
     );
   } catch (error) {
+    if (error instanceof AccountDeletionError) throw deletionError(error);
     if (error instanceof RewardFulfillmentCommandError)
       throw callableError(error);
     throw new HttpsError('internal', 'INTERNAL');
@@ -474,5 +492,50 @@ export const generateRewardReminders = onSchedule(
   },
   async () => {
     await generatePendingRewardReminders(firestore);
+  },
+);
+
+function deletionError(error: AccountDeletionError): HttpsError {
+  return new HttpsError(
+    error.code === 'AUTH_REQUIRED'
+      ? 'unauthenticated'
+      : error.code === 'WRONG_ACTOR_ROLE'
+        ? 'permission-denied'
+        : error.code === 'INVALID_INPUT'
+          ? 'invalid-argument'
+          : 'failed-precondition',
+    error.code,
+    { code: error.code },
+  );
+}
+export const deleteParentAccount = onCall(
+  { timeoutSeconds: 120 },
+  async (request) => {
+    try {
+      return await executeDeleteParentAccount(
+        firestore,
+        auth,
+        request.auth
+          ? { uid: request.auth.uid, authTime: request.auth.token.auth_time }
+          : undefined,
+        request.data,
+      );
+    } catch (error) {
+      if (error instanceof AccountDeletionError) throw deletionError(error);
+      throw new HttpsError('internal', 'ACCOUNT_DELETION_UNAVAILABLE', {
+        code: 'ACCOUNT_DELETION_UNAVAILABLE',
+      });
+    }
+  },
+);
+export const processAccountDeletionQueue = onSchedule(
+  {
+    schedule: 'every 1 minutes',
+    timeZone: 'UTC',
+    timeoutSeconds: 120,
+    maxInstances: 1,
+  },
+  async () => {
+    await processAccountDeletions(firestore, auth);
   },
 );

@@ -5,6 +5,10 @@ import {
   type DiagnosticOperation,
 } from './observabilityCore';
 import {
+  deleteParentAccountInputSchema,
+  accountDeletionOutputSchema,
+  type DeleteParentAccountInput,
+  type AccountDeletionOutput,
   reminderPreferenceEnabled,
   reminderPreferenceData,
   pushDeviceMetadataSchema,
@@ -28,10 +32,15 @@ import {
   signInWithCustomToken as firebaseSignInWithCustomToken,
   signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  getIdToken,
   type User,
 } from '@react-native-firebase/auth';
 import {
   runTransaction,
+  terminate,
+  clearPersistence,
   serverTimestamp,
   collection,
   connectFirestoreEmulator,
@@ -188,6 +197,7 @@ interface SetupState {
   fingerprint: string;
   services?: DevelopmentFirebase;
   failure?: Error;
+  emulator?: { host: string; firestorePort: number };
 }
 
 // Persist across module re-evaluation/Fast Refresh. Never repeat partial setup.
@@ -400,7 +410,7 @@ function initializeDevelopmentFirebase(
     if (previous.services) return previous.services;
     throw new Error('FIREBASE_SETUP_INCOMPLETE: restart the native app.');
   }
-  const state: SetupState = { fingerprint };
+  const state: SetupState = { fingerprint, emulator: config };
   registry.__chorexDevelopmentFirebase = state;
   try {
     const auth = getAuth(app);
@@ -904,7 +914,9 @@ function subscribeToOfferInbox<T>(
 
   let unsubscribe: () => void;
   try {
-    unsubscribe = onSnapshot(offersQuery, coordinator.push, coordinator.fail);
+    unsubscribe = trackAccountListener(
+      onSnapshot(offersQuery, coordinator.push, coordinator.fail),
+    );
   } catch (error) {
     coordinator.stop();
     throw reportClientFailure(
@@ -1279,26 +1291,31 @@ export function observeContract(
 ): () => void {
   const uid = requireContractReadContext(contractId);
   try {
-    return onSnapshot(
-      doc(getInitializedFirestore(), 'contracts', contractId),
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        try {
-          const contract = snapshot.exists()
-            ? deserializeContract(snapshot.id, snapshot.data()!)
-            : null;
-          if (
-            contract &&
-            contract.parentUid !== uid &&
-            contract.childUid !== uid
-          )
-            throw new ContractReadError('FORBIDDEN');
-          callback({ data: contract, fromCache: snapshot.metadata.fromCache });
-        } catch (error) {
-          onError(translateContractReadError(error));
-        }
-      },
-      (error) => onError(translateContractReadError(error)),
+    return trackAccountListener(
+      onSnapshot(
+        doc(getInitializedFirestore(), 'contracts', contractId),
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          try {
+            const contract = snapshot.exists()
+              ? deserializeContract(snapshot.id, snapshot.data()!)
+              : null;
+            if (
+              contract &&
+              contract.parentUid !== uid &&
+              contract.childUid !== uid
+            )
+              throw new ContractReadError('FORBIDDEN');
+            callback({
+              data: contract,
+              fromCache: snapshot.metadata.fromCache,
+            });
+          } catch (error) {
+            onError(translateContractReadError(error));
+          }
+        },
+        (error) => onError(translateContractReadError(error)),
+      ),
     );
   } catch (error) {
     throw translateContractReadError(error);
@@ -1312,23 +1329,28 @@ export function observeTasks(
 ): () => void {
   requireContractReadContext(contractId);
   try {
-    return onSnapshot(
-      collection(getInitializedFirestore(), 'contracts', contractId, 'tasks'),
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        try {
-          callback({
-            data: deserializeTasks(
-              contractId,
-              snapshot.docs.map((item) => ({ id: item.id, data: item.data() })),
-            ),
-            fromCache: snapshot.metadata.fromCache,
-          });
-        } catch (error) {
-          onError(translateContractReadError(error));
-        }
-      },
-      (error) => onError(translateContractReadError(error)),
+    return trackAccountListener(
+      onSnapshot(
+        collection(getInitializedFirestore(), 'contracts', contractId, 'tasks'),
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          try {
+            callback({
+              data: deserializeTasks(
+                contractId,
+                snapshot.docs.map((item) => ({
+                  id: item.id,
+                  data: item.data(),
+                })),
+              ),
+              fromCache: snapshot.metadata.fromCache,
+            });
+          } catch (error) {
+            onError(translateContractReadError(error));
+          }
+        },
+        (error) => onError(translateContractReadError(error)),
+      ),
     );
   } catch (error) {
     throw translateContractReadError(error);
@@ -1369,29 +1391,34 @@ function observeContractsInState(
     orderBy('createdAt', 'desc'),
   );
   try {
-    return onSnapshot(
-      contractsQuery,
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        try {
-          const contracts = snapshot.docs.map((item) =>
-            deserializeContract(item.id, item.data()),
-          );
-          if (
-            contracts.some(
-              (item) =>
-                item.familyId !== familyId ||
-                item.status !== status ||
-                (item.parentUid !== uid && item.childUid !== uid),
+    return trackAccountListener(
+      onSnapshot(
+        contractsQuery,
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          try {
+            const contracts = snapshot.docs.map((item) =>
+              deserializeContract(item.id, item.data()),
+            );
+            if (
+              contracts.some(
+                (item) =>
+                  item.familyId !== familyId ||
+                  item.status !== status ||
+                  (item.parentUid !== uid && item.childUid !== uid),
+              )
             )
-          )
-            throw new ContractReadError('MALFORMED_DATA');
-          callback({ data: contracts, fromCache: snapshot.metadata.fromCache });
-        } catch (error) {
-          onError(translateContractReadError(error));
-        }
-      },
-      (error) => onError(translateContractReadError(error)),
+              throw new ContractReadError('MALFORMED_DATA');
+            callback({
+              data: contracts,
+              fromCache: snapshot.metadata.fromCache,
+            });
+          } catch (error) {
+            onError(translateContractReadError(error));
+          }
+        },
+        (error) => onError(translateContractReadError(error)),
+      ),
     );
   } catch (error) {
     throw translateContractReadError(error);
@@ -1576,23 +1603,25 @@ export function observeCurrentContractReview(
     limit(2),
   );
   try {
-    return onSnapshot(
-      reviewQuery,
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        try {
-          if (snapshot.docs.length > 1)
-            throw new ContractReadError('MALFORMED_DATA');
-          const item = snapshot.docs[0];
-          const review = item
-            ? deserializeContractReview(item.id, item.data(), contract)
-            : null;
-          callback({ data: review, fromCache: snapshot.metadata.fromCache });
-        } catch (error) {
-          onError(translateContractReadError(error));
-        }
-      },
-      (error) => onError(translateContractReadError(error)),
+    return trackAccountListener(
+      onSnapshot(
+        reviewQuery,
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          try {
+            if (snapshot.docs.length > 1)
+              throw new ContractReadError('MALFORMED_DATA');
+            const item = snapshot.docs[0];
+            const review = item
+              ? deserializeContractReview(item.id, item.data(), contract)
+              : null;
+            callback({ data: review, fromCache: snapshot.metadata.fromCache });
+          } catch (error) {
+            onError(translateContractReadError(error));
+          }
+        },
+        (error) => onError(translateContractReadError(error)),
+      ),
     );
   } catch (error) {
     throw translateContractReadError(error);
@@ -1689,22 +1718,24 @@ export function observeReward(
 ): () => void {
   const uid = requireContractReadContext(rewardId);
   try {
-    return onSnapshot(
-      doc(getInitializedFirestore(), 'rewards', rewardId),
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        try {
-          const reward = snapshot.exists()
-            ? deserializeReward(snapshot.id, snapshot.data()!)
-            : null;
-          if (reward && reward.parentUid !== uid && reward.childUid !== uid)
-            throw new ContractReadError('FORBIDDEN');
-          callback({ data: reward, fromCache: snapshot.metadata.fromCache });
-        } catch (error) {
-          onError(translateContractReadError(error));
-        }
-      },
-      (error) => onError(translateContractReadError(error)),
+    return trackAccountListener(
+      onSnapshot(
+        doc(getInitializedFirestore(), 'rewards', rewardId),
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          try {
+            const reward = snapshot.exists()
+              ? deserializeReward(snapshot.id, snapshot.data()!)
+              : null;
+            if (reward && reward.parentUid !== uid && reward.childUid !== uid)
+              throw new ContractReadError('FORBIDDEN');
+            callback({ data: reward, fromCache: snapshot.metadata.fromCache });
+          } catch (error) {
+            onError(translateContractReadError(error));
+          }
+        },
+        (error) => onError(translateContractReadError(error)),
+      ),
     );
   } catch (error) {
     throw translateContractReadError(error);
@@ -1744,29 +1775,31 @@ function observeRewards(
     orderBy('earnedAt', 'desc'),
   ];
   try {
-    return onSnapshot(
-      query(collection(getInitializedFirestore(), 'rewards'), ...constraints),
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        try {
-          const rewards = snapshot.docs.map((item) =>
-            deserializeReward(item.id, item.data()),
-          );
-          if (
-            rewards.some(
-              (reward) =>
-                reward.familyId !== familyId ||
-                (pending ? reward.parentUid : reward.childUid) !== uid ||
-                (pending && reward.status !== parentStatus),
+    return trackAccountListener(
+      onSnapshot(
+        query(collection(getInitializedFirestore(), 'rewards'), ...constraints),
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          try {
+            const rewards = snapshot.docs.map((item) =>
+              deserializeReward(item.id, item.data()),
+            );
+            if (
+              rewards.some(
+                (reward) =>
+                  reward.familyId !== familyId ||
+                  (pending ? reward.parentUid : reward.childUid) !== uid ||
+                  (pending && reward.status !== parentStatus),
+              )
             )
-          )
-            throw new ContractReadError('MALFORMED_DATA');
-          callback({ data: rewards, fromCache: snapshot.metadata.fromCache });
-        } catch (error) {
-          onError(translateContractReadError(error));
-        }
-      },
-      (error) => onError(translateContractReadError(error)),
+              throw new ContractReadError('MALFORMED_DATA');
+            callback({ data: rewards, fromCache: snapshot.metadata.fromCache });
+          } catch (error) {
+            onError(translateContractReadError(error));
+          }
+        },
+        (error) => onError(translateContractReadError(error)),
+      ),
     );
   } catch (error) {
     throw translateContractReadError(error);
@@ -1783,33 +1816,38 @@ export function observeContractReviews(
   if (uid !== contract.parentUid && uid !== contract.childUid)
     throw new ContractReadError('FORBIDDEN');
   try {
-    return onSnapshot(
-      query(
-        collection(
-          getInitializedFirestore(),
-          'contracts',
-          contract.id,
-          'reviews',
+    return trackAccountListener(
+      onSnapshot(
+        query(
+          collection(
+            getInitializedFirestore(),
+            'contracts',
+            contract.id,
+            'reviews',
+          ),
+          where('familyId', '==', contract.familyId),
+          where('contractId', '==', contract.id),
+          orderBy('cycle', 'asc'),
         ),
-        where('familyId', '==', contract.familyId),
-        where('contractId', '==', contract.id),
-        orderBy('cycle', 'asc'),
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          try {
+            callback({
+              data: deserializeContractReviews(
+                snapshot.docs.map((item) => ({
+                  id: item.id,
+                  data: item.data(),
+                })),
+                contract,
+              ),
+              fromCache: snapshot.metadata.fromCache,
+            });
+          } catch (error) {
+            onError(translateContractReadError(error));
+          }
+        },
+        (error) => onError(translateContractReadError(error)),
       ),
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        try {
-          callback({
-            data: deserializeContractReviews(
-              snapshot.docs.map((item) => ({ id: item.id, data: item.data() })),
-              contract,
-            ),
-            fromCache: snapshot.metadata.fromCache,
-          });
-        } catch (error) {
-          onError(translateContractReadError(error));
-        }
-      },
-      (error) => onError(translateContractReadError(error)),
     );
   } catch (error) {
     throw translateContractReadError(error);
@@ -1873,25 +1911,27 @@ export function subscribeReminderPreference(
 ): () => void {
   if (getInitializedAuth().currentUser?.uid !== uid)
     throw new Error('AUTH_REQUIRED');
-  return onSnapshot(
-    doc(getInitializedFirestore(), 'users', uid, 'preferences', 'reminders'),
-    { includeMetadataChanges: true },
-    (snapshot) => {
-      try {
-        if (getInitializedAuth().currentUser?.uid !== uid)
-          throw new Error('AUTH_REQUIRED');
-        onValue({
-          enabled: reminderPreferenceEnabled(
-            role,
-            snapshot.exists() ? snapshot.data() : undefined,
-          ),
-          fromCache: snapshot.metadata.fromCache,
-        });
-      } catch (error) {
-        onError(error);
-      }
-    },
-    onError,
+  return trackAccountListener(
+    onSnapshot(
+      doc(getInitializedFirestore(), 'users', uid, 'preferences', 'reminders'),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        try {
+          if (getInitializedAuth().currentUser?.uid !== uid)
+            throw new Error('AUTH_REQUIRED');
+          onValue({
+            enabled: reminderPreferenceEnabled(
+              role,
+              snapshot.exists() ? snapshot.data() : undefined,
+            ),
+            fromCache: snapshot.metadata.fromCache,
+          });
+        } catch (error) {
+          onError(error);
+        }
+      },
+      onError,
+    ),
   );
 }
 export async function saveReminderPreference(
@@ -1919,3 +1959,91 @@ export async function saveReminderPreference(
   });
 }
 export { useReminderPreference } from './useReminderPreference';
+
+const accountListeners = new Set<() => void>();
+function trackAccountListener(unsubscribe: () => void): () => void {
+  const stop = () => {
+    accountListeners.delete(stop);
+    unsubscribe();
+  };
+  accountListeners.add(stop);
+  return stop;
+}
+export function observeAccountDeletion(
+  uid: string,
+  onDeleted: () => void,
+): () => void {
+  let checked = false;
+  return trackAccountListener(
+    onSnapshot(
+      doc(getInitializedFirestore(), 'deletionFences', uid),
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        if (snapshot.metadata.fromCache) return;
+        if (snapshot.exists() && snapshot.data()?.deleting === true) {
+          onDeleted();
+          return;
+        }
+        if (!checked) {
+          checked = true;
+          const user = getInitializedAuth().currentUser;
+          if (user?.uid === uid)
+            void getIdToken(user, true).catch((error) => {
+              const code = readProviderErrorCode(error);
+              if (
+                [
+                  'auth/user-token-expired',
+                  'auth/user-disabled',
+                  'auth/user-not-found',
+                  'auth/invalid-user-token',
+                ].includes(code ?? '')
+              )
+                onDeleted();
+            });
+        }
+      },
+      () => {
+        /* A transient permission/network error is not deletion proof. */
+      },
+    ),
+  );
+}
+export async function requestParentAccountDeletion(
+  password: string,
+  input: DeleteParentAccountInput,
+): Promise<AccountDeletionOutput> {
+  const parsed = deleteParentAccountInputSchema.parse(input);
+  const user = getInitializedAuth().currentUser;
+  if (!user?.email) throw new Error('AUTH_REQUIRED');
+  try {
+    await reauthenticateWithCredential(
+      user,
+      EmailAuthProvider.credential(user.email, password),
+    );
+    await getIdToken(user, true);
+  } catch (error) {
+    throw translateAuthError(error);
+  }
+  const response = await httpsCallable<DeleteParentAccountInput, unknown>(
+    getInitializedFunctions(),
+    'deleteParentAccount',
+  )(parsed);
+  return accountDeletionOutputSchema.parse(response.data);
+}
+// Caller gates/unmounts authenticated UI before invoking. Preserve installation metadata.
+export async function clearAccountSession(): Promise<void> {
+  for (const stop of [...accountListeners]) stop();
+  await signOutCurrentUser();
+  const state = registry.__chorexDevelopmentFirebase;
+  if (!state?.services) return;
+  const firestore = state.services.firestore;
+  await terminate(firestore);
+  await clearPersistence(firestore);
+  state.services.firestore = getFirestore(state.services.app);
+  if (state.emulator)
+    connectFirestoreEmulator(
+      state.services.firestore,
+      state.emulator.host,
+      state.emulator.firestorePort,
+    );
+}

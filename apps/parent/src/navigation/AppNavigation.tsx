@@ -23,7 +23,9 @@ export function AppNavigation({ children }: { children: ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const section = path.split('/')[1];
-  const active = section === 'family' ? 'more' : section || 'home';
+  const active = ['family', 'privacy'].includes(section)
+    ? 'more'
+    : section || 'home';
   return (
     <ParentFamilyProvider>
       <NavigationFrame

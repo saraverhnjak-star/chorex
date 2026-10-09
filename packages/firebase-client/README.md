@@ -61,3 +61,7 @@ The hook handles metadata/cache, error/unsubscribe and stale identity callbacks,
 Only app variant/version/build, platform/environment, authenticated boolean and route category are custom attributes. There is no `setUserId`, Analytics or user behavior tracking. `setObservabilityContext` reconstructs allowed keys; breadcrumbs are fixed bootstrap/auth transitions only. SDK-generated automatic crash data remains a separate privacy/disclosure review gate.
 
 Native changes require a fresh prebuild/binary. See the [environment, Console and release checklist](../../docs/PHASE_7_SLICE_3_CRASHLYTICS_OBSERVABILITY_ACCEPTANCE.md).
+
+## Deletion and session privacy
+
+`requestParentAccountDeletion` performs Firebase password reauthentication and token refresh before sending the strict confirmation/idempotency payload. Passwords remain local to the credential API. Both session providers observe server-confirmed deletion markers, gate protected UI and call `clearAccountSession` after notification reconciliation is abandoned. The adapter stops tracked snapshots, signs out through the SDK, terminates Firestore, clears logical persistence and initializes a fresh instance. Installation UUID and notification-education metadata are retained. Native cache clearing is not forensic erasure; offline remote devices need reconnect to learn deletion.

@@ -255,3 +255,9 @@ ADR-045 records the approved default-enabled user preference policy and one pend
 ## Bilateral Reward correction — ADR-046
 
 Phase 4/5 Reward behavior now follows PENDING_FULFILLMENT → AWAITING_CHILD_CONFIRMATION → FULFILLED. Parent delivery and Child receipt confirmation use trusted commands, explicit two-step UX and existing transactional notification routes. Parent 48-hour reminders continue to apply only to pending delivery; awaiting Rewards are excluded and deduplication evidence is retained. ADR-045 preferences are unchanged. See [acceptance evidence](REWARD_BILATERAL_FULFILLMENT_ACCEPTANCE.md). No dispute or automatic confirmation exists.
+
+## Administrative account erasure — ADR-050
+
+ADR-050 explicitly authorizes sole-Parent/single-family full-family administrative erasure and safe identity-only incomplete-onboarding deletion. Immutable revisions, completions, reviews, events and reminder/effect dedup records remain immutable during normal operation, but are removed with the family. This replaces any implication that reminder/dedup history survives family deletion permanently. Active obligations are removed without cancellation/approval/fulfillment transitions. OPEN-010/011/014 remain open.
+
+Deletion requires Firebase password reauthentication and a server auth_time within five minutes, server-owned relationship verification, persistent authorization fences and an independent retry-safe worker. Parent Auth is deleted last. Terminal operation metadata is retained seven days, then purged. Shared/ambiguous/multi-family cases fail safely. Parent Privacy & Data explains scope; no standalone Child deletion/export/extra privacy toggles. Installation metadata is retained. Processor diagnostics, offline copies and queued pushes have separate limits and release disclosure gates. See the Phase 7 Slice 4A inventory and ADR-050 for the approved policy.
