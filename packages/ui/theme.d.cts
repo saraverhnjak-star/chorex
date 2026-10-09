@@ -36,6 +36,7 @@ export const homeTokens: Readonly<{
   text: string;
   secondary: string;
   coral: string;
+  coralText: string;
   coralSurface: string;
   mint: string;
   attention: string;

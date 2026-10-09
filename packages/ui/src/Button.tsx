@@ -1,6 +1,6 @@
 import { homeTokens, useHomeTheme } from './Home';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, Text } from 'react-native';
+import { ActivityIndicator, Pressable, Text, type View } from 'react-native';
 import { amberAuroraColors } from './theme';
 import { useDynamicTypeStyles } from './typography';
 
@@ -8,6 +8,7 @@ type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger';
 
 interface ButtonProps {
   label: string;
+  ref?: React.Ref<View>;
   accessibilityLabel?: string;
   onPress: () => void;
   disabled?: boolean;
@@ -24,6 +25,7 @@ const containerClasses: Record<ButtonVariant, string> = {
 
 export function Button({
   label,
+  ref,
   accessibilityLabel = label,
   onPress,
   disabled = false,
@@ -37,6 +39,8 @@ export function Button({
 
   return (
     <Pressable
+      ref={ref}
+      accessible
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: unavailable }}

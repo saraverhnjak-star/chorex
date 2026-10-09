@@ -68,7 +68,7 @@ export function TaskCompletionAction({ task }: { task: ContractTask }) {
       ) : null}
       <Button
         label={task.targetCount === 1 ? 'Mark done' : 'Mark one done'}
-        accessibilityLabel={`${task.targetCount === 1 ? 'Mark done' : 'Mark one done'}: ${task.title}`}
+        accessibilityLabel={`${task.title}. ${task.completedCount} of ${task.targetCount} completions recorded. Mark another completion`}
         variant="outline"
         loading={pending}
         disabled={waitingForRead}

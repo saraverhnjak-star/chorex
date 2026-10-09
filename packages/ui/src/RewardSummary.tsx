@@ -84,6 +84,8 @@ export function RewardSummary({
         {childName ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
               style={{
                 width: 40,
                 height: 40,

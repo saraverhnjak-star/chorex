@@ -1,8 +1,14 @@
+import {
+  FocusHeading,
+  announceAction,
+  Button,
+  FormMessage,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { Contract, ContractTask } from '@chorex/domain';
 import { submitContractForReview } from '@chorex/firebase-client';
-import { Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
 import { getSubmissionErrorMessage } from './messages';
 
 export function SubmitForReviewAction({
@@ -57,6 +63,9 @@ export function SubmitForReviewAction({
       });
       if (active.current) {
         setConfirmed(true);
+        announceAction(
+          resubmitting ? 'Sent back for review' : 'Sent for review',
+        );
         setResubmitted(resubmitting);
         setConfirming(false);
       }
@@ -118,7 +127,7 @@ export function SubmitForReviewAction({
             </Text>
           ) : confirming ? (
             <>
-              <Text
+              <FocusHeading
                 allowFontScaling={false}
                 accessibilityRole="header"
                 className="font-semibold text-home-text"
@@ -127,7 +136,7 @@ export function SubmitForReviewAction({
                 {resubmitting
                   ? 'Send this Contract back for review?'
                   : 'Send this Contract for review?'}
-              </Text>
+              </FocusHeading>
               <Text
                 allowFontScaling={false}
                 className="text-home-text"

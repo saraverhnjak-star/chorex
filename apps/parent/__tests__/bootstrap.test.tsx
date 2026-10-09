@@ -263,7 +263,10 @@ it('renders the parent screen through the public shared UI package', async () =>
     ['Manage Rewards', '/rewards'],
     ['Family Overview', '/family'],
   ]) {
-    fireEvent.press(screen.getByRole('button', { name: label }));
+    fireEvent.press(
+      screen.queryByRole('tab', { name: label }) ??
+        screen.getByRole('button', { name: new RegExp('^' + label) }),
+    );
     expect(mockNavigate).toHaveBeenLastCalledWith(route);
   }
   mockPath = '/rewards/reward-1';
@@ -272,7 +275,7 @@ it('renders the parent screen through the public shared UI package', async () =>
       <HomeScreen />
     </AppNavigation>,
   );
-  expect(screen.getByRole('button', { name: 'Rewards' })).toBeSelected();
+  expect(screen.getByRole('tab', { name: 'Rewards' })).toBeSelected();
   mockPath = '/more';
   view.rerender(
     <AppNavigation>
@@ -474,7 +477,7 @@ it('combines actionable attention sources and preserves each existing destinatio
     />,
   );
   await screen.findByRole('button', {
-    name: 'Mia countered your offer: One hour of games',
+    name: /^Mia countered your offer: One hour of games/,
   });
   for (const [label, destination] of [
     ['Mia countered your offer: One hour of games', '/offers'],
@@ -493,7 +496,10 @@ it('combines actionable attention sources and preserves each existing destinatio
       },
     ],
   ] as const) {
-    fireEvent.press(screen.getByRole('button', { name: label }));
+    fireEvent.press(
+      screen.queryByRole('tab', { name: label }) ??
+        screen.getByRole('button', { name: new RegExp('^' + label) }),
+    );
     expect(mockNavigate).toHaveBeenLastCalledWith(destination);
   }
   expect(screen.getByLabelText('3 items')).toBeOnTheScreen();

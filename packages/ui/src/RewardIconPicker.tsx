@@ -1,8 +1,17 @@
-import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  type View as NativeView,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { rewardIconKeys, type RewardIconKey } from '@chorex/domain';
 import { DesignText, homeTokens } from './Home';
+import { FocusHeading, useReducedMotion } from './accessibility';
 import { Button } from './Button';
 import { RewardIcon, rewardIconLabels } from './RewardIcon';
 
@@ -15,6 +24,8 @@ export function RewardIconPicker({
   onChange: (key: RewardIconKey) => void;
   disabled?: boolean;
 }) {
+  const trigger = useRef<NativeView>(null);
+  const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
   return (
@@ -26,6 +37,7 @@ export function RewardIconPicker({
             Reward icon: {rewardIconLabels[value]}
           </DesignText>
           <Button
+            ref={trigger}
             label="Change icon"
             variant="outline"
             disabled={disabled}
@@ -35,21 +47,27 @@ export function RewardIconPicker({
       </View>
       <Modal
         visible={open}
-        animationType="slide"
+        animationType={reducedMotion ? 'none' : 'slide'}
+        onDismiss={() => {
+          if (trigger.current)
+            AccessibilityInfo.sendAccessibilityEvent(trigger.current, 'focus');
+        }}
         onRequestClose={() => setOpen(false)}
       >
         <View
+          accessibilityViewIsModal
           style={[
             s.modal,
             { paddingTop: insets.top, paddingBottom: insets.bottom },
           ]}
         >
           <View style={s.header}>
-            <DesignText accessibilityRole="header" style={s.title}>
+            <FocusHeading key={open ? 'open' : 'closed'} style={s.title}>
               Choose reward icon
-            </DesignText>
+            </FocusHeading>
             <Button
               label="Done"
+              accessibilityLabel="Close reward icon picker"
               variant="outline"
               onPress={() => setOpen(false)}
             />
@@ -58,6 +76,7 @@ export function RewardIconPicker({
             {rewardIconKeys.map((key) => (
               <Pressable
                 key={key}
+                accessible
                 accessibilityRole="button"
                 accessibilityLabel={`Choose ${rewardIconLabels[key]} icon`}
                 accessibilityState={{ selected: key === value, disabled }}

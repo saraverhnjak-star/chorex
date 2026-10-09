@@ -452,6 +452,7 @@ export function OfferDraftComposer({
             name="rewardDescription"
             render={({ field }) => (
               <TextField
+                required={false}
                 editable={!isSubmitting}
                 error={errors.rewardDescription?.message}
                 label="Reward description (optional)"

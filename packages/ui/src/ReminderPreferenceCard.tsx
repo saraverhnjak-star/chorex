@@ -23,6 +23,7 @@ export function ReminderPreferenceCard(props: {
         loaded ? (
           <Switch
             hitSlop={8}
+            accessibilityRole="switch"
             accessibilityLabel={props.label}
             accessibilityHint="Controls optional reminders for your account. Does not change device notification permission."
             accessibilityState={{

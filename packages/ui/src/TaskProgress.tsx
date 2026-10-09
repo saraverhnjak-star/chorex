@@ -23,7 +23,7 @@ export function TaskProgress({
   return (
     <View
       accessible
-      accessibilityLabel={`${title}. ${description ? `${description}. ` : ''}${completedCount} of ${targetCount}. ${progress}.`}
+      accessibilityLabel={`${title}. ${description ? `${description}. ` : ''}${completedCount} of ${targetCount} completions recorded. ${progress}.`}
       style={{
         gap: 12,
         padding: homeTokens.spacing.card,
@@ -74,7 +74,11 @@ export function TaskProgress({
           </DesignText>
         </View>
       </View>
-      <CompletionBar completed={completedCount} required={targetCount} />
+      <CompletionBar
+        completed={completedCount}
+        required={targetCount}
+        decorative
+      />
     </View>
   );
 }

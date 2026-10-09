@@ -1,3 +1,20 @@
+import {
+  FocusHeading,
+  announceAction,
+  RewardIconPicker,
+  ProposalTerms,
+  OfferOutcome,
+  ChoiceChip,
+  CountBadge,
+  CollectionHeading,
+  HomeListRow,
+  HomeEmptyState,
+  Button,
+  FormMessage,
+  TextField,
+  homeTokens,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -14,21 +31,6 @@ import {
   type RewardType,
   type RewardIconKey,
 } from '@chorex/domain';
-import {
-  RewardIconPicker,
-  ProposalTerms,
-  OfferOutcome,
-  ChoiceChip,
-  CountBadge,
-  CollectionHeading,
-  HomeListRow,
-  HomeEmptyState,
-  Button,
-  FormMessage,
-  TextField,
-  homeTokens,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 import {
   getAcceptOfferErrorMessage,
   getCounterOfferErrorMessage,
@@ -159,6 +161,7 @@ export function OfferInbox({
       });
       acceptIdempotencyKeys.current.delete(item.offer.id);
       setResultMessage('Contract is active.');
+      announceAction('Agreement reached. Contract is active.');
       setState((current) =>
         current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
@@ -198,6 +201,7 @@ export function OfferInbox({
       rejectIdempotencyKeys.current.delete(item.offer.id);
       setRejectionConfirmationOfferId(undefined);
       setResultMessage('Offer rejected.');
+      announceAction('Offer declined.');
       setState((current) =>
         current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
@@ -261,6 +265,7 @@ export function OfferInbox({
       counterOfferIdempotencyKeys.current.delete(item.offer.id);
       setCounterOfferForm(undefined);
       setResultMessage('Waiting for parent');
+      announceAction('Counteroffer sent. Waiting for Parent.');
       setState((current) =>
         current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
@@ -414,14 +419,14 @@ export function OfferInbox({
                   />
                   {rejectionConfirmationOfferId === offer.id ? (
                     <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
-                      <Text
+                      <FocusHeading
                         allowFontScaling={false}
                         accessibilityLiveRegion="polite"
                         className="font-semibold text-home-text"
                         style={dynamicType.body}
                       >
                         Reject this offer?
-                      </Text>
+                      </FocusHeading>
                       <Text
                         allowFontScaling={false}
                         className="text-home-muted"
@@ -455,14 +460,14 @@ export function OfferInbox({
                     </View>
                   ) : counterOfferForm?.offerId === offer.id ? (
                     <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
-                      <Text
+                      <FocusHeading
                         allowFontScaling={false}
                         accessibilityRole="header"
                         className="font-semibold text-home-text"
                         style={dynamicType.body}
                       >
                         Make a counteroffer
-                      </Text>
+                      </FocusHeading>
                       <Text
                         allowFontScaling={false}
                         className="text-home-muted"
@@ -526,6 +531,7 @@ export function OfferInbox({
                         }
                       />
                       <TextField
+                        required={false}
                         editable={mutation === undefined}
                         label="Counteroffer reward description (optional)"
                         multiline
@@ -539,6 +545,7 @@ export function OfferInbox({
                         value={counterOfferForm.rewardDescription}
                       />
                       <TextField
+                        required={false}
                         editable={mutation === undefined}
                         label="Counteroffer note (optional)"
                         multiline

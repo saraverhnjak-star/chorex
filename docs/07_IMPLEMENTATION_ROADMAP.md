@@ -192,6 +192,8 @@ Build:
 
 Phase 7 Slice 1 integrates App Check in both native apps and establishes the focused security baseline under ADR-048. Enforcement remains OFF; production-like valid attestation/Console monitoring and physical-device gates remain pending. See the [Slice 1 acceptance and enforcement checklist](PHASE_7_SLICE_1_APP_CHECK_SECURITY_BASELINE_ACCEPTANCE.md). Existing Phase 5 native/push gaps remain independent.
 
+Phase 7 Slice 2 accessibility implementation and local validation are complete. Native accessibility acceptance remains PARTIAL: representative larger-text layouts were inspected, but audible VoiceOver traversal, native focus behavior and one Accessibility Inspector warning require follow-up. See the [Slice 2 acceptance record](PHASE_7_SLICE_2_ACCESSIBILITY_ACCEPTANCE.md). The next hardening slice may proceed with these gates tracked explicitly.
+
 ## Phase 8 - Optional proof media
 
 Only if user testing proves it is needed.

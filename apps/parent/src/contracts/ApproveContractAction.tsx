@@ -1,3 +1,11 @@
+import {
+  FocusHeading,
+  announceAction,
+  Button,
+  FormMessage,
+  TextField,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -12,12 +20,6 @@ import {
   requestContractChanges,
   isContractClientError,
 } from '@chorex/firebase-client';
-import {
-  Button,
-  FormMessage,
-  TextField,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 
 function errorMessage(error: unknown, requestingChanges = false): string {
   if (requestingChanges) {
@@ -126,6 +128,7 @@ export function ApproveContractAction({
       });
       if (active.current) {
         setConfirmed('REQUEST_CHANGES');
+        announceAction('Changes requested. Feedback sent.');
         setConfirming(undefined);
       }
     } catch (failure) {
@@ -160,6 +163,7 @@ export function ApproveContractAction({
       });
       if (active.current) {
         setConfirmed('APPROVE');
+        announceAction('Approved. Reward earned.');
         setConfirming(undefined);
       }
     } catch (failure) {
@@ -215,14 +219,14 @@ export function ApproveContractAction({
           <FormMessage message={error} />
           {confirming === 'REQUEST_CHANGES' ? (
             <>
-              <Text
+              <FocusHeading
                 allowFontScaling={false}
                 accessibilityRole="header"
                 className="font-semibold text-home-text"
                 style={styles.body}
               >
                 Request changes to this agreement?
-              </Text>
+              </FocusHeading>
               <Text
                 allowFontScaling={false}
                 className="text-home-muted"
@@ -261,14 +265,14 @@ export function ApproveContractAction({
             </>
           ) : confirming ? (
             <>
-              <Text
+              <FocusHeading
                 allowFontScaling={false}
                 accessibilityRole="header"
                 className="font-semibold text-home-text"
                 style={styles.body}
               >
                 Approve this completed agreement?
-              </Text>
+              </FocusHeading>
               <Text
                 allowFontScaling={false}
                 className="text-home-text"

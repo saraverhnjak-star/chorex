@@ -117,6 +117,7 @@ export function SettingsRow({
         {stackControl ? null : control}
         {onPress && showChevron ? (
           <Ionicons
+            accessible={false}
             name="chevron-forward"
             size={20}
             color={homeTokens.secondary}
@@ -140,7 +141,8 @@ export function SettingsRow({
   return onPress ? (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessible
+      accessibilityLabel={[title, subtitle].filter(Boolean).join('. ')}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}

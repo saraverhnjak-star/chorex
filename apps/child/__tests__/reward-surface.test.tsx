@@ -64,14 +64,18 @@ it('earned Rewards distinguish pending from delivered and update without Child m
   expect(
     screen
       .getAllByRole('button')
-      .map((button) => button.props.accessibilityLabel),
+      .map((button) => button.props.accessibilityLabel.split('. ')[0]),
   ).toEqual(['Open reward: Park', 'Open reward: Cinema']);
-  fireEvent.press(screen.getByRole('button', { name: 'Open reward: Park' }));
+  fireEvent.press(
+    screen.getByRole('button', { name: /^Open\ reward:\ Park\./ }),
+  );
   expect(mockPush).toHaveBeenLastCalledWith({
     pathname: '/rewards/[rewardId]',
     params: { rewardId: 'reward-2' },
   });
-  fireEvent.press(screen.getByRole('button', { name: 'Open reward: Cinema' }));
+  fireEvent.press(
+    screen.getByRole('button', { name: /^Open\ reward:\ Cinema\./ }),
+  );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/rewards/[rewardId]',
     params: { rewardId: 'reward-1' },
@@ -98,7 +102,7 @@ it('earned Rewards distinguish pending from delivered and update without Child m
     screen.queryByRole('button', { name: 'Mark as fulfilled' }),
   ).toBeNull();
   expect(
-    screen.getByRole('button', { name: 'Open reward: Cinema' }),
+    screen.getByRole('button', { name: /^Open\ reward:\ Cinema\./ }),
   ).toBeOnTheScreen();
 });
 it('empty/error/cache state and scoped listener cleanup cannot retain another family Reward', () => {

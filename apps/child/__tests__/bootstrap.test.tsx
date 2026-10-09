@@ -288,7 +288,10 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     ['See all Offers', '/offers'],
     ['See all Rewards', '/rewards'],
   ]) {
-    fireEvent.press(screen.getByRole('button', { name: label }));
+    fireEvent.press(
+      screen.queryByRole('tab', { name: label }) ??
+        screen.getByRole('button', { name: new RegExp('^' + label) }),
+    );
     expect(mockNavigate).toHaveBeenLastCalledWith(route);
   }
   mockPath = '/contracts/contract-1';
@@ -299,7 +302,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
       </AppNavigation>
     </ChildSessionProvider>,
   );
-  expect(screen.getByRole('button', { name: 'My chores' })).toBeSelected();
+  expect(screen.getByRole('tab', { name: 'My chores' })).toBeSelected();
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Accept offer' }));

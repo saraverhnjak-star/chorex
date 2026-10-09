@@ -142,7 +142,7 @@ export default function RegisterScreen() {
               <Text
                 allowFontScaling={false}
                 className="font-semibold underline"
-                style={[dynamicType.body, { color: homeTokens.coral }]}
+                style={[dynamicType.body, { color: homeTokens.coralText }]}
               >
                 Return to sign in
               </Text>

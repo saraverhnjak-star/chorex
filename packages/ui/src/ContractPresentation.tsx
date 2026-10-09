@@ -98,7 +98,7 @@ export function ContractSummary({
         />
         <View style={{ flex: 1, gap: 8 }}>
           <DesignText
-            accessibilityLabel={`Contract status: ${status.replaceAll('_', ' ')}`}
+            accessibilityLabel={`Contract status: ${contractStatusLabel(status, viewer)}`}
             style={s.title}
           >
             {contractStatusLabel(status, viewer)}
@@ -120,7 +120,11 @@ export function ContractSummary({
       <DesignText style={s.caption}>Agreed commitment</DesignText>
       {participantName ? (
         <View style={s.participant}>
-          <View style={s.avatar}>
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={s.avatar}
+          >
             <DesignText style={s.title}>
               {participantName.trim().slice(0, 1).toUpperCase()}
             </DesignText>
@@ -146,7 +150,7 @@ export function ContractSummary({
       <DesignText style={s.title}>
         {completeTasks} of {tasks.length} tasks complete
       </DesignText>
-      <CompletionBar completed={completed} required={required} />
+      <CompletionBar completed={completed} required={required} decorative />
       <DesignText style={s.caption}>
         {completed} / {required} completions recorded
       </DesignText>
@@ -156,15 +160,25 @@ export function ContractSummary({
 export function CompletionBar({
   completed,
   required,
+  decorative = false,
 }: {
   completed: number;
   required: number;
+  decorative?: boolean;
 }) {
   return (
     <View
+      accessible={!decorative}
+      accessibilityElementsHidden={decorative}
+      importantForAccessibility={decorative ? 'no-hide-descendants' : 'auto'}
       accessibilityRole="progressbar"
       accessibilityLabel="Recorded completions"
-      accessibilityValue={{ min: 0, max: required, now: completed }}
+      accessibilityValue={{
+        min: 0,
+        max: required,
+        now: completed,
+        text: `${completed} of ${required} completions recorded`,
+      }}
       style={s.track}
     >
       <View

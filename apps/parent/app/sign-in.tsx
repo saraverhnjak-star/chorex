@@ -1,7 +1,8 @@
+import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View, type TextInput } from 'react-native';
 import {
   signInCredentialsSchema,
   type SignInCredentials,
@@ -21,6 +22,7 @@ import { getAuthErrorMessage } from '../src/auth/messages';
 import { useParentSession } from '../src/auth/session';
 
 export default function SignInScreen() {
+  const password = useRef<TextInput>(null);
   const { signIn } = useParentSession();
   const dynamicType = useDynamicTypeStyles();
   const {
@@ -65,6 +67,8 @@ export default function SignInScreen() {
                 label="Email"
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
+                onSubmitEditing={() => password.current?.focus()}
+                submitBehavior="submit"
                 returnKeyType="next"
                 textContentType="username"
                 value={field.value}
@@ -76,6 +80,7 @@ export default function SignInScreen() {
             name="password"
             render={({ field }) => (
               <PasswordField
+                ref={password}
                 autoCapitalize="none"
                 autoComplete="current-password"
                 editable={!isSubmitting}
@@ -113,7 +118,7 @@ export default function SignInScreen() {
               <Text
                 allowFontScaling={false}
                 className="font-semibold underline"
-                style={[dynamicType.body, { color: homeTokens.coral }]}
+                style={[dynamicType.body, { color: homeTokens.coralText }]}
               >
                 Create a parent account
               </Text>

@@ -62,8 +62,9 @@ export function RewardCard({
         : reward.earnedAt;
   return (
     <Pressable
+      accessible
       accessibilityRole="button"
-      accessibilityLabel={`Open reward: ${childName ? `${childName} · ` : ''}${reward.terms.title}`}
+      accessibilityLabel={`Open reward: ${childName ? `${childName} · ` : ''}${reward.terms.title}. ${rewardStatusLabel(reward.status, viewer)}. ${rewardResponsibility(reward, viewer, childName)} ${new Date(date).toLocaleDateString()}`}
       onPress={onPress}
       className="active:opacity-70"
       style={s.card}
@@ -140,7 +141,12 @@ export function RewardFulfillmentProgress({
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
       {steps.map((step) => (
-        <View key={step.label} style={s.step}>
+        <View
+          key={step.label}
+          accessible
+          accessibilityLabel={`${step.label}. ${step.detail}${step.date ? `. ${new Date(step.date).toLocaleString()}` : '. Not yet completed.'}`}
+          style={s.step}
+        >
           <Ionicons
             accessible={false}
             name={step.date ? 'checkmark-circle-outline' : 'ellipse-outline'}

@@ -1,3 +1,4 @@
+import { useErrorAnnouncement } from './accessibility';
 import { homeTokens, useHomeTheme } from './Home';
 import { useId, useState } from 'react';
 import {
@@ -12,6 +13,8 @@ import { useDynamicTypeStyles } from './typography';
 
 interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   label: string;
+  required?: boolean;
+  ref?: React.Ref<TextInput>;
   error?: string;
   endActionLabel?: string;
   onEndActionPress?: () => void;
@@ -19,6 +22,8 @@ interface TextFieldProps extends Omit<TextInputProps, 'style'> {
 
 export function TextField({
   label,
+  ref,
+  required = true,
   error,
   editable = true,
   endActionLabel,
@@ -27,6 +32,7 @@ export function TextField({
   onFocus,
   ...inputProps
 }: TextFieldProps) {
+  useErrorAnnouncement(error);
   const home = useHomeTheme();
   const id = useId();
   const [focused, setFocused] = useState(false);
@@ -63,14 +69,23 @@ export function TextField({
               }
             : undefined
         }
-        className={`flex-row items-center rounded-2xl border-2 bg-surface ${
+        className={`flex-row flex-wrap items-center rounded-2xl border-2 bg-surface ${
           error ? 'border-danger' : focused ? 'border-focus' : 'border-border'
         } ${editable ? '' : 'opacity-50'}`}
       >
         <TextInput
           {...inputProps}
+          ref={ref}
           allowFontScaling={false}
-          accessibilityHint={error}
+          accessibilityHint={
+            [
+              required ? 'Required' : undefined,
+              error,
+              inputProps.accessibilityHint,
+            ]
+              .filter(Boolean)
+              .join('. ') || undefined
+          }
           accessibilityLabel={label}
           accessibilityState={{ disabled: !editable }}
           className="min-h-12 flex-1 px-4 py-3 text-text"
@@ -89,6 +104,7 @@ export function TextField({
           selectionColor={home ? homeTokens.coral : amberAuroraColors.focus}
           style={[
             dynamicType.body,
+            { minWidth: 120 },
             home
               ? {
                   color: homeTokens.text,
@@ -103,6 +119,8 @@ export function TextField({
             accessibilityRole="button"
             className="min-h-12 justify-center px-4 py-3"
             hitSlop={8}
+            accessibilityState={{ disabled: !editable }}
+            disabled={!editable}
             onPress={onEndActionPress}
           >
             <Text

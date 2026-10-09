@@ -42,6 +42,7 @@ const mockListen = jest.fn((_ref, _options, callback, failure) => {
   mockFailure = failure;
   return mockStop;
 });
+jest.mock('@react-native-firebase/app-check', () => ({}));
 jest.mock('@react-native-firebase/app', () => ({}));
 jest.mock('@react-native-firebase/auth', () => ({}));
 jest.mock('@react-native-firebase/functions', () => ({

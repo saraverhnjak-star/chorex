@@ -60,7 +60,10 @@ export function ChoiceChip({
         },
       ]}
     >
-      <DesignText style={styles.choiceText}>{label}</DesignText>
+      <DesignText style={styles.choiceText}>
+        {selected ? '✓ ' : ''}
+        {label}
+      </DesignText>
     </Pressable>
   );
 }

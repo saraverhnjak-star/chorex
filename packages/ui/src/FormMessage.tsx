@@ -1,7 +1,9 @@
 import { Text, View } from 'react-native';
+import { useErrorAnnouncement } from './accessibility';
 import { useDynamicTypeStyles } from './typography';
 
 export function FormMessage({ message }: { message?: string }) {
+  useErrorAnnouncement(message);
   const dynamicType = useDynamicTypeStyles();
 
   if (!message) return null;

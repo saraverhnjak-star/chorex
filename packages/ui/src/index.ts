@@ -76,3 +76,5 @@ export {
   resolveRewardIconKey,
 } from './RewardIcon';
 export { RewardIconPicker } from './RewardIconPicker';
+
+export { FocusHeading, announceAction } from './accessibility';

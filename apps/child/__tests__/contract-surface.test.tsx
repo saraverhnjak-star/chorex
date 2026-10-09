@@ -147,9 +147,13 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
   const view = render(<ContractDetail {...props} />);
   expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
   emitReady();
-  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
   expect(
-    screen.getByLabelText('Dishwasher. After dinner. 0 of 3. Not started.'),
+    screen.getByLabelText('Contract status: In progress'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText(
+      'Dishwasher. After dinner. 0 of 3 completions recorded. Not started.',
+    ),
   ).toBeOnTheScreen();
   expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
   expect(screen.getByText('Promised reward')).toBeOnTheScreen();
@@ -162,7 +166,7 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
   ).toBeOnTheScreen();
 
   expect(
-    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
   ).toBeOnTheScreen();
   act(() =>
     mockTasks({ data: [{ ...task, completedCount: 2 }], fromCache: false }),
@@ -173,7 +177,9 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
   );
   expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
   expect(
-    screen.queryByRole('button', { name: 'Mark one done: Dishwasher' }),
+    screen.queryByRole('button', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
   ).toBeNull();
   view.unmount();
   expect(mockContractStop).toHaveBeenCalled();
@@ -252,14 +258,14 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
     }),
   );
   fireEvent.press(
-    screen.getByRole('button', { name: 'Open Contract: Cinema' }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema\./ }),
   );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/contracts/[contractId]',
     params: { contractId: 'contract-1' },
   });
   expect(
-    screen.getByRole('button', { name: 'Open Contract: Museum' }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Museum\./ }),
   ).toBeOnTheScreen();
   view.unmount();
   expect(mockListStop).toHaveBeenCalled();
@@ -292,13 +298,13 @@ it('prevents rapid taps and waits for realtime counts after backend confirmation
   render(<ContractDetail {...props} />);
   emitReady();
   const button = screen.getByRole('button', {
-    name: 'Mark one done: Dishwasher',
+    name: /Dishwasher.*Mark another completion/,
   });
   fireEvent.press(button);
   fireEvent.press(button);
   expect(mockComplete).toHaveBeenCalledTimes(1);
   expect(
-    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
   ).toBeDisabled();
   expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
   const firstInput = mockComplete.mock.calls[0][0];
@@ -313,19 +319,21 @@ it('prevents rapid taps and waits for realtime counts after backend confirmation
     screen.getByText('Completion recorded. Waiting for updated progress…'),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
   ).toBeDisabled();
   act(() =>
     mockTasks({ data: [{ ...task, completedCount: 1 }], fromCache: false }),
   );
   expect(screen.getByText('1 / 3 · In progress')).toBeOnTheScreen();
   expect(
-    screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
   ).toBeEnabled();
   mockComplete.mockResolvedValueOnce({ task: { ...task, completedCount: 2 } });
   await act(async () =>
     fireEvent.press(
-      screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+      screen.getByRole('button', {
+        name: /Dishwasher.*Mark another completion/,
+      }),
     ),
   );
   expect(mockComplete.mock.calls[1][0].idempotencyKey).not.toBe(
@@ -341,7 +349,9 @@ it('offline/backend failure leaves cached counts unchanged and explicit retry re
   emitReady(true);
   await act(async () =>
     fireEvent.press(
-      screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+      screen.getByRole('button', {
+        name: /Dishwasher.*Mark another completion/,
+      }),
     ),
   );
   expect(
@@ -355,7 +365,9 @@ it('offline/backend failure leaves cached counts unchanged and explicit retry re
   ).toBeNull();
   await act(async () =>
     fireEvent.press(
-      screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+      screen.getByRole('button', {
+        name: /Dishwasher.*Mark another completion/,
+      }),
     ),
   );
   expect(mockComplete.mock.calls[1][0]).toEqual(mockComplete.mock.calls[0][0]);
@@ -368,7 +380,7 @@ it('one-time tasks expose Mark done and non-ACTIVE/other actor surfaces remain r
     mockTasks({ data: [{ ...task, targetCount: 1 }], fromCache: false });
   });
   expect(
-    screen.getByRole('button', { name: 'Mark done: Dishwasher' }),
+    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
   ).toBeOnTheScreen();
   act(() =>
     mockTasks({
@@ -378,7 +390,9 @@ it('one-time tasks expose Mark done and non-ACTIVE/other actor surfaces remain r
   );
   expect(screen.getByText('1 / 1 · Complete')).toBeOnTheScreen();
   expect(
-    screen.queryByRole('button', { name: 'Mark done: Dishwasher' }),
+    screen.queryByRole('button', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
   ).toBeNull();
   expect(
     screen.getByRole('button', { name: 'Submit for review' }),
@@ -424,7 +438,9 @@ it.each([
     emitReady();
     await act(async () =>
       fireEvent.press(
-        screen.getByRole('button', { name: 'Mark one done: Dishwasher' }),
+        screen.getByRole('button', {
+          name: /Dishwasher.*Mark another completion/,
+        }),
       ),
     );
     expect(screen.getByText(message)).toBeOnTheScreen();
@@ -480,12 +496,16 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(button).toBeDisabled();
   expect(screen.queryByText('Sent for review')).toBeNull();
-  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: In progress'),
+  ).toBeOnTheScreen();
   await act(async () =>
     resolve({ contract: { ...contract, status: 'READY_FOR_REVIEW' } }),
   );
   expect(screen.getByText('Sent for review')).toBeOnTheScreen();
-  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Contract status: In progress'),
+  ).toBeOnTheScreen();
   expect(
     screen.getByText('Waiting for updated Contract status…'),
   ).toBeOnTheScreen();
@@ -496,7 +516,7 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+    screen.getByLabelText('Contract status: Waiting for review'),
   ).toBeOnTheScreen();
   expect(
     screen.getByText('Your Parent now needs to review this agreement.'),
@@ -535,7 +555,9 @@ it.each([
       ),
     );
     expect(screen.getByText(message)).toBeOnTheScreen();
-    expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText('Contract status: In progress'),
+    ).toBeOnTheScreen();
     expect(screen.queryByText('Sent for review')).toBeNull();
     await act(async () =>
       fireEvent.press(
@@ -572,7 +594,7 @@ it('realtime approval communicates an earned, pending reward without execution a
       fromCache: false,
     });
   });
-  expect(screen.getByLabelText('Contract status: APPROVED')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: Approved')).toBeOnTheScreen();
   expect(
     screen.getByText(
       'Your Parent approved this agreement. Your reward is earned. Check Rewards for delivery and receipt details.',
@@ -596,7 +618,7 @@ it('realtime requested changes displays authoritative cached feedback and read-o
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+    screen.getByLabelText('Contract status: Changes requested'),
   ).toBeOnTheScreen();
   expect(screen.getByText('Loading feedback…')).toBeOnTheScreen();
   act(() =>
@@ -630,7 +652,7 @@ it('feedback listener errors preserve visible Contract state without inventing f
   );
   act(() => mockReviewError(new Error('denied')));
   expect(
-    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+    screen.getByLabelText('Contract status: Changes requested'),
   ).toBeOnTheScreen();
   expect(
     screen.getByText(
@@ -684,7 +706,7 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
   expect(button).toBeDisabled();
   expect(screen.queryByText('Sent back for review')).toBeNull();
   expect(
-    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+    screen.getByLabelText('Contract status: Changes requested'),
   ).toBeOnTheScreen();
   await act(async () =>
     resolve({
@@ -693,7 +715,7 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
   );
   expect(screen.getByText('Sent back for review')).toBeOnTheScreen();
   expect(
-    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+    screen.getByLabelText('Contract status: Changes requested'),
   ).toBeOnTheScreen();
   act(() =>
     mockContract({
@@ -702,7 +724,7 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+    screen.getByLabelText('Contract status: Waiting for review'),
   ).toBeOnTheScreen();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
   expect(screen.queryByText('Please check the result.')).toBeNull();
@@ -719,7 +741,7 @@ it('resubmission failure keeps correction state and same-key retry; a new round 
     ),
   );
   expect(
-    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+    screen.getByLabelText('Contract status: Changes requested'),
   ).toBeOnTheScreen();
   expect(screen.queryByText('Sent back for review')).toBeNull();
   await act(async () =>
@@ -883,12 +905,12 @@ it('keeps every Contract reachable when Home shows a compact preview', () => {
   );
   expect(
     screen.queryByRole('button', {
-      name: `Open Contract: ${third.rewardTerms.title}`,
+      name: new RegExp('^Open Contract: ' + third.rewardTerms.title),
     }),
   ).toBeNull();
   fireEvent.press(
     screen.getAllByRole('button', {
-      name: `Open Contract: ${contract.rewardTerms.title}`,
+      name: new RegExp('^Open Contract: ' + contract.rewardTerms.title),
     })[0],
   );
   expect(mockPush).toHaveBeenLastCalledWith({
@@ -900,7 +922,7 @@ it('keeps every Contract reachable when Home shows a compact preview', () => {
   view.rerender(<ActiveContracts familyId="family-1" authUid="child-1" />);
   fireEvent.press(
     screen.getByRole('button', {
-      name: `Open Contract: ${third.rewardTerms.title}`,
+      name: new RegExp('^Open Contract: ' + third.rewardTerms.title),
     }),
   );
   expect(mockPush).toHaveBeenCalledWith({
@@ -912,7 +934,7 @@ it('keeps every Contract reachable when Home shows a compact preview', () => {
   );
   expect(
     screen.queryByRole('button', {
-      name: `Open Contract: ${third.rewardTerms.title}`,
+      name: new RegExp('^Open Contract: ' + third.rewardTerms.title),
     }),
   ).toBeNull();
 });

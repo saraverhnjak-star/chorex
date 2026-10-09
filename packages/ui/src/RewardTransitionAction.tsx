@@ -1,3 +1,4 @@
+import { FocusHeading, announceAction } from './accessibility';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { DesignText as Text, homeTokens } from './Home';
@@ -54,6 +55,7 @@ export function RewardTransitionAction({
       await submit({ rewardId: reward.id, idempotencyKey: key.current });
       if (active.current) {
         setConfirmed(true);
+        announceAction(success);
         setConfirming(false);
       }
     } catch {
@@ -99,14 +101,14 @@ export function RewardTransitionAction({
           <FormMessage message={error} />
           {confirming ? (
             <>
-              <Text
+              <FocusHeading
                 allowFontScaling={false}
                 accessibilityRole="header"
                 style={styles.body}
                 className="font-semibold text-home-text"
               >
                 {question}
-              </Text>
+              </FocusHeading>
               <Text
                 allowFontScaling={false}
                 style={styles.body}

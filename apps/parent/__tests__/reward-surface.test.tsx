@@ -94,14 +94,14 @@ it('renders multiple obligations and empty/cache/error states; realtime removes 
     screen.getByRole('header', { name: 'Rewards to deliver' }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole('button', { name: 'Open reward: Mia · Cinema' }),
+    screen.getByRole('button', { name: /^Open\ reward:\ Mia\ ·\ Cinema\./ }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole('button', { name: 'Open reward: Leo · Park' }),
+    screen.getByRole('button', { name: /^Open\ reward:\ Leo\ ·\ Park\./ }),
   ).toBeOnTheScreen();
   expect(screen.getAllByText(/Your turn to deliver/)).toHaveLength(2);
   fireEvent.press(
-    screen.getByRole('button', { name: 'Open reward: Mia · Cinema' }),
+    screen.getByRole('button', { name: /^Open\ reward:\ Mia\ ·\ Cinema\./ }),
   );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/rewards/[rewardId]',

@@ -337,7 +337,9 @@ it('requires deliberate rejection, waits for backend success, and relies on real
   act(() => emitItems?.([item]));
   fireEvent.press(screen.getByRole('button', { name: 'Reject counteroffer' }));
   expect(mockReject).not.toHaveBeenCalled();
-  expect(screen.getByRole('alert')).toHaveTextContent(
+  expect(
+    screen.getByRole('header', { name: /Rejecting this counteroffer/ }),
+  ).toHaveTextContent(
     'Rejecting this counteroffer ends this Offer negotiation. The terms will remain in its history.',
   );
   fireEvent.press(screen.getByRole('button', { name: 'Keep negotiating' }));

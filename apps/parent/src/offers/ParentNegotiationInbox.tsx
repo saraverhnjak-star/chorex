@@ -1,3 +1,16 @@
+import {
+  FocusHeading,
+  announceAction,
+  ProposalTerms,
+  OfferOutcome,
+  CountBadge,
+  CollectionHeading,
+  HomeListRow,
+  Button,
+  FormMessage,
+  homeTokens,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
@@ -9,17 +22,6 @@ import {
   subscribeToCurrentParentNegotiationInbox,
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
-import {
-  ProposalTerms,
-  OfferOutcome,
-  CountBadge,
-  CollectionHeading,
-  HomeListRow,
-  Button,
-  FormMessage,
-  homeTokens,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 import {
   getAcceptOfferErrorMessage,
   getCounterOfferErrorMessage,
@@ -92,6 +94,7 @@ export function ParentNegotiationInbox({
       });
       if (scope.current === subscriptionKey) {
         setMessage('Contract active');
+        announceAction('Agreement reached. Contract is active.');
         setConfirmation(undefined);
       }
     } catch (error) {
@@ -120,6 +123,7 @@ export function ParentNegotiationInbox({
       });
       if (scope.current === subscriptionKey) {
         setMessage('Counteroffer rejected');
+        announceAction('Counteroffer declined.');
         setRejectionConfirmation(undefined);
       }
     } catch (error) {
@@ -146,6 +150,7 @@ export function ParentNegotiationInbox({
       await counterOffer({ ...terms, idempotencyKey: key });
       if (scope.current === subscriptionKey) {
         setMessage('Counteroffer sent');
+        announceAction('Counteroffer sent. Waiting for Child.');
         setEditing(undefined);
       }
     } catch (error) {
@@ -301,7 +306,7 @@ export function ParentNegotiationInbox({
                     />
                     {rejectionConfirmation === identity ? (
                       <View className="gap-3">
-                        <Text
+                        <FocusHeading
                           allowFontScaling={false}
                           accessibilityRole="alert"
                           accessibilityLiveRegion="assertive"
@@ -310,7 +315,7 @@ export function ParentNegotiationInbox({
                         >
                           Rejecting this counteroffer ends this Offer
                           negotiation. The terms will remain in its history.
-                        </Text>
+                        </FocusHeading>
                         <Button
                           label="Confirm reject counteroffer"
                           variant="danger"
@@ -334,7 +339,7 @@ export function ParentNegotiationInbox({
                       />
                     ) : confirmation === identity ? (
                       <View className="gap-3">
-                        <Text
+                        <FocusHeading
                           allowFontScaling={false}
                           accessibilityLiveRegion="polite"
                           className="text-home-text"
@@ -342,7 +347,7 @@ export function ParentNegotiationInbox({
                         >
                           Accept these tasks, reward and deadline? This creates
                           an active Contract.
-                        </Text>
+                        </FocusHeading>
                         <Button
                           label="Confirm accept counteroffer"
                           loading={busy}

@@ -145,9 +145,13 @@ it('renders frozen terms, persisted progress and locale deadline with no mutatio
   );
   expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
   emitReady();
-  expect(screen.getByLabelText('Contract status: ACTIVE')).toBeOnTheScreen();
   expect(
-    screen.getByLabelText('Dishwasher. After dinner. 0 of 3. Not started.'),
+    screen.getByLabelText('Contract status: In progress'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText(
+      'Dishwasher. After dinner. 0 of 3 completions recorded. Not started.',
+    ),
   ).toBeOnTheScreen();
   expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
   expect(screen.getByText('Promised reward')).toBeOnTheScreen();
@@ -245,14 +249,14 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
     }),
   );
   fireEvent.press(
-    screen.getByRole('button', { name: 'Open Contract: Cinema' }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema\./ }),
   );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/contracts/[contractId]',
     params: { contractId: 'contract-1' },
   });
   expect(
-    screen.getByRole('button', { name: 'Open Contract: Museum' }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Museum\./ }),
   ).toBeOnTheScreen();
   view.unmount();
   expect(mockListStop).toHaveBeenCalled();
@@ -284,7 +288,7 @@ it('receives READY_FOR_REVIEW through the existing listener and exposes approval
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+    screen.getByLabelText('Contract status: Ready for review'),
   ).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
   expect(mockContractStop).not.toHaveBeenCalled();
@@ -324,7 +328,7 @@ it('approval confirms deliberately, guards duplicate taps, waits for receipt and
   expect(button).toBeDisabled();
   expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
   expect(
-    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+    screen.getByLabelText('Contract status: Ready for review'),
   ).toBeOnTheScreen();
   await act(async () => resolve({}));
   expect(screen.getByText('Approved — reward earned')).toBeOnTheScreen();
@@ -337,7 +341,7 @@ it('approval confirms deliberately, guards duplicate taps, waits for receipt and
       fromCache: false,
     }),
   );
-  expect(screen.getByLabelText('Contract status: APPROVED')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: Approved')).toBeOnTheScreen();
   expect(
     screen.queryByRole('button', { name: 'Approve' }),
   ).not.toBeOnTheScreen();
@@ -358,7 +362,7 @@ it('ambiguous approval failure preserves status and explicit retry uses the same
     fireEvent.press(screen.getByRole('button', { name: 'Confirm approval' })),
   );
   expect(
-    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+    screen.getByLabelText('Contract status: Ready for review'),
   ).toBeOnTheScreen();
   expect(screen.queryByText('Approved — reward earned')).not.toBeOnTheScreen();
   expect(
@@ -397,7 +401,7 @@ it('Ready-for-Review list opens stable IDs and realtime removal does not claim a
     screen.getByRole('header', { name: 'Ready for Review' }),
   ).toBeOnTheScreen();
   fireEvent.press(
-    screen.getByRole('button', { name: 'Open Contract: Mia · Cinema' }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Mia\ ·\ Cinema\./ }),
   );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/contracts/[contractId]',
@@ -447,7 +451,7 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
   expect(screen.getByRole('button', { name: 'Send feedback' })).toBeDisabled();
   expect(screen.getByLabelText('Feedback')).toHaveProp('editable', false);
   expect(
-    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+    screen.getByLabelText('Contract status: Ready for review'),
   ).toBeOnTheScreen();
   expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
   await act(async () => resolve({}));
@@ -462,7 +466,7 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: CHANGES REQUESTED'),
+    screen.getByLabelText('Contract status: Waiting for resubmission'),
   ).toBeOnTheScreen();
   expect(
     screen.queryByRole('button', { name: 'Approve' }),
@@ -490,7 +494,7 @@ it('request changes failure keeps READY_FOR_REVIEW and unchanged normalized feed
     fireEvent.press(screen.getByRole('button', { name: 'Send feedback' })),
   );
   expect(
-    screen.getByLabelText('Contract status: READY FOR REVIEW'),
+    screen.getByLabelText('Contract status: Ready for review'),
   ).toBeOnTheScreen();
   expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
   expect(
@@ -539,7 +543,7 @@ it('Ready-for-Review queue receives a resubmitted Contract in the next round', (
     }),
   );
   expect(
-    screen.getByRole('button', { name: 'Open Contract: Cinema' }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema\./ }),
   ).toBeOnTheScreen();
 });
 

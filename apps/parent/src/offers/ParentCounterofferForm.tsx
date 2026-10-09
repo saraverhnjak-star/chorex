@@ -195,6 +195,7 @@ export function ParentCounterofferForm({
                 onChangeText={(value) => updateTask(index, 'title', value)}
               />
               <TextField
+                required={false}
                 label={`Task ${index + 1} description (optional)`}
                 value={task.description}
                 editable={!busy}
@@ -247,6 +248,7 @@ export function ParentCounterofferForm({
             onChangeText={setRewardTitle}
           />
           <TextField
+            required={false}
             label="Reward description (optional)"
             value={rewardDescription}
             editable={!busy}
@@ -292,6 +294,7 @@ export function ParentCounterofferForm({
           />
           <TermsHeading icon="chatbox-outline">Optional note</TermsHeading>
           <TextField
+            required={false}
             label="Proposal note (optional)"
             value={note}
             editable={!busy}

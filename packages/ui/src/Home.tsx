@@ -17,15 +17,20 @@ import { homeTokens } from './theme';
 import type { RewardTerms } from '@chorex/domain';
 import { RewardIcon } from './RewardIcon';
 export { homeTokens } from './theme';
-export function DesignText({ style, ...props }: TextProps) {
+export function DesignText({
+  style,
+  ref,
+  ...props
+}: TextProps & { ref?: React.Ref<NativeText> }) {
   const { fontScale } = useWindowDimensions();
   const flat = StyleSheet.flatten(style) ?? {};
   if (flat.fontSize === undefined)
-    return <NativeText {...props} allowFontScaling={false} style={style} />;
+    return <NativeText {...props} ref={ref} style={style} />;
   const size = flat.fontSize;
   return (
     <NativeText
       {...props}
+      ref={ref}
       allowFontScaling={false}
       style={[
         style,
@@ -78,7 +83,7 @@ export function NavigationFrame({
           {items.map((item) => (
             <Pressable
               key={item.id}
-              accessibilityRole="button"
+              accessibilityRole="tab"
               accessibilityLabel={item.label}
               accessibilityState={{ selected: active === item.id }}
               onPress={() => onNavigate(item.id)}
@@ -99,11 +104,14 @@ export function NavigationFrame({
                   s.caption,
                   {
                     textAlign: 'center',
+                    fontWeight: active === item.id ? '700' : '400',
+                    textDecorationLine:
+                      active === item.id ? 'underline' : 'none',
                     fontSize: labelSize,
                     lineHeight: labelSize * 1.35,
                     color:
                       active === item.id
-                        ? homeTokens.coral
+                        ? homeTokens.coralText
                         : homeTokens.secondary,
                   },
                 ]}
@@ -190,7 +198,7 @@ export function CollectionHeading({
           hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
           style={{ minHeight: 24, justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: 14, color: homeTokens.coral }}>
+          <Text style={{ fontSize: 14, color: homeTokens.coralText }}>
             See all →
           </Text>
         </Pressable>
@@ -351,7 +359,7 @@ export function CountBadge({ count }: { count: number }) {
         overflow: 'hidden',
         borderRadius: homeTokens.radius.pill,
         backgroundColor: homeTokens.coralSurface,
-        color: homeTokens.coral,
+        color: homeTokens.coralText,
         fontSize: 13,
         fontWeight: '600',
         paddingHorizontal: 8,
@@ -437,7 +445,8 @@ export function HomeListRow({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessible
+      accessibilityLabel={`${label}. ${detail}${progress ? `. ${progress.completed} of ${progress.required} completions recorded` : ''}`}
       onPress={onPress}
       className="active:opacity-60"
       style={[
@@ -477,13 +486,9 @@ export function HomeListRow({
             }}
           >
             <View
-              accessibilityRole="progressbar"
-              accessibilityValue={{
-                min: 0,
-                max: progress.required,
-                now: progress.completed,
-                text: `${progress.completed} / ${progress.required} completions`,
-              }}
+              accessible={false}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
               style={{
                 height: 6,
                 flex: 1,
