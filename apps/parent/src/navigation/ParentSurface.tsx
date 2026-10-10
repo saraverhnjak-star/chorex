@@ -230,9 +230,7 @@ function ParentSurfaceContent({
 
   return (
     <HomeScreenFrame
-      keyboard={area === 'family' || familyState.status === 'onboarding'}
-    >
-      <View>
+      header={
         <HomeHeader
           name={
             familyState.status === 'ready'
@@ -240,7 +238,10 @@ function ParentSurfaceContent({
               : 'Parent'
           }
         />
-
+      }
+      keyboard={area === 'family' || familyState.status === 'onboarding'}
+    >
+      <View>
         {familyState.status === 'loading' ? (
           <View className="items-center py-6">
             <ActivityIndicator
@@ -316,7 +317,7 @@ function ParentSurfaceContent({
 
         {familyState.status === 'ready' ? (
           <View className="gap-5">
-            {area !== 'home' ? (
+            {area !== 'home' && area !== 'contracts' ? (
               <SectionHeading>
                 {
                   (

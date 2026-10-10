@@ -11,7 +11,6 @@ import {
   Button,
   HomeEmptyState,
   CollectionHeading,
-  CountBadge,
   OfferOutcome,
   FormMessage,
   useDynamicTypeStyles,
@@ -101,14 +100,13 @@ function ContractList({
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   return (
-    <View
-      className={
-        preview
-          ? 'gap-3'
-          : 'gap-4 rounded-3xl border border-home-border bg-home-surface p-5'
-      }
-    >
+    <View className="gap-4">
       <CollectionHeading
+        count={
+          !preview && state.status === 'ready'
+            ? state.contracts.length
+            : undefined
+        }
         label={readyForReview ? 'See all Reviews' : 'See all Contracts'}
         onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
       >
@@ -118,9 +116,6 @@ function ContractList({
             ? 'Active agreements'
             : 'Active Contracts'}
       </CollectionHeading>
-      {!preview && state.status === 'ready' ? (
-        <CountBadge count={state.contracts.length} />
-      ) : null}
       {state.status === 'loading' ? (
         <Text
           allowFontScaling={false}

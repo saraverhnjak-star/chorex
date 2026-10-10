@@ -73,7 +73,7 @@ export function ParentHomeRow({
       {!action ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={label}
+          accessibilityLabel={`${label}. ${detail}`}
           onPress={onPress}
           style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
         />
