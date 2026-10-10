@@ -8,7 +8,6 @@ import {
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
-  HomeCardAction,
   DesignText,
   SectionHeading,
   ReminderPreferenceCard,
@@ -438,29 +437,19 @@ function ParentSurfaceContent({
               </HomeSection>
             ) : null}
             {area === 'home' ? (
-              <HomeSection>
-                <ActiveContracts
-                  selectedChildUid={
-                    area === 'home' ? selectedChildUid : undefined
-                  }
-                  preview={area === 'home'}
-                  familyId={familyState.home.family.id}
-                  authUid={user.uid}
-                  childNames={Object.fromEntries(
-                    familyState.home.children.map((child) => [
-                      child.uid,
-                      child.displayName,
-                    ]),
-                  )}
-                />
-              </HomeSection>
-            ) : null}
-            {area === 'home' ? (
-              <HomeCardAction
-                label="＋ New offer"
-                accessibilityLabel="Create Offer"
-                tone="coral"
-                onPress={() => router.push('/offers/create')}
+              <ActiveContracts
+                selectedChildUid={
+                  area === 'home' ? selectedChildUid : undefined
+                }
+                preview={area === 'home'}
+                familyId={familyState.home.family.id}
+                authUid={user.uid}
+                childNames={Object.fromEntries(
+                  familyState.home.children.map((child) => [
+                    child.uid,
+                    child.displayName,
+                  ]),
+                )}
               />
             ) : null}
             {area === 'create' ? (

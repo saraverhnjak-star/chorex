@@ -117,6 +117,7 @@ function AttentionContent({
         onRetry={onRetry}
       />
       <HomeAttentionList
+        hideWhenEmpty
         heading="Rewards to fulfill"
         empty="No rewards waiting for delivery"
         items={items.filter((item) => item.id.startsWith('reward:'))}
@@ -136,9 +137,11 @@ export function HomeAttentionList({
   error = false,
   cached = false,
   onRetry,
+  hideWhenEmpty = false,
   heading = 'Needs your attention',
   empty = 'Nothing needs your attention',
 }: {
+  hideWhenEmpty?: boolean;
   heading?: string;
   empty?: string;
   items: readonly {
@@ -154,6 +157,7 @@ export function HomeAttentionList({
   cached?: boolean;
   onRetry: () => void;
 }) {
+  if (hideWhenEmpty && !loading && !error && items.length === 0) return null;
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
       <CollectionHeading count={items.length}>{heading}</CollectionHeading>

@@ -106,6 +106,8 @@ function ContractList({
 }) {
   const router = useRouter();
   const styles = useDynamicTypeStyles();
+  if (preview && state.status === 'ready' && state.contracts.length === 0)
+    return null;
   return (
     <View className="gap-4">
       {showHeading ? (

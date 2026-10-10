@@ -5,6 +5,7 @@ import { NavigationFrame, type NavigationItem } from '@chorex/ui';
 const items: readonly NavigationItem[] = [
   { id: 'home', label: 'Home', icon: 'home-outline' },
   { id: 'contracts', label: 'Contracts', icon: 'checkbox-outline' },
+  { id: 'create', label: 'Create order', icon: 'add', prominent: true },
   { id: 'rewards', label: 'Rewards', icon: 'gift-outline' },
   { id: 'family', label: 'Family', icon: 'people-outline' },
 ];

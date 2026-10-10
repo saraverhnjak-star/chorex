@@ -256,21 +256,28 @@ it('renders the parent screen through the public shared UI package', async () =>
   ).toBeNull();
   expect(screen.getByRole('button', { name: 'Settings' })).toBeOnTheScreen();
   expect(screen.getByRole('tab', { name: 'All children' })).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Quick actions' })).toBeNull();
   expect(screen.getByText('Mia')).toBeOnTheScreen();
   expect(screen.queryByText('Create an offer draft')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Create Offer' })).toBeNull();
+  expect(
+    screen.queryByRole('header', { name: 'Active agreements' }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole('header', { name: 'Rewards to fulfill' }),
+  ).toBeNull();
   expect(screen.queryByText('This feels fair.')).toBeNull();
   for (const [label, route] of [
     ['Contracts', '/contracts'],
     ['Rewards', '/rewards'],
     ['Settings', '/more'],
     ['Home', '/'],
-    ['See all Contracts', '/contracts'],
-    ['Create Offer', '/offers/create'],
+    ['Create order', '/offers/create'],
     ['Family', '/family'],
   ]) {
     fireEvent.press(
       screen.queryByRole('tab', { name: label }) ??
-        screen.getByRole('button', { name: new RegExp('^' + label) }),
+        screen.getAllByRole('button', { name: new RegExp('^' + label) })[0]!,
     );
     await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith(route));
     mockPath = route;
@@ -527,7 +534,7 @@ it('combines actionable attention sources and preserves each existing destinatio
   ] as const) {
     fireEvent.press(
       screen.queryByRole('tab', { name: label }) ??
-        screen.getByRole('button', { name: new RegExp('^' + label) }),
+        screen.getAllByRole('button', { name: new RegExp('^' + label) })[0]!,
     );
     expect(mockNavigate).toHaveBeenLastCalledWith(destination);
   }

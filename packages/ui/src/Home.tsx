@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { homeTokens } from './theme';
+import { homeTokens, amberAuroraPalette } from './theme';
 import type { RewardTerms } from '@chorex/domain';
 import { RewardIcon } from './RewardIcon';
 export { homeTokens } from './theme';
@@ -59,7 +59,12 @@ export function DesignThemeProvider({ children }: { children: ReactNode }) {
 export function useHomeTheme() {
   return useContext(HomeContext).active;
 }
-export type NavigationItem = { id: string; label: string; icon: Icon };
+export type NavigationItem = {
+  id: string;
+  label: string;
+  icon: Icon;
+  prominent?: boolean;
+};
 export function NavigationFrame({
   children,
   items,
@@ -84,41 +89,71 @@ export function NavigationFrame({
           {items.map((item) => (
             <Pressable
               key={item.id}
-              accessibilityRole="tab"
+              accessibilityRole={item.prominent ? 'button' : 'tab'}
               accessibilityLabel={item.label}
-              accessibilityState={{ selected: active === item.id }}
+              accessibilityState={
+                item.prominent ? undefined : { selected: active === item.id }
+              }
               onPress={() => navigate(item.id)}
               className="active:opacity-60"
               style={s.navItem}
             >
-              <Ionicons
-                accessible={false}
-                name={item.icon}
-                size={24}
-                color={
-                  active === item.id ? homeTokens.coral : homeTokens.secondary
-                }
-              />
-              <NativeText
-                allowFontScaling={false}
-                style={[
-                  s.caption,
-                  {
-                    textAlign: 'center',
-                    fontWeight: active === item.id ? '700' : '400',
-                    textDecorationLine:
-                      active === item.id ? 'underline' : 'none',
-                    fontSize: labelSize,
-                    lineHeight: labelSize * 1.35,
-                    color:
-                      active === item.id
-                        ? homeTokens.coralText
-                        : homeTokens.secondary,
-                  },
-                ]}
-              >
-                {item.label}
-              </NativeText>
+              {item.prominent ? (
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: homeTokens.radius.pill,
+                    backgroundColor: homeTokens.coral,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: -homeTokens.spacing.medium,
+                    shadowColor: homeTokens.coral,
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 4 },
+                    elevation: 4,
+                  }}
+                >
+                  <Ionicons
+                    accessible={false}
+                    name={item.icon}
+                    size={32}
+                    color={amberAuroraPalette.paper}
+                  />
+                </View>
+              ) : (
+                <Ionicons
+                  accessible={false}
+                  name={item.icon}
+                  size={24}
+                  color={
+                    active === item.id ? homeTokens.coral : homeTokens.secondary
+                  }
+                />
+              )}
+              {item.prominent ? null : (
+                <NativeText
+                  allowFontScaling={false}
+                  style={[
+                    s.caption,
+                    {
+                      textAlign: 'center',
+                      fontWeight: active === item.id ? '700' : '400',
+                      textDecorationLine:
+                        active === item.id ? 'underline' : 'none',
+                      fontSize: labelSize,
+                      lineHeight: labelSize * 1.35,
+                      color:
+                        active === item.id
+                          ? homeTokens.coralText
+                          : homeTokens.secondary,
+                    },
+                  ]}
+                >
+                  {item.label}
+                </NativeText>
+              )}
             </Pressable>
           ))}
         </View>
