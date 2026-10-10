@@ -194,7 +194,8 @@ function ChildSurfaceContent({
             >
               {area === 'home' ||
               area === 'contracts' ||
-              area === 'offers' ? null : (
+              area === 'offers' ||
+              area === 'rewards' ? null : (
                 <SectionHeading>
                   {
                     (

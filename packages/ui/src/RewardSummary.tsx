@@ -19,6 +19,67 @@ export function RewardSummary({
   childName?: string;
   viewer?: UserProfile['accountType'];
 }) {
+  if (viewer === 'CHILD')
+    return (
+      <View style={{ gap: homeTokens.spacing.section }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: homeTokens.spacing.medium,
+          }}
+        >
+          <RewardIcon terms={reward.terms} size={88} />
+          <View style={{ flex: 1, gap: homeTokens.spacing.small }}>
+            <DesignText
+              accessibilityRole="header"
+              style={{
+                fontSize: 26,
+                fontWeight: '700',
+                color: homeTokens.text,
+              }}
+            >
+              {reward.terms.title}
+            </DesignText>
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                borderRadius: homeTokens.radius.card,
+                backgroundColor: homeTokens.mint,
+                paddingHorizontal: homeTokens.spacing.medium,
+                paddingVertical: homeTokens.spacing.small,
+              }}
+            >
+              <DesignText
+                accessibilityLiveRegion="polite"
+                accessibilityLabel={`Reward status: ${rewardStatusLabel(reward.status, viewer)}`}
+                style={{
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: homeTokens.success,
+                }}
+              >
+                {rewardStatusLabel(reward.status, viewer)}
+              </DesignText>
+            </View>
+          </View>
+        </View>
+        {reward.terms.description ? (
+          <DesignText style={{ fontSize: 16, color: homeTokens.text }}>
+            {reward.terms.description}
+          </DesignText>
+        ) : null}
+        <DesignText style={{ fontSize: 16, color: homeTokens.secondary }}>
+          {rewardResponsibility(reward, viewer)}
+        </DesignText>
+        <View style={{ gap: homeTokens.spacing.medium }}>
+          <TermsHeading icon="checkmark-done-outline">
+            Reward journey
+          </TermsHeading>
+          <RewardFulfillmentProgress reward={reward} />
+        </View>
+      </View>
+    );
   return (
     <>
       <SurfaceCard>

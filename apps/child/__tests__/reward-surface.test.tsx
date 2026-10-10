@@ -1,3 +1,4 @@
+import { homeTokens } from '@chorex/ui';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { EarnedRewards } from '../src/rewards/EarnedRewards';
 import { RewardDetail } from '../src/rewards/RewardDetail';
@@ -60,22 +61,29 @@ it('earned Rewards distinguish pending from delivered and update without Child m
     }),
   );
   expect(screen.getByText('Waiting for Parent delivery')).toBeOnTheScreen();
-  expect(screen.queryByText('Received')).toBeNull();
+  expect(screen.queryByText('Earned rewards')).toBeNull();
+  expect(
+    screen.getByRole('tab', { name: 'Waiting', selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Open reward: Park' }),
+  ).toBeNull();
   expect(
     screen
       .getAllByRole('button')
       .map((button) => button.props.accessibilityLabel.split('. ')[0]),
-  ).toEqual(['Open reward: Park', 'Open reward: Cinema']);
-  fireEvent.press(
-    screen.getByRole('button', { name: /^Open\ reward:\ Park\./ }),
-  );
+  ).toEqual(['Open reward: Cinema']);
+  fireEvent.press(screen.getByRole('tab', { name: 'Delivered' }));
+  expect(
+    screen.queryByRole('button', { name: 'Open reward: Cinema' }),
+  ).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Open reward: Park' }));
   expect(mockPush).toHaveBeenLastCalledWith({
     pathname: '/rewards/[rewardId]',
     params: { rewardId: 'reward-2' },
   });
-  fireEvent.press(
-    screen.getByRole('button', { name: /^Open\ reward:\ Cinema\./ }),
-  );
+  fireEvent.press(screen.getByRole('tab', { name: 'Waiting' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Open reward: Cinema' }));
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/rewards/[rewardId]',
     params: { rewardId: 'reward-1' },
@@ -96,13 +104,15 @@ it('earned Rewards distinguish pending from delivered and update without Child m
       fromCache: false,
     }),
   );
+  expect(screen.getByText('No rewards in this status')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('tab', { name: 'Received' }));
   expect(screen.getAllByText('Received').length).toBeGreaterThan(0);
   expect(screen.queryByText('Earned — waiting for Parent')).toBeNull();
   expect(
     screen.queryByRole('button', { name: 'Mark as fulfilled' }),
   ).toBeNull();
   expect(
-    screen.getByRole('button', { name: /^Open\ reward:\ Cinema\./ }),
+    screen.getByRole('button', { name: 'Open reward: Cinema' }),
   ).toBeOnTheScreen();
 });
 it('empty/error/cache state and scoped listener cleanup cannot retain another family Reward', () => {
@@ -167,4 +177,17 @@ it('assigned Child explicitly confirms receipt, preserves retry key and waits fo
   );
   expect(screen.getByText('Reward received')).toBeOnTheScreen();
   expect(mockConfirm.mock.calls[0][0]).toEqual(mockConfirm.mock.calls[1][0]);
+});
+
+it('keeps all three status tabs equal after layout and selection changes', () => {
+  render(<EarnedRewards familyId="family-1" authUid="child-1" />);
+  fireEvent(screen.getByTestId('reward-status-tabs'), 'layout', {
+    nativeEvent: { layout: { width: 360, height: 48, x: 0, y: 0 } },
+  });
+  const expectedWidth = (360 - homeTokens.spacing.small * 2) / 3;
+  for (const tab of screen.getAllByRole('tab'))
+    expect(tab).toHaveStyle({ width: expectedWidth });
+  fireEvent.press(screen.getByRole('tab', { name: 'Received' }));
+  for (const tab of screen.getAllByRole('tab'))
+    expect(tab).toHaveStyle({ width: expectedWidth });
 });

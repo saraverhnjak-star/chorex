@@ -1,6 +1,7 @@
+import { useState, type ReactNode } from 'react';
 import { HomeFeatureCard, HomeCardAction } from './HomeFeatureCard';
 import { Button } from './Button';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import type { EarnedReward, UserProfile } from '@chorex/domain';
 import { FormMessage } from './FormMessage';
 import {
@@ -39,6 +40,15 @@ export function RewardList({
   childNames?: Readonly<Record<string, string>>;
   viewer?: UserProfile['accountType'];
 }) {
+  const [selectedStatus, setSelectedStatus] = useState<EarnedReward['status']>(
+    'PENDING_FULFILLMENT',
+  );
+  const [tabsWidth, setTabsWidth] = useState(0);
+  const statusTabs = [
+    { status: 'PENDING_FULFILLMENT', label: 'Waiting' },
+    { status: 'AWAITING_CHILD_CONFIRMATION', label: 'Delivered' },
+    { status: 'FULFILLED', label: 'Received' },
+  ] as const;
   const visible = preview
     ? (viewer === 'CHILD'
         ? [
@@ -52,27 +62,11 @@ export function RewardList({
         : rewards
       ).slice(0, 2)
     : rewards;
-  const groups =
+  const filteredRewards =
     viewer === 'CHILD' && !preview
-      ? [
-          {
-            label: 'Confirm receipt',
-            rewards: visible.filter(
-              (reward) => reward.status === 'AWAITING_CHILD_CONFIRMATION',
-            ),
-          },
-          {
-            label: 'Waiting for Parent',
-            rewards: visible.filter(
-              (reward) => reward.status === 'PENDING_FULFILLMENT',
-            ),
-          },
-          {
-            label: 'Received',
-            rewards: visible.filter((reward) => reward.status === 'FULFILLED'),
-          },
-        ].filter((group) => group.rewards.length > 0)
-      : [{ label: undefined, rewards: visible }];
+      ? visible.filter((reward) => reward.status === selectedStatus)
+      : visible;
+  const groups = [{ label: undefined, rewards: filteredRewards }];
   if (preview)
     return (
       <View style={{ gap: homeTokens.spacing.medium }}>
@@ -106,68 +100,111 @@ export function RewardList({
             {fromCache ? 'No rewards saved yet.' : empty}
           </DesignText>
         ) : null}
-        {visible.slice(0, 1).map((reward) =>
-          viewer === 'CHILD' ? (
-            <HomeFeatureCard
-              key={reward.id}
-              title={reward.terms.title}
-              reward={reward.terms}
-              tone="mint"
-              badge={
-                reward.status === 'PENDING_FULFILLMENT'
-                  ? 'Earned'
-                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-                    ? 'Delivered'
-                    : 'Received'
-              }
-              detail={
-                reward.status === 'PENDING_FULFILLMENT'
-                  ? 'Waiting for Parent delivery'
-                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-                    ? 'Confirm when received'
-                    : 'Receipt confirmed'
-              }
-            >
-              <HomeCardAction
-                label={`Open reward: ${reward.terms.title}`}
-                tone="green"
+        {visible
+          .slice(0, 1)
+          .map((reward) =>
+            viewer === 'CHILD' ? (
+              <ChildRewardCard
+                key={reward.id}
+                reward={reward}
+                onSelect={onSelect}
+              />
+            ) : (
+              <HomeListRow
+                key={reward.id}
+                title={reward.terms.title}
+                detail={
+                  reward.status === 'PENDING_FULFILLMENT'
+                    ? 'Earned · Waiting for Parent delivery'
+                    : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+                      ? 'Delivered · Confirm when received'
+                      : 'Received · Receipt confirmed'
+                }
+                reward={reward.terms}
+                label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
                 onPress={() => onSelect(reward.id)}
               />
-            </HomeFeatureCard>
-          ) : (
-            <HomeListRow
-              key={reward.id}
-              title={reward.terms.title}
-              detail={
-                reward.status === 'PENDING_FULFILLMENT'
-                  ? 'Earned · Waiting for Parent delivery'
-                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-                    ? 'Delivered · Confirm when received'
-                    : 'Received · Receipt confirmed'
-              }
-              reward={reward.terms}
-              label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
-              onPress={() => onSelect(reward.id)}
-            />
-          ),
-        )}
+            ),
+          )}
       </View>
     );
+  const Wrapper = viewer === 'CHILD' ? ChildRewardCollection : SurfaceCard;
   return (
-    <SurfaceCard>
-      <View
-        style={{
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: homeTokens.spacing.small,
-        }}
-      >
-        <CollectionHeading label="See all Rewards" onSeeAll={onSeeAll}>
-          {title}
-        </CollectionHeading>
-        <CountBadge count={rewards.length} />
-      </View>
+    <Wrapper>
+      {viewer === 'CHILD' ? (
+        <View
+          testID="reward-status-tabs"
+          accessibilityRole="tablist"
+          onLayout={({ nativeEvent }) => setTabsWidth(nativeEvent.layout.width)}
+          style={{
+            flexDirection: 'row',
+            gap: homeTokens.spacing.small,
+          }}
+        >
+          {statusTabs.map((tab) => (
+            <Pressable
+              key={tab.status}
+              accessibilityRole="tab"
+              accessibilityLabel={tab.label}
+              accessibilityState={{ selected: selectedStatus === tab.status }}
+              onPress={() => setSelectedStatus(tab.status)}
+              style={{
+                flexGrow: 0,
+                flexShrink: 0,
+                width:
+                  tabsWidth > 0
+                    ? Math.max(
+                        0,
+                        (tabsWidth - homeTokens.spacing.small * 2) / 3,
+                      )
+                    : undefined,
+                minWidth: 0,
+                minHeight: 48,
+                paddingHorizontal: homeTokens.spacing.small,
+                paddingVertical: homeTokens.spacing.small,
+                justifyContent: 'center',
+                borderRadius: homeTokens.radius.card,
+                backgroundColor:
+                  selectedStatus === tab.status
+                    ? homeTokens.mint
+                    : homeTokens.surface,
+                borderWidth: 1,
+                borderColor:
+                  selectedStatus === tab.status
+                    ? homeTokens.success
+                    : homeTokens.border,
+              }}
+            >
+              <DesignText
+                numberOfLines={1}
+                style={{
+                  textAlign: 'center',
+                  fontSize: 14,
+                  fontWeight: '600',
+                  color: homeTokens.text,
+                }}
+              >
+                {tab.label}
+              </DesignText>
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: homeTokens.spacing.small,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <CollectionHeading label="See all Rewards" onSeeAll={onSeeAll}>
+              {title}
+            </CollectionHeading>
+          </View>
+          {!loading && !error ? <CountBadge count={rewards.length} /> : null}
+        </View>
+      )}
       {loading ? (
         <DesignText
           accessibilityLiveRegion="polite"
@@ -202,44 +239,80 @@ export function RewardList({
             : undefined}
         </OfferOutcome>
       ) : null}
+      {!loading &&
+      !error &&
+      rewards.length > 0 &&
+      filteredRewards.length === 0 ? (
+        <OfferOutcome title="No rewards in this status" />
+      ) : null}
       {groups.map((group) => (
         <View
           key={group.label ?? 'rewards'}
-          style={{ gap: homeTokens.spacing.medium }}
+          style={{
+            gap: homeTokens.spacing.medium,
+            marginTop: viewer === 'CHILD' ? homeTokens.spacing.medium : 0,
+          }}
         >
-          {group.label ? (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 8,
-              }}
-            >
-              <DesignText
-                accessibilityRole="header"
-                style={{
-                  fontSize: 16,
-                  fontWeight: '600',
-                  color: homeTokens.text,
-                }}
-              >
-                {group.label}
-              </DesignText>
-              <CountBadge count={group.rewards.length} />
-            </View>
-          ) : null}
-          {group.rewards.map((reward) => (
-            <RewardCard
-              key={reward.id}
-              reward={reward}
-              viewer={viewer}
-              childName={childNames[reward.childUid]}
-              onPress={() => onSelect(reward.id)}
-            />
-          ))}
+          {group.rewards.map((reward) =>
+            viewer === 'CHILD' ? (
+              <ChildRewardCard
+                key={reward.id}
+                reward={reward}
+                onSelect={onSelect}
+              />
+            ) : (
+              <RewardCard
+                key={reward.id}
+                reward={reward}
+                viewer={viewer}
+                childName={childNames[reward.childUid]}
+                onPress={() => onSelect(reward.id)}
+              />
+            ),
+          )}
         </View>
       ))}
-    </SurfaceCard>
+    </Wrapper>
   );
+}
+
+function ChildRewardCard({
+  reward,
+  onSelect,
+}: {
+  reward: EarnedReward;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <HomeFeatureCard
+      key={reward.id}
+      title={reward.terms.title}
+      reward={reward.terms}
+      tone="mint"
+      badge={
+        reward.status === 'PENDING_FULFILLMENT'
+          ? 'Earned'
+          : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+            ? 'Delivered'
+            : 'Received'
+      }
+      detail={
+        reward.status === 'PENDING_FULFILLMENT'
+          ? 'Waiting for Parent delivery'
+          : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+            ? 'Confirm when received'
+            : 'Receipt confirmed'
+      }
+    >
+      <HomeCardAction
+        label={`Open reward: ${reward.terms.title}`}
+        tone="green"
+        onPress={() => onSelect(reward.id)}
+      />
+    </HomeFeatureCard>
+  );
+}
+
+function ChildRewardCollection({ children }: { children: ReactNode }) {
+  return <View style={{ gap: homeTokens.spacing.medium }}>{children}</View>;
 }
