@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useEarnedRewards } from '@chorex/firebase-client';
 import { RewardList } from '@chorex/ui';
 function EarnedRewardsContent({
@@ -7,14 +7,21 @@ function EarnedRewardsContent({
   authUid,
   preview = false,
   onRetry,
+  onEmptyChange,
 }: {
   onRetry?: () => void;
+  onEmptyChange?: (empty: boolean) => void;
   preview?: boolean;
   familyId: string;
   authUid: string;
 }) {
   const state = useEarnedRewards(familyId, authUid),
     router = useRouter();
+  const empty = state.status === 'ready' && state.rewards.length === 0;
+  useEffect(() => {
+    onEmptyChange?.(empty);
+    return () => onEmptyChange?.(false);
+  }, [empty, onEmptyChange]);
   return (
     <RewardList
       onRetry={onRetry}

@@ -2,6 +2,7 @@ import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
 import { useRouter, Redirect } from 'expo-router';
 import {
   DesignText,
+  OfferOutcome,
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
@@ -66,6 +67,9 @@ function ChildSurfaceContent({
   const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
   const [token, setToken] = useState('');
+  const [contractsEmpty, setContractsEmpty] = useState(false);
+  const [rewardsEmpty, setRewardsEmpty] = useState(false);
+  const noActivities = area === 'home' && contractsEmpty && rewardsEmpty;
   const idempotencyKey = useRef<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
@@ -110,7 +114,7 @@ function ChildSurfaceContent({
     return (
       <HomeScreenFrame
         child
-        fill={Boolean(offerId)}
+        fill
         keyboard={Boolean(offerId)}
         header={
           offerId ? (
@@ -142,20 +146,20 @@ function ChildSurfaceContent({
                 </Pressable>
               }
             />
-          ) : undefined
-        }
-      >
-        <View style={offerId ? { flexGrow: 1 } : undefined}>
-          {!offerId ? (
+          ) : (
             <HomeHeader
               child
+              compact
               name={
                 familyState.status === 'ready'
                   ? familyState.home.profile.displayName
                   : 'Child'
               }
             />
-          ) : null}
+          )
+        }
+      >
+        <View style={{ flexGrow: 1 }}>
           {familyState.status === 'loading' ? (
             <View className="items-center py-6">
               <ActivityIndicator
@@ -181,10 +185,7 @@ function ChildSurfaceContent({
           ) : null}
 
           {familyState.status === 'ready' ? (
-            <View
-              className="gap-5"
-              style={offerId ? { flexGrow: 1 } : undefined}
-            >
+            <View className="gap-5" style={{ flexGrow: 1 }}>
               {area === 'home' ||
               area === 'contracts' ||
               area === 'offers' ||
@@ -211,22 +212,53 @@ function ChildSurfaceContent({
                 />
               ) : null}
               {area === 'contracts' || area === 'home' ? (
-                <HomeSection>
-                  <ActiveContracts
-                    preview={area === 'home'}
-                    familyId={familyState.home.family.id}
-                    authUid={session.user.uid}
-                  />
-                </HomeSection>
+                <View
+                  style={
+                    area === 'home' && contractsEmpty
+                      ? { display: 'none' }
+                      : { flexGrow: area === 'home' ? 0 : 1 }
+                  }
+                >
+                  <HomeSection fill={area !== 'home'}>
+                    <ActiveContracts
+                      preview={area === 'home'}
+                      onEmptyChange={
+                        area === 'home' ? setContractsEmpty : undefined
+                      }
+                      familyId={familyState.home.family.id}
+                      authUid={session.user.uid}
+                    />
+                  </HomeSection>
+                </View>
               ) : null}
               {area === 'rewards' || area === 'home' ? (
-                <HomeSection>
-                  <EarnedRewards
-                    preview={area === 'home'}
-                    familyId={familyState.home.family.id}
-                    authUid={session.user.uid}
-                  />
-                </HomeSection>
+                <View
+                  style={
+                    area === 'home' && rewardsEmpty
+                      ? { display: 'none' }
+                      : { flexGrow: area === 'home' ? 0 : 1 }
+                  }
+                >
+                  <HomeSection fill={area !== 'home'}>
+                    <EarnedRewards
+                      preview={area === 'home'}
+                      onEmptyChange={
+                        area === 'home' ? setRewardsEmpty : undefined
+                      }
+                      familyId={familyState.home.family.id}
+                      authUid={session.user.uid}
+                    />
+                  </HomeSection>
+                </View>
+              ) : null}
+              {noActivities ? (
+                <OfferOutcome
+                  centered
+                  illustration="no-activities"
+                  title="No activities yet"
+                >
+                  Your agreements and earned rewards will appear here.
+                </OfferOutcome>
               ) : null}
               {area === 'more' ? (
                 <HomeSection>

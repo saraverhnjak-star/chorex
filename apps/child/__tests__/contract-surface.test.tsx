@@ -246,6 +246,9 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
   expect(screen.getByText('Loading Contracts…')).toBeOnTheScreen();
   act(() => mockList({ data: [], fromCache: false }));
   expect(screen.getByText('No active Contracts yet.')).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('header', { name: 'Active agreements' }),
+  ).toBeNull();
   act(() =>
     mockList({
       data: [

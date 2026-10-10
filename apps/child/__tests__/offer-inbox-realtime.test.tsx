@@ -65,6 +65,7 @@ it('applies realtime add, change, and remove events and cleans up subscriptions'
 
   act(() => emitItems?.([]));
   expect(screen.getByText('No offers are waiting for you.')).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Offers' })).toBeNull();
   expect(
     screen.queryByRole('button', { name: 'Refresh offers' }),
   ).not.toBeOnTheScreen();

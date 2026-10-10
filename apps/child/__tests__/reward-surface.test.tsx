@@ -119,6 +119,7 @@ it('empty/error/cache state and scoped listener cleanup cannot retain another fa
   const view = render(<EarnedRewards familyId="family-1" authUid="child-1" />);
   act(() => mockList({ data: [], fromCache: false }));
   expect(screen.getByText('No rewards yet')).toBeOnTheScreen();
+  expect(screen.queryByTestId('reward-status-tabs')).toBeNull();
   const old = mockList;
   view.rerender(<EarnedRewards familyId="family-2" authUid="child-2" />);
   expect(mockStop).toHaveBeenCalled();

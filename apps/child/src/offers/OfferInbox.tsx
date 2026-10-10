@@ -390,7 +390,7 @@ export function OfferInbox({
     );
 
   return (
-    <View className="gap-4" style={offerId ? { flexGrow: 1 } : undefined}>
+    <View className="gap-4" style={!preview ? { flexGrow: 1 } : undefined}>
       {offerId && showBackLink ? (
         <Pressable
           accessibilityRole="link"
@@ -408,7 +408,10 @@ export function OfferInbox({
           </DesignText>
         </Pressable>
       ) : null}
-      {!offerId ? (
+      {!offerId &&
+      !(
+        displayedState.status === 'ready' && displayedState.items.length === 0
+      ) ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ flex: 1 }}>
             <SectionHeading>Offers</SectionHeading>
@@ -478,7 +481,7 @@ export function OfferInbox({
       ) : null}
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
-        <View className="gap-4" style={offerId ? { flexGrow: 1 } : undefined}>
+        <View className="gap-4" style={!preview ? { flexGrow: 1 } : undefined}>
           {displayedState.items.map(({ offer, revision }) =>
             !offerId ? (
               <HomeFeatureCard

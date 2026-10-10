@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HomeContractRow } from './HomeContractRow';
 import { Text, View } from 'react-native';
 import { useActiveContracts } from '@chorex/firebase-client';
@@ -20,8 +20,10 @@ function ActiveContractsContent({
   childNames = {},
   preview = false,
   onRetry,
+  onEmptyChange,
 }: {
   onRetry?: () => void;
+  onEmptyChange?: (empty: boolean) => void;
   preview?: boolean;
   familyId: string;
   authUid: string;
@@ -30,6 +32,23 @@ function ActiveContractsContent({
   const state = useActiveContracts(familyId, authUid);
   const router = useRouter();
   const styles = useDynamicTypeStyles();
+  const empty = state.status === 'ready' && state.contracts.length === 0;
+  useEffect(() => {
+    onEmptyChange?.(empty);
+    return () => onEmptyChange?.(false);
+  }, [empty, onEmptyChange]);
+  if (!preview && empty)
+    return (
+      <OfferOutcome
+        title="No active agreements"
+        centered
+        illustration="no-chores"
+      >
+        {state.status === 'ready' && state.fromCache
+          ? 'No active Contracts are saved on this device yet.'
+          : 'No active Contracts yet.'}
+      </OfferOutcome>
+    );
   return (
     <View className={preview ? 'gap-3' : 'gap-4'}>
       {preview ? (

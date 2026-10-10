@@ -128,6 +128,16 @@ export function RewardList({
           )}
       </View>
     );
+  if (viewer === 'CHILD' && !loading && !error && rewards.length === 0)
+    return (
+      <OfferOutcome
+        title={fromCache ? 'No rewards are saved on this device yet.' : empty}
+        centered
+        illustration="no-rewards"
+      >
+        Your earned rewards will appear here.
+      </OfferOutcome>
+    );
   const Wrapper = viewer === 'CHILD' ? ChildRewardCollection : SurfaceCard;
   return (
     <Wrapper>
@@ -320,5 +330,9 @@ function ChildRewardCard({
 }
 
 function ChildRewardCollection({ children }: { children: ReactNode }) {
-  return <View style={{ gap: homeTokens.spacing.medium }}>{children}</View>;
+  return (
+    <View style={{ gap: homeTokens.spacing.medium, flexGrow: 1 }}>
+      {children}
+    </View>
+  );
 }

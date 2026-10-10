@@ -288,7 +288,7 @@ export function OfferOutcome({
   children?: ReactNode;
   success?: boolean;
   centered?: boolean;
-  illustration?: 'no-offers' | 'no-chores' | 'no-rewards';
+  illustration?: 'no-offers' | 'no-chores' | 'no-rewards' | 'no-activities';
 }) {
   if (centered && (success || illustration))
     return (
@@ -311,7 +311,9 @@ export function OfferOutcome({
                 ? require('../assets/icons/no_chores.png')
                 : illustration === 'no-rewards'
                   ? require('../assets/icons/no_rewards.png')
-                  : require('../assets/icons/success.png')
+                  : illustration === 'no-activities'
+                    ? require('../assets/icons/no_activities.png')
+                    : require('../assets/icons/success.png')
           }
           style={{ width: 180, height: 180 }}
           resizeMode="contain"

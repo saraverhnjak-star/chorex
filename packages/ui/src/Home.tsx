@@ -167,8 +167,18 @@ export function HomeScreenFrame({
     </DesignThemeProvider>
   );
 }
-export function HomeSection({ children }: { children: ReactNode }) {
-  return <View style={s.section}>{children}</View>;
+export function HomeSection({
+  children,
+  fill = false,
+}: {
+  children: ReactNode;
+  fill?: boolean;
+}) {
+  return (
+    <View style={[s.section, fill ? { flexGrow: 1 } : undefined]}>
+      {children}
+    </View>
+  );
 }
 export function CollectionHeading({
   children,

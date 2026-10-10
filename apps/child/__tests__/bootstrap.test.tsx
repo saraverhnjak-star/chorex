@@ -280,6 +280,15 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
   await screen.findByRole('button', { name: 'Notification settings' });
   expect(screen.queryByText('Hi, Mia!')).toBeNull();
+  expect(
+    await screen.findByRole('header', { name: 'No activities yet' }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText('Your agreements and earned rewards will appear here.'),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'See all My chores' }),
+  ).toBeNull();
   expect(screen.queryByText('Dogovorjeno število ponovitev')).toBeNull();
   for (const [label, route] of [
     ['My chores', '/contracts'],
@@ -287,8 +296,6 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     ['Rewards', '/rewards'],
     ['Notification settings', '/more'],
     ['Home', '/'],
-    ['See all My chores', '/contracts'],
-    ['See all Rewards', '/rewards'],
   ]) {
     fireEvent.press(
       screen.queryByRole('tab', { name: label }) ??
