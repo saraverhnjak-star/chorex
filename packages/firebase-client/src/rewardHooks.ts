@@ -28,7 +28,8 @@ function useRewards(
   pending: boolean,
   parentStatus:
     | 'PENDING_FULFILLMENT'
-    | 'AWAITING_CHILD_CONFIRMATION' = 'PENDING_FULFILLMENT',
+    | 'AWAITING_CHILD_CONFIRMATION'
+    | 'FULFILLED' = 'PENDING_FULFILLMENT',
 ): RewardListState {
   const key = JSON.stringify([familyId, authUid, pending, parentStatus]);
   const [result, setResult] = useState<{
@@ -143,4 +144,11 @@ export function useAwaitingRewards(
   authUid: string,
 ): RewardListState {
   return useRewards(familyId, authUid, true, 'AWAITING_CHILD_CONFIRMATION');
+}
+
+export function useReceivedRewards(
+  familyId: string,
+  authUid: string,
+): RewardListState {
+  return useRewards(familyId, authUid, true, 'FULFILLED');
 }

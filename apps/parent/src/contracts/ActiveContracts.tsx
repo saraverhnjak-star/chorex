@@ -17,6 +17,7 @@ import {
 } from '@chorex/ui';
 
 type ContractListProps = {
+  showHeading?: boolean;
   selectedChildUid?: string;
   familyId: string;
   authUid: string;
@@ -29,6 +30,7 @@ function ActiveContractsContent({
   authUid,
   childNames = {},
   preview = false,
+  showHeading = true,
   selectedChildUid,
   onRetry,
 }: ContractListProps) {
@@ -37,6 +39,7 @@ function ActiveContractsContent({
     <ContractList
       onRetry={onRetry}
       preview={preview}
+      showHeading={showHeading}
       authUid={authUid}
       state={
         state.status === 'ready' && selectedChildUid
@@ -58,6 +61,7 @@ function ReadyForReviewContractsContent({
   authUid,
   childNames = {},
   preview = false,
+  showHeading = true,
   selectedChildUid,
   onRetry,
 }: ContractListProps) {
@@ -66,6 +70,7 @@ function ReadyForReviewContractsContent({
     <ContractList
       onRetry={onRetry}
       preview={preview}
+      showHeading={showHeading}
       authUid={authUid}
       state={
         state.status === 'ready' && selectedChildUid
@@ -89,6 +94,7 @@ function ContractList({
   onRetry,
   readyForReview,
   preview,
+  showHeading,
 }: {
   state: ActiveContractsState;
   authUid: string;
@@ -96,26 +102,29 @@ function ContractList({
   onRetry?: () => void;
   readyForReview: boolean;
   preview: boolean;
+  showHeading: boolean;
 }) {
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   return (
     <View className="gap-4">
-      <CollectionHeading
-        count={
-          !preview && state.status === 'ready'
-            ? state.contracts.length
-            : undefined
-        }
-        label={readyForReview ? 'See all Reviews' : 'See all Contracts'}
-        onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
-      >
-        {readyForReview
-          ? 'Ready for Review'
-          : preview
-            ? 'Active agreements'
-            : 'Active Contracts'}
-      </CollectionHeading>
+      {showHeading ? (
+        <CollectionHeading
+          count={
+            !preview && state.status === 'ready'
+              ? state.contracts.length
+              : undefined
+          }
+          label={readyForReview ? 'See all Reviews' : 'See all Contracts'}
+          onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
+        >
+          {readyForReview
+            ? 'Ready for Review'
+            : preview
+              ? 'Active agreements'
+              : 'Active Contracts'}
+        </CollectionHeading>
+      ) : null}
       {state.status === 'loading' ? (
         <Text
           allowFontScaling={false}

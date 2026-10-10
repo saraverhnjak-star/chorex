@@ -14,6 +14,7 @@ export function RewardTransitionAction({
   question,
   description,
   success,
+  blue = false,
 }: {
   reward: EarnedReward;
   submit: (input: {
@@ -26,6 +27,7 @@ export function RewardTransitionAction({
   question: string;
   description: string;
   success: string;
+  blue?: boolean;
 }) {
   const styles = {
       body: { fontSize: 16, color: homeTokens.text },
@@ -118,6 +120,8 @@ export function RewardTransitionAction({
               </Text>
               <Button
                 label={confirmLabel}
+                variant={blue ? 'blue' : 'primary'}
+                lightText={blue}
                 loading={pending}
                 onPress={() => void fulfill()}
               />
@@ -129,7 +133,12 @@ export function RewardTransitionAction({
               />
             </>
           ) : (
-            <Button label={actionLabel} onPress={() => setConfirming(true)} />
+            <Button
+              variant={blue ? 'blue' : 'primary'}
+              lightText={blue}
+              label={actionLabel}
+              onPress={() => setConfirming(true)}
+            />
           )}
         </>
       ) : null}

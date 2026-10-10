@@ -22,16 +22,19 @@ export function ParentRewardList({
   onSelect,
   preview,
   onSeeAll,
-}: ComponentProps<typeof RewardList>) {
+  showHeading = true,
+}: ComponentProps<typeof RewardList> & { showHeading?: boolean }) {
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
-      <CollectionHeading
-        count={rewards.length}
-        onSeeAll={preview ? onSeeAll : undefined}
-        label="See all Rewards"
-      >
-        {title}
-      </CollectionHeading>
+      {showHeading ? (
+        <CollectionHeading
+          count={rewards.length}
+          onSeeAll={preview ? onSeeAll : undefined}
+          label="See all Rewards"
+        >
+          {title}
+        </CollectionHeading>
+      ) : null}
       {fromCache ? (
         <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
           Showing saved rewards. Updates may be pending.
@@ -72,11 +75,13 @@ export function ParentRewardList({
               badge={
                 pending
                   ? 'Your turn to deliver'
-                  : 'Waiting for child confirmation'
+                  : reward.status === 'FULFILLED'
+                    ? 'Received'
+                    : "Child's turn"
               }
               action={pending ? 'Fulfill reward' : 'Open reward'}
               button={pending}
-              label={`Open reward: ${childName ? `${childName} · ` : ''}${reward.terms.title}. ${pending ? 'Your turn to deliver' : 'Waiting for child confirmation'}`}
+              label={`Open reward: ${childName ? `${childName} · ` : ''}${reward.terms.title}. ${pending ? 'Your turn to deliver' : reward.status === 'FULFILLED' ? 'Received' : "Child's turn"}`}
               onPress={() => onSelect(reward.id)}
             />
           </ParentHomeCard>

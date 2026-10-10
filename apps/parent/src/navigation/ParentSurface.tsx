@@ -1,3 +1,4 @@
+import { ContractTabs } from '../contracts/ContractTabs';
 import { HomeAttention } from './HomeAttention';
 import { ParentFamilyProvider, useParentFamily } from './FamilyContext';
 import { useRouter } from 'expo-router';
@@ -21,10 +22,7 @@ import {
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { PendingRewards } from '../rewards/PendingRewards';
-import {
-  ActiveContracts,
-  ReadyForReviewContracts,
-} from '../contracts/ActiveContracts';
+import { ActiveContracts } from '../contracts/ActiveContracts';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -409,7 +407,7 @@ function ParentSurfaceContent({
             ) : null}
             {area === 'contracts' ? (
               <HomeSection>
-                <ReadyForReviewContracts
+                <ContractTabs
                   familyId={familyState.home.family.id}
                   authUid={user.uid}
                   childNames={Object.fromEntries(
@@ -435,7 +433,7 @@ function ParentSurfaceContent({
                 />
               </HomeSection>
             ) : null}
-            {area === 'home' || area === 'contracts' ? (
+            {area === 'home' ? (
               <HomeSection>
                 <ActiveContracts
                   selectedChildUid={

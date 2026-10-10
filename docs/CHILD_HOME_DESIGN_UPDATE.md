@@ -57,3 +57,12 @@ Parent Rewards collection follows the compact Home style with reduced card paddi
 Parent Contract details now share the Child summary presentation: large reward art/title, status pill, date icon and blue aggregate progress only for multiple tasks. Parent task rows are compact and unboxed with section spacing; the Tasks heading and duplicate reward section are removed, and empty loaded history is hidden while loading/errors remain visible. Review actions retain confirmation and command behavior, use blue primary buttons with white text and sit below content with flexible spacing. The route uses a fixed notification/profile header with a left Back to Contracts link and shared family context instead of another family read.
 
 Parent Contract review history is collapsed by default in an accessible accordion with an expanded state and chevron. Loaded empty history remains hidden; loading and error messages remain visible. Expanding or collapsing does not change the history subscription or review records.
+
+Parent Reward details now reuse the unboxed Child summary layout with large reward art/title, status pill, child identity, description, responsibility and reward journey. The route has a fixed header and Back to Rewards link and uses shared family context. Delivery actions sit below content with blue primary buttons and white text; confirmation, authorization and lifecycle behavior remain unchanged.
+
+Parent Rewards now shows Waiting, Delivered and Received status tabs using equal measured widths and single-line labels. Only the selected status is displayed and the section headings/counts are removed. Received reads use the existing parentUid/familyId/status constrained observer and index, with FULFILLED added to its accepted read statuses; reward mutations are unchanged.
+
+Parent Contracts uses equal-width dark pill tabs for the existing Active and For review queues. Only the selected queue is mounted and displayed; redundant collection headings/counts are hidden inside tabs. Home agreement preview remains unchanged.
+
+
+Contracts tabs order is For review, then Active; For review is selected initially. The review tab count badge and its additional subscription sharing introduced for the badge were reverted.

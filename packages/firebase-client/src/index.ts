@@ -1672,6 +1672,7 @@ export { RewardReadError, deserializeReward } from './rewardReadModel';
 export {
   usePendingRewards,
   useAwaitingRewards,
+  useReceivedRewards,
   useEarnedRewards,
   useRewardDetail,
   type RewardListState,
@@ -1787,7 +1788,8 @@ export function observePendingRewards(
   onError: (error: ContractReadError) => void,
   status:
     | 'PENDING_FULFILLMENT'
-    | 'AWAITING_CHILD_CONFIRMATION' = 'PENDING_FULFILLMENT',
+    | 'AWAITING_CHILD_CONFIRMATION'
+    | 'FULFILLED' = 'PENDING_FULFILLMENT',
 ): () => void {
   return observeRewards(familyId, true, callback, onError, status);
 }
@@ -1805,7 +1807,8 @@ function observeRewards(
   onError: (error: ContractReadError) => void,
   parentStatus:
     | 'PENDING_FULFILLMENT'
-    | 'AWAITING_CHILD_CONFIRMATION' = 'PENDING_FULFILLMENT',
+    | 'AWAITING_CHILD_CONFIRMATION'
+    | 'FULFILLED' = 'PENDING_FULFILLMENT',
 ): () => void {
   const uid = requireContractReadContext(familyId);
   const constraints = [

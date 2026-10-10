@@ -7,7 +7,9 @@ import { RewardClientError } from '@chorex/firebase-client';
 const mockFulfill = jest.fn(),
   mockPush = jest.fn(),
   mockStop = jest.fn();
-let mockList: (value: unknown) => void,
+let mockAwaiting: (value: unknown) => void,
+  mockReceived: (value: unknown) => void,
+  mockList: (value: unknown) => void,
   mockReward: (value: unknown) => void,
   mockFailure: (error: unknown) => void;
 jest.mock('expo-router', () => ({
@@ -29,7 +31,13 @@ jest.mock('@chorex/firebase-client', () => ({
     _failure: unknown,
     status?: string,
   ) => {
+    if (status === 'FULFILLED') {
+      mockReceived = callback;
+      callback({ data: [], fromCache: false });
+      return mockStop;
+    }
     if (status === 'AWAITING_CHILD_CONFIRMATION') {
+      mockAwaiting = callback;
       callback({ data: [], fromCache: false });
       return mockStop;
     }
@@ -90,9 +98,7 @@ it('renders multiple obligations and empty/cache/error states; realtime removes 
       fromCache: true,
     }),
   );
-  expect(
-    screen.getByRole('header', { name: 'Rewards to deliver' }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole('tab', { name: 'Waiting' })).toBeOnTheScreen();
   expect(
     screen.getByRole('button', { name: /^Open\ reward:\ Mia\ ·\ Cinema\./ }),
   ).toBeOnTheScreen();
@@ -233,4 +239,51 @@ it('uses the closed icon registry and read-only fallback without replacing a val
   expect(resolveRewardIconKey({ iconKey: 'unknown', type: 'unknown' })).toBe(
     'gift',
   );
+});
+
+it('filters Parent reward tabs by delivery status and keeps equal widths', () => {
+  render(<PendingRewards familyId="family-1" authUid="parent-1" />);
+  act(() => {
+    mockList({ data: [reward], fromCache: false });
+    mockAwaiting({
+      data: [
+        {
+          ...reward,
+          id: 'delivered',
+          terms: { ...reward.terms, title: 'Book' },
+          status: 'AWAITING_CHILD_CONFIRMATION',
+        },
+      ],
+      fromCache: false,
+    });
+    mockReceived({
+      data: [
+        {
+          ...reward,
+          id: 'received',
+          terms: { ...reward.terms, title: 'Park' },
+          status: 'FULFILLED',
+        },
+      ],
+      fromCache: false,
+    });
+  });
+  fireEvent(screen.getByTestId('parent-reward-status-tabs'), 'layout', {
+    nativeEvent: { layout: { width: 360 } },
+  });
+  expect(screen.getByText('Cinema')).toBeOnTheScreen();
+  expect(screen.queryByText('Book')).toBeNull();
+  fireEvent.press(screen.getByRole('tab', { name: 'Delivered' }));
+  expect(screen.getByText('Book')).toBeOnTheScreen();
+  expect(screen.queryByText('Cinema')).toBeNull();
+  expect(screen.getByText("Child's turn")).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('tab', { name: 'Received' }));
+  expect(screen.getByText('Park')).toBeOnTheScreen();
+  expect(screen.queryByText('Book')).toBeNull();
+  expect(screen.queryByText("Child's turn")).toBeNull();
+  const widths = ['Waiting', 'Delivered', 'Received'].map(
+    (name) => screen.getByRole('tab', { name }).props.style.width,
+  );
+  expect(widths[0]).toBeGreaterThan(0);
+  expect(widths).toEqual([widths[0], widths[0], widths[0]]);
 });

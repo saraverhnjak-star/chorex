@@ -55,10 +55,7 @@ export function RewardDetailBody({
       </Text>
     );
   return (
-    <View
-      className="gap-4"
-      style={viewer === 'CHILD' ? { flexGrow: 1 } : undefined}
-    >
+    <View className="gap-4" style={{ flexGrow: 1 }}>
       {fromCache ? (
         <Text
           allowFontScaling={false}
@@ -73,11 +70,7 @@ export function RewardDetailBody({
       ) : null}
       {children ? (
         <View
-          style={
-            viewer === 'CHILD'
-              ? { marginTop: 'auto', paddingTop: homeTokens.spacing.section }
-              : undefined
-          }
+          style={{ marginTop: 'auto', paddingTop: homeTokens.spacing.section }}
         >
           {children}
         </View>
