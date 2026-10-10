@@ -351,7 +351,10 @@ it('renders the parent screen through the public shared UI package', async () =>
       <ParentSurface area="create" />
     </AppNavigation>,
   );
-  expect(await screen.findByText('Create an offer draft')).toBeOnTheScreen();
+  expect(
+    await screen.findByRole('header', { name: 'Who is this for?' }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText('Create an offer draft')).toBeNull();
   view.rerender(
     <AppNavigation>
       <ParentSurface area="offers" />
@@ -382,9 +385,9 @@ it('publishes the saved Offer draft and shows the published result', async () =>
     />,
   );
 
-  expect(screen.getByText('Selected reward: Cinema')).toBeOnTheScreen();
+  expect(screen.getByText('Cinema')).toBeOnTheScreen();
   expect(screen.queryByLabelText('Reward title')).toBeNull();
-  fireEvent.press(screen.getByRole('button', { name: 'Choose reward' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Change' }));
   expect(
     screen.getByRole('button', {
       name: 'Choose Cinema reward',
@@ -394,10 +397,10 @@ it('publishes the saved Offer draft and shows the published result', async () =>
   fireEvent.press(screen.getByRole('button', { name: 'Choose Custom reward' }));
   fireEvent.changeText(screen.getByLabelText('Reward title'), 'Cinema');
   expect(screen.getByLabelText('Reward title')).toHaveProp('value', 'Cinema');
-  fireEvent.press(screen.getByRole('button', { name: 'Choose reward' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Change' }));
   fireEvent.press(screen.getByRole('button', { name: 'Choose Plant reward' }));
   expect(screen.queryByLabelText('Reward title')).toBeNull();
-  expect(screen.getByText('Selected reward: Plant')).toBeOnTheScreen();
+  expect(screen.getByText('Plant')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1'), 'Load the dishwasher');
   fireEvent.press(screen.getByRole('button', { name: 'Save offer draft' }));
 

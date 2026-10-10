@@ -1,6 +1,6 @@
 import { DeadlinePicker } from './DeadlinePicker';
-import { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,16 +22,45 @@ import {
 } from '@chorex/domain';
 import {
   RewardPicker,
-  SurfaceCard,
+  Ionicons,
   ProposalTerms,
-  ChoiceChip,
-  TermsHeading,
+  DesignText,
+  homeTokens,
+  amberAuroraPalette,
+  amberAuroraColors,
   Button,
   FormMessage,
   TextField,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { getFamilyErrorMessage } from '../family/messages';
+
+function DraftSectionHeading({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone: 'blue' | 'mint' | 'coralSurface' | 'lavender';
+}) {
+  return (
+    <View
+      style={{
+        alignSelf: 'flex-start',
+        backgroundColor: homeTokens[tone],
+        borderRadius: homeTokens.radius.pill,
+        paddingHorizontal: homeTokens.spacing.medium,
+        paddingVertical: homeTokens.spacing.small,
+      }}
+    >
+      <DesignText
+        accessibilityRole="header"
+        style={{ fontSize: 18, fontWeight: '700', color: homeTokens.text }}
+      >
+        {children}
+      </DesignText>
+    </View>
+  );
+}
 
 const targetCountTextSchema = z
   .string()
@@ -122,18 +151,23 @@ function SavedDraft({
 }) {
   const dynamicType = useDynamicTypeStyles();
   return (
-    <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
+    <View style={{ gap: homeTokens.spacing.section }}>
       <Text
         allowFontScaling={false}
         accessibilityLiveRegion="polite"
         className="font-bold text-home-text"
-        style={dynamicType.body}
+        style={{
+          ...dynamicType.body,
+          fontWeight: '700',
+          color: homeTokens.secondary,
+        }}
       >
         {published ? 'Offer published' : 'Draft saved'}
       </Text>
       <ProposalTerms
+        layout="rewardFirst"
         revision={draft.revision}
-        author="Your proposal"
+        author={childName ? `For ${childName}` : undefined}
         status={
           published
             ? `Waiting for ${childName ?? 'the child'}`
@@ -142,7 +176,7 @@ function SavedDraft({
         support={
           published
             ? `${childName ?? 'The child'} can accept, decline or counter the reward.`
-            : 'Save first, then publish when you are ready.'
+            : 'Review these terms, then publish when you are ready.'
         }
       />
       {published ? (
@@ -293,15 +327,7 @@ export function OfferDraftComposer({
   };
 
   return (
-    <SurfaceCard>
-      <Text
-        allowFontScaling={false}
-        accessibilityRole="header"
-        className="font-bold text-home-text"
-        style={dynamicType.body}
-      >
-        Create an offer draft
-      </Text>
+    <View style={{ gap: homeTokens.spacing.medium }}>
       {savedDraft ? (
         <>
           <SavedDraft
@@ -317,6 +343,8 @@ export function OfferDraftComposer({
           {!publishedOffer ? (
             <Button
               label="Publish offer"
+              variant="blue"
+              lightText
               loading={isPublishing}
               onPress={() => void publishSavedDraft()}
             />
@@ -338,77 +366,172 @@ export function OfferDraftComposer({
       ) : (
         <>
           <FormMessage message={errors.root?.offer?.message} />
-          <TermsHeading icon="people-outline">Who is this for?</TermsHeading>
+          <DraftSectionHeading tone="blue">
+            Who is this for?
+          </DraftSectionHeading>
           <View className="flex-row flex-wrap gap-2">
             {activeChildren.map((child) => (
-              <ChoiceChip
+              <Pressable
                 key={child.uid}
-                label={`${selectedChildUid === child.uid ? 'Selected' : 'Select'} ${child.displayName}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${selectedChildUid === child.uid ? 'Selected' : 'Select'} ${child.displayName}`}
+                accessibilityState={{
+                  selected: selectedChildUid === child.uid,
+                  disabled: isSubmitting,
+                }}
+                disabled={isSubmitting}
                 onPress={() =>
                   setValue('childUid', child.uid, { shouldValidate: true })
                 }
-                selected={selectedChildUid === child.uid}
-              />
+                style={{
+                  minHeight: 48,
+                  paddingHorizontal: homeTokens.spacing.card,
+                  paddingVertical: homeTokens.spacing.small,
+                  borderRadius: homeTokens.radius.pill,
+                  backgroundColor:
+                    selectedChildUid === child.uid
+                      ? homeTokens.text
+                      : homeTokens.surface,
+                  borderWidth: 1,
+                  borderColor:
+                    selectedChildUid === child.uid
+                      ? homeTokens.text
+                      : homeTokens.border,
+                  justifyContent: 'center',
+                }}
+              >
+                <DesignText
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color:
+                      selectedChildUid === child.uid
+                        ? amberAuroraPalette.paper
+                        : homeTokens.text,
+                  }}
+                >
+                  {child.displayName}
+                </DesignText>
+              </Pressable>
             ))}
           </View>
           {errors.childUid?.message ? (
             <FormMessage message={errors.childUid.message} />
           ) : null}
 
-          <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
+          <View style={{ marginTop: homeTokens.spacing.section }}>
+            <DraftSectionHeading tone="lavender">Tasks</DraftSectionHeading>
+          </View>
           {fields.map((field, index) => (
             <View
-              className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
+              style={{
+                gap: homeTokens.spacing.medium,
+                paddingBottom: homeTokens.spacing.medium,
+                borderBottomWidth: fields.length > 1 ? 1 : 0,
+                borderColor: homeTokens.border,
+              }}
               key={field.id}
             >
-              <Controller
-                control={control}
-                name={`tasks.${index}.title`}
-                render={({ field: taskField }) => (
-                  <TextField
-                    editable={!isSubmitting}
-                    error={errors.tasks?.[index]?.title?.message}
-                    label={`Task ${index + 1}`}
-                    onBlur={taskField.onBlur}
-                    onChangeText={taskField.onChange}
-                    value={taskField.value}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: homeTokens.spacing.small,
+                }}
+              >
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Controller
+                    control={control}
+                    name={`tasks.${index}.title`}
+                    render={({ field: taskField }) => (
+                      <TextField
+                        editable={!isSubmitting}
+                        error={errors.tasks?.[index]?.title?.message}
+                        hideLabel
+                        placeholder="Task"
+                        label={`Task ${index + 1}`}
+                        onBlur={taskField.onBlur}
+                        onChangeText={taskField.onChange}
+                        value={taskField.value}
+                      />
+                    )}
                   />
-                )}
-              />
-              <Controller
-                control={control}
-                name={`tasks.${index}.targetCount`}
-                render={({ field: countField }) => (
-                  <TextField
-                    editable={!isSubmitting}
-                    error={errors.tasks?.[index]?.targetCount?.message}
-                    keyboardType="number-pad"
-                    label="Target count"
-                    onBlur={countField.onBlur}
-                    onChangeText={countField.onChange}
-                    value={countField.value}
+                </View>
+                <DesignText
+                  accessible={false}
+                  style={{
+                    fontSize: 24,
+                    color: homeTokens.secondary,
+                    marginTop: homeTokens.spacing.small,
+                  }}
+                >
+                  ×
+                </DesignText>
+                <View
+                  style={{
+                    width: 36 + 3 * Number(dynamicType.body.fontSize) * 0.65,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Controller
+                    control={control}
+                    name={`tasks.${index}.targetCount`}
+                    render={({ field: countField }) => (
+                      <TextField
+                        editable={!isSubmitting}
+                        error={errors.tasks?.[index]?.targetCount?.message}
+                        keyboardType="number-pad"
+                        hideLabel
+                        label="Target count"
+                        onBlur={countField.onBlur}
+                        onChangeText={countField.onChange}
+                        value={countField.value}
+                      />
+                    )}
                   />
-                )}
-              />
-              {fields.length > 1 ? (
-                <Button
-                  label={`Remove task ${index + 1}`}
-                  onPress={() => remove(index)}
-                  variant="outline"
-                />
-              ) : null}
+                </View>
+                {fields.length > 1 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove task ${index + 1}`}
+                    accessibilityState={{ disabled: isSubmitting }}
+                    disabled={isSubmitting}
+                    onPress={() => remove(index)}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: homeTokens.radius.pill,
+                      backgroundColor: amberAuroraColors.danger,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Ionicons
+                      accessible={false}
+                      name="trash-outline"
+                      size={22}
+                      color={amberAuroraPalette.paper}
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
           ))}
           {fields.length < offerValidationBounds.taskCountMax ? (
             <Button
-              label="Add task"
+              label="Add another task"
               onPress={() => append({ title: '', targetCount: '1' })}
               variant="outline"
             />
           ) : null}
 
-          <TermsHeading icon="gift-outline">Choose reward</TermsHeading>
+          <View style={{ marginTop: homeTokens.spacing.section }}>
+            <DraftSectionHeading tone="coralSurface">
+              Choose reward
+            </DraftSectionHeading>
+          </View>
           <RewardPicker
+            prominent
             value={rewardSelection}
             disabled={isSubmitting}
             onChange={(selection) => {
@@ -441,24 +564,31 @@ export function OfferDraftComposer({
               />
             </>
           ) : null}
-          <Controller
-            control={control}
-            name="rewardDescription"
-            render={({ field }) => (
-              <TextField
-                required={false}
-                editable={!isSubmitting}
-                error={errors.rewardDescription?.message}
-                label="Reward description (optional)"
-                multiline
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                value={field.value}
-              />
-            )}
-          />
-          <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
+          <View style={{ marginTop: homeTokens.spacing.medium }}>
+            <Controller
+              control={control}
+              name="rewardDescription"
+              render={({ field }) => (
+                <TextField
+                  required={false}
+                  editable={!isSubmitting}
+                  error={errors.rewardDescription?.message}
+                  label="Reward description (optional)"
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  onBlur={field.onBlur}
+                  onChangeText={field.onChange}
+                  value={field.value}
+                />
+              )}
+            />
+          </View>
+          <View style={{ marginTop: homeTokens.spacing.section }}>
+            <DraftSectionHeading tone="mint">Deadline</DraftSectionHeading>
+          </View>
           <DeadlinePicker
+            compact
             date={deadlineDate}
             time={deadlineTime}
             disabled={isSubmitting}
@@ -468,13 +598,31 @@ export function OfferDraftComposer({
               setValue('deadlineTime', time, { shouldValidate: true });
             }}
           />
-          <Button
-            label="Save offer draft"
-            loading={isSubmitting}
-            onPress={handleSubmit(submit)}
-          />
+          <View
+            style={{
+              marginTop: homeTokens.spacing.section,
+              gap: homeTokens.spacing.small,
+            }}
+          >
+            <Button
+              label="Save offer draft"
+              variant="blue"
+              lightText
+              loading={isSubmitting}
+              onPress={handleSubmit(submit)}
+            />
+            <DesignText
+              style={{
+                fontSize: 14,
+                color: homeTokens.secondary,
+                textAlign: 'center',
+              }}
+            >
+              Review your draft before sending it to your child.
+            </DesignText>
+          </View>
         </>
       )}
-    </SurfaceCard>
+    </View>
   );
 }

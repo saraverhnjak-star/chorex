@@ -69,7 +69,9 @@ function ChildSurfaceContent({
   const [token, setToken] = useState('');
   const [contractsEmpty, setContractsEmpty] = useState(false);
   const [rewardsEmpty, setRewardsEmpty] = useState(false);
-  const noActivities = area === 'home' && contractsEmpty && rewardsEmpty;
+  const [hasOffers, setHasOffers] = useState(false);
+  const noActivities =
+    area === 'home' && contractsEmpty && rewardsEmpty && !hasOffers;
   const idempotencyKey = useRef<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
@@ -203,6 +205,7 @@ function ChildSurfaceContent({
               )}
               {area === 'offers' || area === 'home' ? (
                 <OfferInbox
+                  onHasOffersChange={area === 'home' ? setHasOffers : undefined}
                   showBackLink={false}
                   offerId={offerId}
                   initialCounterOfferId={initialCounterOfferId}

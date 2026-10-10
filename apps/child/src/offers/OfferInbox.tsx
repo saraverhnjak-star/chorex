@@ -73,8 +73,10 @@ export function OfferInbox({
   initialCounterOfferId,
   offerId,
   showBackLink = true,
+  onHasOffersChange,
 }: {
   showBackLink?: boolean;
+  onHasOffersChange?: (hasOffers: boolean) => void;
   offerId?: string;
   preview?: boolean;
   initialCounterOfferId?: string;
@@ -168,6 +170,13 @@ export function OfferInbox({
     state.subscriptionKey === subscriptionKey
       ? state
       : { subscriptionKey, status: 'loading' };
+
+  const hasOffers =
+    displayedState.status === 'ready' && displayedState.items.length > 0;
+  useEffect(() => {
+    onHasOffersChange?.(hasOffers);
+    return () => onHasOffersChange?.(false);
+  }, [hasOffers, onHasOffersChange]);
 
   const retrySubscription = () => {
     setActionError(undefined);

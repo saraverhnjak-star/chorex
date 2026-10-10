@@ -280,12 +280,10 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
   await screen.findByRole('button', { name: 'Notification settings' });
   expect(screen.queryByText('Hi, Mia!')).toBeNull();
+  await screen.findByRole('button', { name: 'View offer' });
   expect(
-    await screen.findByRole('header', { name: 'No activities yet' }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByText('Your agreements and earned rewards will appear here.'),
-  ).toBeOnTheScreen();
+    screen.queryByRole('header', { name: 'No activities yet' }),
+  ).toBeNull();
   expect(
     screen.queryByRole('button', { name: 'See all My chores' }),
   ).toBeNull();

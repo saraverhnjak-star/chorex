@@ -51,8 +51,9 @@ function inboxQuery(firestore, familyId, uid, offerId) {
     where('familyId', '==', familyId),
     where('participantUids', 'array-contains', uid),
     where('status', '==', 'AWAITING_CHILD'),
-    ...(offerId ? [where(documentId(), '==', offerId)] : []),
-    orderBy('updatedAt', 'desc'),
+    ...(offerId
+      ? [where(documentId(), '==', offerId)]
+      : [orderBy('updatedAt', 'desc')]),
   );
 }
 

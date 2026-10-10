@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal, Platform, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Button, FormMessage, SurfaceCard } from '@chorex/ui';
+import { Button, FormMessage, SurfaceCard, homeTokens } from '@chorex/ui';
 
 type Deadline = { date: string; time: string };
 export function deadlineParts(value: Date): Deadline {
@@ -17,10 +17,12 @@ export function DeadlinePicker({
   onChange,
   disabled,
   error,
+  compact = false,
 }: Deadline & {
   onChange: (value: Deadline) => void;
   disabled?: boolean;
   error?: string;
+  compact?: boolean;
 }) {
   const [mode, setMode] = useState<'date' | 'time'>();
   const [pending, setPending] = useState<Date>();
@@ -52,18 +54,42 @@ export function DeadlinePicker({
   ) : null;
   return (
     <View className="gap-3">
-      <Button
-        label={`Choose deadline date: ${value.toLocaleDateString()}`}
-        variant="outline"
-        disabled={disabled}
-        onPress={() => open('date')}
-      />
-      <Button
-        label={`Choose deadline time: ${value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-        variant="outline"
-        disabled={disabled}
-        onPress={() => open('time')}
-      />
+      <View
+        style={{
+          flexDirection: compact ? 'row' : 'column',
+          gap: homeTokens.spacing.medium,
+        }}
+      >
+        <View style={compact ? { flex: 1 } : undefined}>
+          <Button
+            label={
+              compact
+                ? value.toLocaleDateString()
+                : `Choose deadline date: ${value.toLocaleDateString()}`
+            }
+            accessibilityLabel={`Choose deadline date: ${value.toLocaleDateString()}`}
+            variant="outline"
+            disabled={disabled}
+            onPress={() => open('date')}
+          />
+        </View>
+        <View style={compact ? { flex: 1 } : undefined}>
+          <Button
+            label={
+              compact
+                ? value.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : `Choose deadline time: ${value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+            }
+            accessibilityLabel={`Choose deadline time: ${value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            variant="outline"
+            disabled={disabled}
+            onPress={() => open('time')}
+          />
+        </View>
+      </View>
       {error ? <FormMessage message={error} /> : null}
       {Platform.OS === 'ios' ? (
         <Modal

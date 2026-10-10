@@ -8,11 +8,12 @@ import {
   View,
   type TextInputProps,
 } from 'react-native';
-import { amberAuroraColors } from './theme';
+import { amberAuroraColors, amberAuroraPalette } from './theme';
 import { useDynamicTypeStyles } from './typography';
 
 interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   label: string;
+  hideLabel?: boolean;
   required?: boolean;
   ref?: React.Ref<TextInput>;
   error?: string;
@@ -22,6 +23,7 @@ interface TextFieldProps extends Omit<TextInputProps, 'style'> {
 
 export function TextField({
   label,
+  hideLabel = false,
   ref,
   required = true,
   error,
@@ -40,35 +42,35 @@ export function TextField({
 
   return (
     <View>
-      <Text
-        allowFontScaling={false}
-        nativeID={`${id}-label`}
-        className="mb-2 font-semibold text-text"
-        style={[
-          dynamicType.body,
-          home
-            ? {
-                color: homeTokens.text,
-                lineHeight: Number(dynamicType.body.fontSize) * 1.35,
-              }
-            : undefined,
-        ]}
-      >
-        {label}
-      </Text>
+      {hideLabel ? null : (
+        <Text
+          allowFontScaling={false}
+          nativeID={`${id}-label`}
+          className="mb-2 font-semibold text-text"
+          style={[
+            dynamicType.body,
+            home
+              ? {
+                  color: homeTokens.text,
+                  lineHeight: Number(dynamicType.body.fontSize) * 1.35,
+                }
+              : undefined,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
       <View
-        style={
-          home
-            ? {
-                backgroundColor: homeTokens.surface,
-                borderColor: error
-                  ? amberAuroraColors.danger
-                  : focused
-                    ? homeTokens.coral
-                    : homeTokens.border,
-              }
-            : undefined
-        }
+        style={{
+          ...(home ? { backgroundColor: homeTokens.surface } : {}),
+          borderColor: error
+            ? amberAuroraColors.danger
+            : focused
+              ? amberAuroraPalette.auroraBlue
+              : home
+                ? homeTokens.border
+                : amberAuroraColors.border,
+        }}
         className={`flex-row flex-wrap items-center rounded-2xl border-2 bg-surface ${
           error ? 'border-danger' : focused ? 'border-focus' : 'border-border'
         } ${editable ? '' : 'opacity-50'}`}
@@ -105,7 +107,7 @@ export function TextField({
           style={[
             dynamicType.body,
             {
-              minWidth: 120,
+              minWidth: 0,
               ...(inputProps.multiline && (inputProps.numberOfLines ?? 1) > 1
                 ? {
                     minHeight:
