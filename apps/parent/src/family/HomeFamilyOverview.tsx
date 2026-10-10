@@ -27,6 +27,7 @@ export function HomeFamilyOverview({
         Family overview
       </CollectionHeading>
       <FamilyOverviewRows
+        preview={preview}
         members={preview ? home.children.slice(0, 2) : home.children}
         active={
           active.status === 'ready'
@@ -46,12 +47,14 @@ export function HomeFamilyOverview({
 }
 
 export function FamilyOverviewRows({
+  preview = false,
   members,
   active,
   review,
   activeCached = false,
   reviewCached = false,
 }: {
+  preview?: boolean;
   members: readonly { uid: string; displayName: string }[];
   active?: readonly string[];
   review?: readonly string[];
@@ -61,12 +64,12 @@ export function FamilyOverviewRows({
   return (
     <View
       style={{
-        padding: 12,
-        borderRadius: 20,
-        borderWidth: 1,
+        padding: preview ? homeTokens.spacing.card : 12,
+        borderRadius: homeTokens.radius.card,
+        borderWidth: preview ? 0 : 1,
         borderColor: homeTokens.border,
         backgroundColor: homeTokens.surface,
-        gap: 8,
+        gap: preview ? homeTokens.spacing.medium : 8,
       }}
     >
       {members.length === 0 ? (
@@ -81,9 +84,9 @@ export function FamilyOverviewRows({
           >
             <View
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 22,
+                width: preview ? 56 : 36,
+                height: preview ? 56 : 36,
+                borderRadius: homeTokens.radius.pill,
                 backgroundColor: homeTokens.lavender,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -98,8 +101,8 @@ export function FamilyOverviewRows({
                 style={{
                   fontWeight: '600',
                   color: homeTokens.text,
-                  fontSize: 15,
-                  lineHeight: 20,
+                  fontSize: preview ? 20 : 15,
+                  lineHeight: preview ? 27 : 20,
                 }}
               >
                 {child.displayName}

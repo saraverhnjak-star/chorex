@@ -269,8 +269,6 @@ export function SectionHeading({ children }: { children: ReactNode }) {
   );
 }
 export function QuickActions() {
-  const { width, fontScale } = useWindowDimensions();
-  const wideText = fontScale > 1.15 || width < 360;
   const { navigate } = useContext(HomeContext);
   const actions: { label: string; id: string; icon: Icon; color: string }[] = [
     {
@@ -313,14 +311,16 @@ export function QuickActions() {
               s.tile,
               {
                 backgroundColor: action.color,
-                ...(wideText ? { flex: 0, flexGrow: 1, width: '45%' } : {}),
+                flex: 0,
+                flexGrow: 1,
+                width: '45%',
               },
             ]}
           >
             <Ionicons
               accessible={false}
               name={action.icon}
-              size={28}
+              size={32}
               color={
                 action.id === 'create'
                   ? homeTokens.coral
@@ -329,10 +329,8 @@ export function QuickActions() {
                     : homeTokens.secondary
               }
             />
-            <Text style={[s.tileText, { fontSize: 13, fontWeight: '400' }]}>
-              {action.id === 'review'
-                ? 'Review\nWork'
-                : action.label.replace(' ', '\n')}
+            <Text style={[s.tileText, { fontSize: 15, fontWeight: '600' }]}>
+              {action.label}
             </Text>
           </Pressable>
         ))}

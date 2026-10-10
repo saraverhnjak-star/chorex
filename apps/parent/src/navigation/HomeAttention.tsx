@@ -1,3 +1,4 @@
+import { ParentHomeCard, ParentHomeRow } from './ParentHomeRow';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
@@ -17,6 +18,7 @@ import {
 } from '@chorex/ui';
 
 type Props = {
+  selectedChildUid?: string;
   familyId: string;
   authUid: string;
   childNames: Readonly<Record<string, string>>;
@@ -35,6 +37,7 @@ function AttentionContent({
   familyId,
   authUid,
   childNames,
+  selectedChildUid,
   onRetry,
 }: Props & { onRetry: () => void }) {
   const router = useRouter();
@@ -70,15 +73,19 @@ function AttentionContent({
   const items = [
     ...offers.items.map(({ offer, revision }) => ({
       id: `offer:${offer.id}`,
+      childUid: offer.childUid,
       title: `${childNames[offer.childUid] ?? 'Child'} countered your offer`,
       detail: revision.reward.title,
+      reward: revision.reward,
       icon: 'chatbox-outline' as const,
       onPress: () => router.navigate('/offers'),
     })),
     ...(reviews.status === 'ready' ? reviews.contracts : []).map((c) => ({
       id: `review:${c.id}`,
+      childUid: c.childUid,
       title: `${childNames[c.childUid] ?? 'Child'} submitted for review`,
       detail: c.rewardTerms.title,
+      reward: c.rewardTerms,
       icon: 'document-text-outline' as const,
       onPress: () =>
         router.push({
@@ -88,6 +95,7 @@ function AttentionContent({
     })),
     ...(rewards.status === 'ready' ? rewards.rewards : []).map((r) => ({
       id: `reward:${r.id}`,
+      childUid: r.childUid,
       title: 'Reward waiting for delivery',
       detail: `${r.terms.title} · ${childNames[r.childUid] ?? 'Child'}`,
       icon: 'gift-outline' as const,
@@ -98,22 +106,26 @@ function AttentionContent({
           params: { rewardId: r.id },
         }),
     })),
-  ];
-  const loading = [offers, reviews, rewards].some(
-    (s) => s.status === 'loading',
-  );
-  const error = [offers, reviews, rewards].some((s) => s.status === 'error');
-  const cached =
-    (reviews.status === 'ready' && reviews.fromCache) ||
-    (rewards.status === 'ready' && rewards.fromCache);
+  ].filter((item) => !selectedChildUid || item.childUid === selectedChildUid);
   return (
-    <HomeAttentionList
-      items={items}
-      loading={loading}
-      error={error}
-      cached={cached}
-      onRetry={onRetry}
-    />
+    <View style={{ gap: homeTokens.spacing.section }}>
+      <HomeAttentionList
+        items={items.filter((item) => !item.id.startsWith('reward:'))}
+        loading={offers.status === 'loading' || reviews.status === 'loading'}
+        error={offers.status === 'error' || reviews.status === 'error'}
+        cached={reviews.status === 'ready' && reviews.fromCache}
+        onRetry={onRetry}
+      />
+      <HomeAttentionList
+        heading="Rewards to fulfill"
+        empty="No rewards waiting for delivery"
+        items={items.filter((item) => item.id.startsWith('reward:'))}
+        loading={rewards.status === 'loading'}
+        error={rewards.status === 'error'}
+        cached={rewards.status === 'ready' && rewards.fromCache}
+        onRetry={onRetry}
+      />
+    </View>
   );
 }
 
@@ -124,7 +136,11 @@ export function HomeAttentionList({
   error = false,
   cached = false,
   onRetry,
+  heading = 'Needs your attention',
+  empty = 'Nothing needs your attention',
 }: {
+  heading?: string;
+  empty?: string;
   items: readonly {
     id: string;
     title: string;
@@ -140,38 +156,41 @@ export function HomeAttentionList({
 }) {
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
-      <CollectionHeading count={items.length}>
-        Needs your attention
-      </CollectionHeading>
+      <CollectionHeading count={items.length}>{heading}</CollectionHeading>
       {cached ? (
         <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
           Showing saved data. Updates may be pending.
         </DesignText>
       ) : null}
       {items.length ? (
-        <View
-          style={{
-            overflow: 'hidden',
-            borderRadius: homeTokens.radius.card,
-            borderWidth: 1,
-            borderColor: homeTokens.border,
-            backgroundColor: homeTokens.surface,
-          }}
-        >
-          {items.slice(0, 3).map((item, index) => (
-            <HomeListRow
-              key={item.id}
-              title={item.title}
-              detail={item.detail}
-              icon={item.icon}
-              reward={item.reward}
-              label={`${item.title}: ${item.detail}`}
-              onPress={item.onPress}
-              grouped
-              separator={index > 0}
-            />
-          ))}
-        </View>
+        <ParentHomeCard>
+          {items.slice(0, 3).map((item, index) => {
+            const offer = item.id.startsWith('offer:');
+            const reward = item.id.startsWith('reward:');
+            return (
+              <ParentHomeRow
+                key={item.id}
+                separator={index > 0}
+                title={item.detail}
+                detail={item.title}
+                reward={item.reward ?? { type: 'CUSTOM', iconKey: 'gift' }}
+                badge={
+                  offer ? undefined : reward ? 'Waiting for you' : 'For review'
+                }
+                action={
+                  offer
+                    ? 'View proposal'
+                    : reward
+                      ? 'Fulfill reward'
+                      : 'Review work'
+                }
+                label={`${item.title}: ${item.detail}`}
+                button={reward}
+                onPress={item.onPress}
+              />
+            );
+          })}
+        </ParentHomeCard>
       ) : (
         <HomeEmptyState
           icon={
@@ -188,7 +207,7 @@ export function HomeAttentionList({
               ? 'Attention items could not be loaded.'
               : cached
                 ? 'No attention items saved on this device.'
-                : 'Nothing needs your attention'}
+                : empty}
         </HomeEmptyState>
       )}
       {items.length > 3 ? (

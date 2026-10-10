@@ -6,7 +6,8 @@ import {
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
-  QuickActions,
+  HomeCardAction,
+  DesignText,
   SectionHeading,
   ReminderPreferenceCard,
   SettingsSection,
@@ -27,7 +28,14 @@ import {
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ActivityIndicator, Linking, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import {
   createChildInputSchema,
   createFamilyInputSchema,
@@ -103,6 +111,7 @@ function ParentSurfaceContent({
     notifications.state.permission,
   );
   const [signingOut, setSigningOut] = useState(false);
+  const [selectedChildUid, setSelectedChildUid] = useState<string>();
   const [signOutError, setSignOutError] = useState<string>();
   const [childIdempotencyKey, setChildIdempotencyKey] = useState<string>();
   const [pairingState, setPairingState] = useState<PairingState>({
@@ -307,9 +316,7 @@ function ParentSurfaceContent({
 
         {familyState.status === 'ready' ? (
           <View className="gap-5">
-            {area === 'home' ? (
-              <QuickActions />
-            ) : (
+            {area !== 'home' ? (
               <SectionHeading>
                 {
                   (
@@ -324,9 +331,58 @@ function ParentSurfaceContent({
                   )[area]
                 }
               </SectionHeading>
-            )}
+            ) : null}
+            {area === 'home' ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: homeTokens.spacing.small }}
+              >
+                {[
+                  { uid: undefined, displayName: 'All children' },
+                  ...familyState.home.children,
+                ].map((child) => {
+                  const selected = child.uid === selectedChildUid;
+                  return (
+                    <Pressable
+                      key={child.uid ?? 'all'}
+                      accessibilityRole="tab"
+                      accessibilityLabel={child.displayName}
+                      accessibilityState={{ selected }}
+                      onPress={() => setSelectedChildUid(child.uid)}
+                      style={{
+                        minHeight: 44,
+                        paddingHorizontal: 24,
+                        borderRadius: homeTokens.radius.pill,
+                        borderWidth: 1,
+                        borderColor: selected
+                          ? homeTokens.text
+                          : homeTokens.border,
+                        backgroundColor: selected
+                          ? homeTokens.text
+                          : homeTokens.surface,
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <DesignText
+                        style={{
+                          fontSize: 16,
+                          fontWeight: '600',
+                          color: selected
+                            ? homeTokens.surface
+                            : homeTokens.secondary,
+                        }}
+                      >
+                        {child.displayName}
+                      </DesignText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
             {area === 'home' ? (
               <HomeAttention
+                selectedChildUid={selectedChildUid}
                 familyId={familyState.home.family.id}
                 authUid={user.uid}
                 childNames={Object.fromEntries(
@@ -378,18 +434,12 @@ function ParentSurfaceContent({
                 />
               </HomeSection>
             ) : null}
-            {area === 'home' || area === 'family' ? (
-              <HomeSection>
-                <HomeFamilyOverview
-                  preview={area === 'home'}
-                  home={familyState.home}
-                  authUid={user.uid}
-                />
-              </HomeSection>
-            ) : null}
             {area === 'home' || area === 'contracts' ? (
               <HomeSection>
                 <ActiveContracts
+                  selectedChildUid={
+                    area === 'home' ? selectedChildUid : undefined
+                  }
                   preview={area === 'home'}
                   familyId={familyState.home.family.id}
                   authUid={user.uid}
@@ -401,6 +451,22 @@ function ParentSurfaceContent({
                   )}
                 />
               </HomeSection>
+            ) : null}
+            {area === 'family' ? (
+              <HomeSection>
+                <HomeFamilyOverview
+                  home={familyState.home}
+                  authUid={user.uid}
+                />
+              </HomeSection>
+            ) : null}
+            {area === 'home' ? (
+              <HomeCardAction
+                label="＋ New offer"
+                accessibilityLabel="Create Offer"
+                tone="coral"
+                onPress={() => router.push('/offers/create')}
+              />
             ) : null}
             {area === 'create' ? (
               <HomeSection>

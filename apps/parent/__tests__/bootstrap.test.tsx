@@ -246,23 +246,18 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(screen.queryByRole('header', { name: 'ChoreX' })).toBeNull();
   await screen.findByText('Mia');
   expect(screen.queryByText('Hello, Alex!')).toBeNull();
-  expect(
-    screen.getByRole('header', { name: 'Quick actions' }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole('tab', { name: 'All children' })).toBeOnTheScreen();
   expect(screen.getByText('Mia')).toBeOnTheScreen();
   expect(screen.queryByText('Create an offer draft')).toBeNull();
   expect(screen.queryByText('This feels fair.')).toBeNull();
   for (const [label, route] of [
-    ['Offers', '/offers'],
     ['Contracts', '/contracts'],
     ['Rewards', '/rewards'],
     ['Notification settings', '/more'],
     ['Home', '/'],
     ['See all Contracts', '/contracts'],
     ['Create Offer', '/offers/create'],
-    ['Review Submissions', '/contracts'],
-    ['Manage Rewards', '/rewards'],
-    ['Family Overview', '/family'],
+    ['Family', '/family'],
   ]) {
     fireEvent.press(
       screen.queryByRole('tab', { name: label }) ??
@@ -518,7 +513,22 @@ it('combines actionable attention sources and preserves each existing destinatio
     );
     expect(mockNavigate).toHaveBeenLastCalledWith(destination);
   }
-  expect(screen.getByLabelText('3 items')).toBeOnTheScreen();
+  expect(screen.getByLabelText('2 items')).toBeOnTheScreen();
+  expect(screen.getByLabelText('1 items')).toBeOnTheScreen();
+  expect(
+    screen.getByRole('header', { name: 'Rewards to fulfill' }),
+  ).toBeOnTheScreen();
+  view.rerender(
+    <HomeAttention
+      familyId="family-test-id"
+      authUid="parent-test-uid"
+      childNames={{ 'child-test-uid': 'Mia' }}
+      selectedChildUid="another-child"
+    />,
+  );
+  expect(screen.queryByRole('button', { name: /^Mia countered/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Mia submitted/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Reward waiting/ })).toBeNull();
   view.unmount();
   mockAttentionReviews = [];
   mockAttentionRewards = [];

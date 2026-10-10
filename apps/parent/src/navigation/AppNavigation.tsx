@@ -4,9 +4,9 @@ import { usePathname, useRouter } from 'expo-router';
 import { NavigationFrame, type NavigationItem } from '@chorex/ui';
 const items: readonly NavigationItem[] = [
   { id: 'home', label: 'Home', icon: 'home-outline' },
-  { id: 'offers', label: 'Offers', icon: 'document-text-outline' },
   { id: 'contracts', label: 'Contracts', icon: 'checkbox-outline' },
   { id: 'rewards', label: 'Rewards', icon: 'gift-outline' },
+  { id: 'family', label: 'Family', icon: 'people-outline' },
 ];
 const destinations = {
   home: '/',
@@ -22,9 +22,7 @@ export function AppNavigation({ children }: { children: ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const section = path.split('/')[1];
-  const active = ['family', 'privacy'].includes(section)
-    ? 'more'
-    : section || 'home';
+  const active = section === 'privacy' ? 'more' : section || 'home';
   return (
     <ParentFamilyProvider>
       <NavigationFrame

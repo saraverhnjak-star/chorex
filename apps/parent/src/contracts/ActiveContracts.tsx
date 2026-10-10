@@ -18,6 +18,7 @@ import {
 } from '@chorex/ui';
 
 type ContractListProps = {
+  selectedChildUid?: string;
   familyId: string;
   authUid: string;
   onRetry?: () => void;
@@ -29,6 +30,7 @@ function ActiveContractsContent({
   authUid,
   childNames = {},
   preview = false,
+  selectedChildUid,
   onRetry,
 }: ContractListProps) {
   const state = useActiveContracts(familyId, authUid);
@@ -37,7 +39,16 @@ function ActiveContractsContent({
       onRetry={onRetry}
       preview={preview}
       authUid={authUid}
-      state={state}
+      state={
+        state.status === 'ready' && selectedChildUid
+          ? {
+              ...state,
+              contracts: state.contracts.filter(
+                (contract) => contract.childUid === selectedChildUid,
+              ),
+            }
+          : state
+      }
       childNames={childNames}
       readyForReview={false}
     />
@@ -48,6 +59,7 @@ function ReadyForReviewContractsContent({
   authUid,
   childNames = {},
   preview = false,
+  selectedChildUid,
   onRetry,
 }: ContractListProps) {
   const state = useReadyForReviewContracts(familyId, authUid);
@@ -56,7 +68,16 @@ function ReadyForReviewContractsContent({
       onRetry={onRetry}
       preview={preview}
       authUid={authUid}
-      state={state}
+      state={
+        state.status === 'ready' && selectedChildUid
+          ? {
+              ...state,
+              contracts: state.contracts.filter(
+                (contract) => contract.childUid === selectedChildUid,
+              ),
+            }
+          : state
+      }
       childNames={childNames}
       readyForReview
     />
@@ -91,7 +112,11 @@ function ContractList({
         label={readyForReview ? 'See all Reviews' : 'See all Contracts'}
         onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
       >
-        {readyForReview ? 'Ready for Review' : 'Active Contracts'}
+        {readyForReview
+          ? 'Ready for Review'
+          : preview
+            ? 'Active agreements'
+            : 'Active Contracts'}
       </CollectionHeading>
       {!preview && state.status === 'ready' ? (
         <CountBadge count={state.contracts.length} />
@@ -160,6 +185,7 @@ function ContractList({
             (preview ? state.contracts.slice(0, 1) : state.contracts).map(
               (contract) => (
                 <HomeContractRow
+                  preview={preview}
                   key={contract.id}
                   contract={contract}
                   authUid={authUid}
