@@ -1,11 +1,9 @@
 import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
 import { useFocusEffect, Redirect } from 'expo-router';
-import { ChildHomeSummary } from '../ChildHomeSummary';
 import {
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
-  HomeGreeting,
   SectionHeading,
   ReminderPreferenceCard,
   SettingsSection,
@@ -36,6 +34,7 @@ function newIdempotencyKey(): string {
 
 export function ChildSurface(props: {
   area?: 'home' | 'offers' | 'contracts' | 'rewards' | 'more';
+  initialCounterOfferId?: string;
 }) {
   const [focused, setFocused] = useState(true);
   useFocusEffect(
@@ -55,8 +54,10 @@ export function ChildSurface(props: {
 }
 function ChildSurfaceContent({
   area = 'home',
+  initialCounterOfferId,
 }: {
   area?: 'home' | 'offers' | 'contracts' | 'rewards' | 'more';
+  initialCounterOfferId?: string;
 }) {
   const session = useChildSession();
   const dynamicType = useDynamicTypeStyles();
@@ -139,12 +140,7 @@ function ChildSurfaceContent({
 
           {familyState.status === 'ready' ? (
             <View className="gap-5">
-              {area === 'home' ? (
-                <HomeGreeting
-                  child
-                  name={familyState.home.profile.displayName}
-                />
-              ) : (
+              {area === 'home' ? null : (
                 <SectionHeading>
                   {
                     (
@@ -158,28 +154,20 @@ function ChildSurfaceContent({
                   }
                 </SectionHeading>
               )}
-              {area === 'home' ? (
-                <ChildHomeSummary
-                  familyId={familyState.home.family.id}
+              {area === 'offers' || area === 'home' ? (
+                <OfferInbox
+                  initialCounterOfferId={initialCounterOfferId}
+                  preview={area === 'home'}
                   authUid={session.user.uid}
+                  familyId={familyState.home.family.id}
                 />
               ) : null}
-
               {area === 'contracts' || area === 'home' ? (
                 <HomeSection>
                   <ActiveContracts
                     preview={area === 'home'}
                     familyId={familyState.home.family.id}
                     authUid={session.user.uid}
-                  />
-                </HomeSection>
-              ) : null}
-              {area === 'offers' || area === 'home' ? (
-                <HomeSection>
-                  <OfferInbox
-                    preview={area === 'home'}
-                    authUid={session.user.uid}
-                    familyId={familyState.home.family.id}
                   />
                 </HomeSection>
               ) : null}

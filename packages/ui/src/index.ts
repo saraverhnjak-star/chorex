@@ -29,7 +29,6 @@ export {
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
-  HomeGreeting,
   QuickActions,
   SectionHeading,
   SummaryMetric,
@@ -80,3 +79,5 @@ export { RewardIconPicker } from './RewardIconPicker';
 export { FocusHeading, announceAction } from './accessibility';
 
 export { ClientErrorFallback } from './ClientErrorFallback';
+
+export { HomeFeatureCard, HomeCardAction } from './HomeFeatureCard';

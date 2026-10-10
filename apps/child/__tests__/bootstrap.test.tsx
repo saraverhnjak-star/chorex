@@ -278,8 +278,8 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(mockSignInWithChildCustomToken).not.toHaveBeenCalled();
   expect(mockAuthUser).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
-  expect(await screen.findByText('Hi, Mia!')).toBeOnTheScreen();
-  expect(screen.getByText('Hi, Mia!')).toBeOnTheScreen();
+  await screen.findByRole('button', { name: 'Notification settings' });
+  expect(screen.queryByText('Hi, Mia!')).toBeNull();
   expect(screen.queryByText('Load the dishwasher · 2×')).toBeNull();
   for (const [label, route] of [
     ['My chores', '/contracts'],
@@ -288,7 +288,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     ['More', '/more'],
     ['Home', '/'],
     ['See all My chores', '/contracts'],
-    ['See all Offers', '/offers'],
+    ['View offer', '/offers'],
     ['See all Rewards', '/rewards'],
   ]) {
     fireEvent.press(
@@ -359,7 +359,9 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     </ChildSessionProvider>,
   );
   await waitFor(() =>
-    expect(screen.getByRole('header', { name: 'ChoreX' })).toBeOnTheScreen(),
+    expect(
+      screen.getByRole('button', { name: 'Notification settings' }),
+    ).toBeOnTheScreen(),
   );
   expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));

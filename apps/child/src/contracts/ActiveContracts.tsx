@@ -41,7 +41,7 @@ function ActiveContractsContent({
         label="See all My chores"
         onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
       >
-        Active agreements
+        {preview ? 'My agreement' : 'Active agreements'}
       </CollectionHeading>
       {!preview && state.status === 'ready' ? (
         <CountBadge count={state.contracts.length} />
@@ -104,6 +104,7 @@ function ActiveContractsContent({
             (preview ? state.contracts.slice(0, 1) : state.contracts).map(
               (contract) => (
                 <HomeContractRow
+                  preview={preview}
                   key={contract.id}
                   contract={contract}
                   authUid={authUid}

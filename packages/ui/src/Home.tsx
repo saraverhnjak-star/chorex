@@ -216,14 +216,7 @@ export function HomeHeader({
   const { navigate } = useContext(HomeContext);
   return (
     <View style={s.header}>
-      <View style={{ flex: 1 }}>
-        <Text accessibilityRole="header" style={s.wordmark}>
-          Chore<Text style={{ color: homeTokens.coral }}>X</Text>
-        </Text>
-        <Text style={s.caption}>
-          {child ? 'Big tasks. Real rewards.' : 'Family agreements made easy.'}
-        </Text>
-      </View>
+      <View style={{ flex: 1 }} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Notification settings"
@@ -248,26 +241,6 @@ export function HomeHeader({
           {name.trim().slice(0, 1).toUpperCase() || 'C'}
         </NativeText>
       </Pressable>
-    </View>
-  );
-}
-export function HomeGreeting({
-  name,
-  child = false,
-}: {
-  name: string;
-  child?: boolean;
-}) {
-  return (
-    <View style={{ gap: 4 }}>
-      <Text accessibilityRole="header" style={s.greeting}>
-        {child ? 'Hi' : 'Hello'}, {name}!
-      </Text>
-      <Text style={s.body}>
-        {child
-          ? 'One step at a time. Let’s keep going.'
-          : 'Here’s what’s happening with your family today.'}
-      </Text>
     </View>
   );
 }
@@ -530,14 +503,7 @@ const s = StyleSheet.create({
     gap: 8,
     marginBottom: 20,
   },
-  wordmark: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '800',
-    color: homeTokens.text,
-  },
   section: { gap: 10 },
-  greeting: { fontSize: 27, fontWeight: '700', color: homeTokens.text },
   heading: {
     fontSize: 20,
     lineHeight: 24,

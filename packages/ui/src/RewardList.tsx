@@ -1,3 +1,4 @@
+import { HomeFeatureCard, HomeCardAction } from './HomeFeatureCard';
 import { Button } from './Button';
 import { View } from 'react-native';
 import type { EarnedReward, UserProfile } from '@chorex/domain';
@@ -105,22 +106,51 @@ export function RewardList({
             {fromCache ? 'No rewards saved yet.' : empty}
           </DesignText>
         ) : null}
-        {visible.slice(0, 1).map((reward) => (
-          <HomeListRow
-            key={reward.id}
-            title={reward.terms.title}
-            detail={
-              reward.status === 'PENDING_FULFILLMENT'
-                ? 'Earned · Waiting for Parent delivery'
-                : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-                  ? 'Delivered · Confirm when received'
-                  : 'Received · Receipt confirmed'
-            }
-            reward={reward.terms}
-            label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
-            onPress={() => onSelect(reward.id)}
-          />
-        ))}
+        {visible.slice(0, 1).map((reward) =>
+          viewer === 'CHILD' ? (
+            <HomeFeatureCard
+              key={reward.id}
+              title={reward.terms.title}
+              reward={reward.terms}
+              tone="mint"
+              badge={
+                reward.status === 'PENDING_FULFILLMENT'
+                  ? 'Earned'
+                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+                    ? 'Delivered'
+                    : 'Received'
+              }
+              detail={
+                reward.status === 'PENDING_FULFILLMENT'
+                  ? 'Waiting for Parent delivery'
+                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+                    ? 'Confirm when received'
+                    : 'Receipt confirmed'
+              }
+            >
+              <HomeCardAction
+                label={`Open reward: ${reward.terms.title}`}
+                tone="green"
+                onPress={() => onSelect(reward.id)}
+              />
+            </HomeFeatureCard>
+          ) : (
+            <HomeListRow
+              key={reward.id}
+              title={reward.terms.title}
+              detail={
+                reward.status === 'PENDING_FULFILLMENT'
+                  ? 'Earned · Waiting for Parent delivery'
+                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+                    ? 'Delivered · Confirm when received'
+                    : 'Received · Receipt confirmed'
+              }
+              reward={reward.terms}
+              label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
+              onPress={() => onSelect(reward.id)}
+            />
+          ),
+        )}
       </View>
     );
   return (

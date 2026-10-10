@@ -1,4 +1,8 @@
+import { useLocalSearchParams } from 'expo-router';
 import { ChildSurface } from '../../src/navigation/ChildSurface';
 export default function Collection() {
-  return <ChildSurface area="offers" />;
+  const { counterOfferId } = useLocalSearchParams<{
+    counterOfferId?: string;
+  }>();
+  return <ChildSurface area="offers" initialCounterOfferId={counterOfferId} />;
 }

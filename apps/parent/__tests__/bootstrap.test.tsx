@@ -243,8 +243,9 @@ it('renders the parent screen through the public shared UI package', async () =>
       <HomeScreen />
     </AppNavigation>,
   );
-  expect(screen.getByRole('header', { name: 'ChoreX' })).toBeOnTheScreen();
-  expect(await screen.findByText('Hello, Alex!')).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'ChoreX' })).toBeNull();
+  await screen.findByText('Mia');
+  expect(screen.queryByText('Hello, Alex!')).toBeNull();
   expect(
     screen.getByRole('header', { name: 'Quick actions' }),
   ).toBeOnTheScreen();

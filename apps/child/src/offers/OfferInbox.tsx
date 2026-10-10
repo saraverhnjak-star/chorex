@@ -7,8 +7,8 @@ import {
   ChoiceChip,
   CountBadge,
   CollectionHeading,
-  HomeListRow,
-  HomeEmptyState,
+  HomeFeatureCard,
+  HomeCardAction,
   Button,
   FormMessage,
   TextField,
@@ -69,8 +69,10 @@ export function OfferInbox({
   authUid,
   familyId,
   preview = false,
+  initialCounterOfferId,
 }: {
   preview?: boolean;
+  initialCounterOfferId?: string;
   authUid: string;
   familyId: string;
 }) {
@@ -96,6 +98,8 @@ export function OfferInbox({
   const rejectIdempotencyKeys = useRef(new Map<string, string>());
   const counterOfferIdempotencyKeys = useRef(new Map<string, string>());
 
+  const openedCounterOffer = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     let active = true;
     let unsubscribe: (() => void) | undefined;
@@ -106,6 +110,21 @@ export function OfferInbox({
         (items) => {
           if (active) {
             setState({ subscriptionKey, status: 'ready', items });
+            const requestKey = `${subscriptionKey}:${initialCounterOfferId}`;
+            const item = initialCounterOfferId
+              ? items.find(({ offer }) => offer.id === initialCounterOfferId)
+              : undefined;
+            if (item && openedCounterOffer.current !== requestKey) {
+              openedCounterOffer.current = requestKey;
+              setCounterOfferForm({
+                offerId: item.offer.id,
+                rewardTitle: item.revision.reward.title,
+                rewardType: item.revision.reward.type,
+                rewardIconKey: item.revision.reward.iconKey,
+                rewardDescription: item.revision.reward.description ?? '',
+                note: '',
+              });
+            }
           }
         },
         (error) =>
@@ -129,7 +148,7 @@ export function OfferInbox({
       active = false;
       unsubscribe?.();
     };
-  }, [familyId, subscriptionKey]);
+  }, [familyId, subscriptionKey, initialCounterOfferId]);
 
   const displayedState: OfferInboxState =
     state.subscriptionKey === subscriptionKey
@@ -301,6 +320,45 @@ export function OfferInbox({
     });
   };
 
+  if (preview) {
+    if (displayedState.status !== 'ready' || displayedState.items.length === 0)
+      return null;
+    const { offer, revision } = displayedState.items[0]!;
+    return (
+      <HomeFeatureCard
+        tone="coralSurface"
+        badge="NEW OFFER"
+        title={revision.tasks[0]?.title ?? revision.reward.title}
+        detail={`Reward: ${revision.reward.title}`}
+        reward={revision.reward}
+      >
+        <View
+          style={{
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: homeTokens.spacing.small,
+          }}
+        >
+          <HomeCardAction
+            label="View offer"
+            tone="coral"
+            onPress={() => router.navigate('/offers')}
+          />
+          <HomeCardAction
+            label="Suggest a change"
+            tone="outline"
+            onPress={() =>
+              router.navigate({
+                pathname: '/offers',
+                params: { counterOfferId: offer.id },
+              })
+            }
+          />
+        </View>
+      </HomeFeatureCard>
+    );
+  }
+
   return (
     <View
       className={
@@ -381,244 +439,209 @@ export function OfferInbox({
 
       {displayedState.status === 'ready' &&
       displayedState.items.length === 0 ? (
-        preview ? (
-          <HomeEmptyState>No new offers</HomeEmptyState>
-        ) : (
-          <OfferOutcome title="No new offers">
-            No offers are waiting for you.
-          </OfferOutcome>
-        )
+        <OfferOutcome title="No new offers">
+          No offers are waiting for you.
+        </OfferOutcome>
       ) : null}
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
         <View className="gap-4">
-          {preview
-            ? displayedState.items
-                .slice(0, 1)
-                .map(({ offer, revision }) => (
-                  <HomeListRow
-                    key={offer.id}
-                    reward={revision.reward}
-                    title={revision.reward.title}
-                    detail="New proposal · Your turn"
-                    label={`Open Offer: ${revision.reward.title}`}
-                    icon="document-text-outline"
-                    onPress={() => router.navigate('/offers')}
+          {displayedState.items.map(({ offer, revision }) => (
+            <View
+              className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
+              key={offer.id}
+            >
+              <ProposalTerms
+                revision={revision}
+                status="Your turn"
+                author="Proposed by your Parent"
+                support="Accept to create your agreement, counter the reward, or decline."
+              />
+              {rejectionConfirmationOfferId === offer.id ? (
+                <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
+                  <FocusHeading
+                    allowFontScaling={false}
+                    accessibilityLiveRegion="polite"
+                    className="font-semibold text-home-text"
+                    style={dynamicType.body}
+                  >
+                    Reject this offer?
+                  </FocusHeading>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-home-muted"
+                    style={dynamicType.body}
+                  >
+                    This will close the offer without creating a contract.
+                  </Text>
+                  <Button
+                    label="Confirm rejection"
+                    variant="danger"
+                    loading={
+                      mutation?.offerId === offer.id &&
+                      mutation.action === 'reject'
+                    }
+                    disabled={
+                      mutation !== undefined && mutation.offerId !== offer.id
+                    }
+                    onPress={() => void rejectCurrentOffer({ offer, revision })}
                   />
-                ))
-            : displayedState.items.map(({ offer, revision }) => (
-                <View
-                  className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
-                  key={offer.id}
-                >
-                  <ProposalTerms
-                    revision={revision}
-                    status="Your turn"
-                    author="Proposed by your Parent"
-                    support="Accept to create your agreement, counter the reward, or decline."
+                  <Button
+                    label="Keep offer"
+                    disabled={mutation !== undefined}
+                    onPress={() => setRejectionConfirmationOfferId(undefined)}
+                    variant="outline"
                   />
-                  {rejectionConfirmationOfferId === offer.id ? (
-                    <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
-                      <FocusHeading
-                        allowFontScaling={false}
-                        accessibilityLiveRegion="polite"
-                        className="font-semibold text-home-text"
-                        style={dynamicType.body}
-                      >
-                        Reject this offer?
-                      </FocusHeading>
-                      <Text
-                        allowFontScaling={false}
-                        className="text-home-muted"
-                        style={dynamicType.body}
-                      >
-                        This will close the offer without creating a contract.
-                      </Text>
-                      <Button
-                        label="Confirm rejection"
-                        variant="danger"
-                        loading={
-                          mutation?.offerId === offer.id &&
-                          mutation.action === 'reject'
-                        }
-                        disabled={
-                          mutation !== undefined &&
-                          mutation.offerId !== offer.id
-                        }
-                        onPress={() =>
-                          void rejectCurrentOffer({ offer, revision })
-                        }
-                      />
-                      <Button
-                        label="Keep offer"
+                </View>
+              ) : counterOfferForm?.offerId === offer.id ? (
+                <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
+                  <FocusHeading
+                    allowFontScaling={false}
+                    accessibilityRole="header"
+                    className="font-semibold text-home-text"
+                    style={dynamicType.body}
+                  >
+                    Make a counteroffer
+                  </FocusHeading>
+                  <Text
+                    allowFontScaling={false}
+                    className="text-home-muted"
+                    style={dynamicType.small}
+                  >
+                    Your changes become a new proposal for your Parent to
+                    review. Tasks and deadline stay the same.
+                  </Text>
+                  <TextField
+                    editable={mutation === undefined}
+                    error={counterOfferTitleError}
+                    label="Counteroffer reward title"
+                    onChangeText={(rewardTitle) => {
+                      setCounterOfferTitleError(undefined);
+                      setCounterOfferForm((current) =>
+                        current ? { ...current, rewardTitle } : current,
+                      );
+                    }}
+                    value={counterOfferForm.rewardTitle}
+                  />
+                  <Text
+                    allowFontScaling={false}
+                    className="font-semibold text-home-text"
+                    style={dynamicType.body}
+                  >
+                    Counteroffer reward type
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {rewardTypes.map((rewardType) => (
+                      <ChoiceChip
+                        key={rewardType}
+                        label={`${counterOfferForm.rewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
                         disabled={mutation !== undefined}
                         onPress={() =>
-                          setRejectionConfirmationOfferId(undefined)
-                        }
-                        variant="outline"
-                      />
-                    </View>
-                  ) : counterOfferForm?.offerId === offer.id ? (
-                    <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
-                      <FocusHeading
-                        allowFontScaling={false}
-                        accessibilityRole="header"
-                        className="font-semibold text-home-text"
-                        style={dynamicType.body}
-                      >
-                        Make a counteroffer
-                      </FocusHeading>
-                      <Text
-                        allowFontScaling={false}
-                        className="text-home-muted"
-                        style={dynamicType.small}
-                      >
-                        Your changes become a new proposal for your Parent to
-                        review. Tasks and deadline stay the same.
-                      </Text>
-                      <TextField
-                        editable={mutation === undefined}
-                        error={counterOfferTitleError}
-                        label="Counteroffer reward title"
-                        onChangeText={(rewardTitle) => {
-                          setCounterOfferTitleError(undefined);
-                          setCounterOfferForm((current) =>
-                            current ? { ...current, rewardTitle } : current,
-                          );
-                        }}
-                        value={counterOfferForm.rewardTitle}
-                      />
-                      <Text
-                        allowFontScaling={false}
-                        className="font-semibold text-home-text"
-                        style={dynamicType.body}
-                      >
-                        Counteroffer reward type
-                      </Text>
-                      <View className="flex-row flex-wrap gap-2">
-                        {rewardTypes.map((rewardType) => (
-                          <ChoiceChip
-                            key={rewardType}
-                            label={`${counterOfferForm.rewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
-                            disabled={mutation !== undefined}
-                            onPress={() =>
-                              setCounterOfferForm((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      rewardType,
-                                      rewardIconKey:
-                                        current.rewardType === rewardType
-                                          ? current.rewardIconKey
-                                          : rewardTypeDefaultIcons[rewardType],
-                                    }
-                                  : current,
-                              )
-                            }
-                            selected={
-                              counterOfferForm.rewardType === rewardType
-                            }
-                          />
-                        ))}
-                      </View>
-                      <RewardIconPicker
-                        value={counterOfferForm.rewardIconKey}
-                        disabled={mutation !== undefined}
-                        onChange={(rewardIconKey) =>
-                          setCounterOfferForm((current) =>
-                            current ? { ...current, rewardIconKey } : current,
-                          )
-                        }
-                      />
-                      <TextField
-                        required={false}
-                        editable={mutation === undefined}
-                        label="Counteroffer reward description (optional)"
-                        multiline
-                        onChangeText={(rewardDescription) =>
                           setCounterOfferForm((current) =>
                             current
-                              ? { ...current, rewardDescription }
+                              ? {
+                                  ...current,
+                                  rewardType,
+                                  rewardIconKey:
+                                    current.rewardType === rewardType
+                                      ? current.rewardIconKey
+                                      : rewardTypeDefaultIcons[rewardType],
+                                }
                               : current,
                           )
                         }
-                        value={counterOfferForm.rewardDescription}
+                        selected={counterOfferForm.rewardType === rewardType}
                       />
-                      <TextField
-                        required={false}
-                        editable={mutation === undefined}
-                        label="Counteroffer note (optional)"
-                        multiline
-                        onChangeText={(note) =>
-                          setCounterOfferForm((current) =>
-                            current ? { ...current, note } : current,
-                          )
-                        }
-                        value={counterOfferForm.note}
-                      />
-                      <Button
-                        label="Send counteroffer"
-                        loading={
-                          mutation?.offerId === offer.id &&
-                          mutation.action === 'counter'
-                        }
-                        disabled={
-                          mutation !== undefined &&
-                          mutation.offerId !== offer.id
-                        }
-                        onPress={() =>
-                          void submitCounterOffer({ offer, revision })
-                        }
-                      />
-                      <Button
-                        label="Cancel counteroffer"
-                        disabled={mutation !== undefined}
-                        onPress={() => {
-                          setCounterOfferForm(undefined);
-                          setCounterOfferTitleError(undefined);
-                        }}
-                        variant="outline"
-                      />
-                    </View>
-                  ) : (
-                    <View className="gap-3">
-                      <Button
-                        label="Accept offer"
-                        loading={
-                          mutation?.offerId === offer.id &&
-                          mutation.action === 'accept'
-                        }
-                        disabled={
-                          mutation !== undefined &&
-                          mutation.offerId !== offer.id
-                        }
-                        onPress={() =>
-                          void acceptCurrentOffer({ offer, revision })
-                        }
-                      />
-                      <Button
-                        label="Counter reward"
-                        disabled={mutation !== undefined}
-                        onPress={() =>
-                          openCounterOfferForm({ offer, revision })
-                        }
-                        variant="outline"
-                      />
-                      <Button
-                        label="Reject offer"
-                        disabled={mutation !== undefined}
-                        onPress={() => {
-                          setActionError(undefined);
-                          setResultMessage(undefined);
-                          setCounterOfferForm(undefined);
-                          setRejectionConfirmationOfferId(offer.id);
-                        }}
-                        variant="danger"
-                      />
-                    </View>
-                  )}
+                    ))}
+                  </View>
+                  <RewardIconPicker
+                    value={counterOfferForm.rewardIconKey}
+                    disabled={mutation !== undefined}
+                    onChange={(rewardIconKey) =>
+                      setCounterOfferForm((current) =>
+                        current ? { ...current, rewardIconKey } : current,
+                      )
+                    }
+                  />
+                  <TextField
+                    required={false}
+                    editable={mutation === undefined}
+                    label="Counteroffer reward description (optional)"
+                    multiline
+                    onChangeText={(rewardDescription) =>
+                      setCounterOfferForm((current) =>
+                        current ? { ...current, rewardDescription } : current,
+                      )
+                    }
+                    value={counterOfferForm.rewardDescription}
+                  />
+                  <TextField
+                    required={false}
+                    editable={mutation === undefined}
+                    label="Counteroffer note (optional)"
+                    multiline
+                    onChangeText={(note) =>
+                      setCounterOfferForm((current) =>
+                        current ? { ...current, note } : current,
+                      )
+                    }
+                    value={counterOfferForm.note}
+                  />
+                  <Button
+                    label="Send counteroffer"
+                    loading={
+                      mutation?.offerId === offer.id &&
+                      mutation.action === 'counter'
+                    }
+                    disabled={
+                      mutation !== undefined && mutation.offerId !== offer.id
+                    }
+                    onPress={() => void submitCounterOffer({ offer, revision })}
+                  />
+                  <Button
+                    label="Cancel counteroffer"
+                    disabled={mutation !== undefined}
+                    onPress={() => {
+                      setCounterOfferForm(undefined);
+                      setCounterOfferTitleError(undefined);
+                    }}
+                    variant="outline"
+                  />
                 </View>
-              ))}
+              ) : (
+                <View className="gap-3">
+                  <Button
+                    label="Accept offer"
+                    loading={
+                      mutation?.offerId === offer.id &&
+                      mutation.action === 'accept'
+                    }
+                    disabled={
+                      mutation !== undefined && mutation.offerId !== offer.id
+                    }
+                    onPress={() => void acceptCurrentOffer({ offer, revision })}
+                  />
+                  <Button
+                    label="Counter reward"
+                    disabled={mutation !== undefined}
+                    onPress={() => openCounterOfferForm({ offer, revision })}
+                    variant="outline"
+                  />
+                  <Button
+                    label="Reject offer"
+                    disabled={mutation !== undefined}
+                    onPress={() => {
+                      setActionError(undefined);
+                      setResultMessage(undefined);
+                      setCounterOfferForm(undefined);
+                      setRejectionConfirmationOfferId(offer.id);
+                    }}
+                    variant="danger"
+                  />
+                </View>
+              )}
+            </View>
+          ))}
         </View>
       ) : null}
     </View>

@@ -6,7 +6,6 @@ import {
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
-  HomeGreeting,
   QuickActions,
   SectionHeading,
   ReminderPreferenceCard,
@@ -316,10 +315,7 @@ function ParentSurfaceContent({
         {familyState.status === 'ready' ? (
           <View className="gap-5">
             {area === 'home' ? (
-              <>
-                <HomeGreeting name={familyState.home.profile.displayName} />
-                <QuickActions />
-              </>
+              <QuickActions />
             ) : (
               <SectionHeading>
                 {

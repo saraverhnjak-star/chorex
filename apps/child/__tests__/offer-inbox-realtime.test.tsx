@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { OfferInbox } from '../src/offers/OfferInbox';
 
+const mockNavigate = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ navigate: jest.fn() }),
+  useRouter: () => ({ navigate: mockNavigate }),
 }));
 
 const mockUnsubscribe = jest.fn();
@@ -110,4 +111,46 @@ it('applies realtime add, change, and remove events and cleans up subscriptions'
 
   view.unmount();
   expect(mockUnsubscribe).toHaveBeenCalledTimes(3);
+});
+
+it('shows the Home offer card only while an offer is available', () => {
+  const view = render(
+    <OfferInbox preview authUid="child-1" familyId="family-1" />,
+  );
+  expect(view.toJSON()).toBeNull();
+  act(() => emitItems?.([]));
+  expect(view.toJSON()).toBeNull();
+  act(() => emitItems?.([item]));
+  expect(screen.getByText('NEW OFFER')).toBeOnTheScreen();
+  expect(screen.getByText('Load the dishwasher')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'View offer' })).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'Suggest a change' }),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Suggest a change' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith({
+    pathname: '/offers',
+    params: { counterOfferId: 'offer-1' },
+  });
+  act(() => emitItems?.([]));
+  expect(view.toJSON()).toBeNull();
+});
+
+it('opens the selected counteroffer form after the Offers subscription loads', () => {
+  render(
+    <OfferInbox
+      authUid="child-1"
+      familyId="family-1"
+      initialCounterOfferId="offer-1"
+    />,
+  );
+  act(() => emitItems?.([item]));
+  expect(
+    screen.getByRole('button', { name: 'Send counteroffer' }),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Cancel counteroffer' }));
+  act(() => emitItems?.([item]));
+  expect(
+    screen.queryByRole('button', { name: 'Send counteroffer' }),
+  ).toBeNull();
 });
