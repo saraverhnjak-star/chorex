@@ -7,6 +7,7 @@ export function HomeContractRow({
   authUid,
   childName,
   onPress,
+  preview = false,
 }: {
   preview?: boolean;
   contract: Contract;
@@ -31,6 +32,7 @@ export function HomeContractRow({
   return (
     <ParentHomeCard>
       <ParentHomeRow
+        dense={preview}
         title={contract.rewardTerms.title}
         detail={`${childName ? `${childName} · ` : ''}${contract.status === 'READY_FOR_REVIEW' ? 'Ready for review · ' : ''}Due ${new Date(contract.deadlineAt).toLocaleDateString()}`}
         reward={contract.rewardTerms}

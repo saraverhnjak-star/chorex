@@ -20,6 +20,7 @@ export function ParentHomeRow({
   separator = false,
   button = false,
   artRight = false,
+  dense = false,
 }: {
   title: string;
   detail: string;
@@ -32,13 +33,14 @@ export function ParentHomeRow({
   separator?: boolean;
   button?: boolean;
   artRight?: boolean;
+  dense?: boolean;
 }) {
   const { width, fontScale } = useWindowDimensions();
   const compact = width < 390 || fontScale > 1.2;
   return (
     <View
       style={{
-        padding: homeTokens.spacing.card,
+        padding: dense ? homeTokens.spacing.medium : homeTokens.spacing.card,
         gap: 12,
         borderTopWidth: separator ? 1 : 0,
         borderColor: homeTokens.border,

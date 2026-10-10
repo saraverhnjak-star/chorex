@@ -169,6 +169,7 @@ export function HomeAttentionList({
             const reward = item.id.startsWith('reward:');
             return (
               <ParentHomeRow
+                dense
                 key={item.id}
                 separator={index > 0}
                 title={item.detail}
