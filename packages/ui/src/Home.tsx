@@ -140,8 +140,6 @@ export function NavigationFrame({
                     {
                       textAlign: 'center',
                       fontWeight: active === item.id ? '700' : '400',
-                      textDecorationLine:
-                        active === item.id ? 'underline' : 'none',
                       fontSize: labelSize,
                       lineHeight: labelSize * 1.35,
                       color:

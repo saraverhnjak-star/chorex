@@ -103,13 +103,15 @@ export function DeadlinePicker({
               {picker}
               <Button
                 label="Done"
+                variant="blue"
+                lightText
                 onPress={() => {
                   if (pending) commit(pending);
                 }}
               />
               <Button
                 label="Cancel"
-                variant="outline"
+                variant="outlineBlue"
                 onPress={() => setMode(undefined)}
               />
             </SurfaceCard>

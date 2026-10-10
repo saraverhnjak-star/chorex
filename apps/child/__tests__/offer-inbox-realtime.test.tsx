@@ -195,7 +195,7 @@ it('shows only the requested offer and removes actions when it leaves the inbox'
   act(() => emitItems?.([item, other]));
   expect(screen.getByRole('header', { name: 'Cinema' })).toBeOnTheScreen();
   expect(screen.getByText('2×')).toBeOnTheScreen();
-  expect(screen.getByText('Dogovorjeno število ponovitev')).toBeOnTheScreen();
+  expect(screen.getByText('Agreed number of repetitions')).toBeOnTheScreen();
   expect(screen.queryByRole('header', { name: 'Tasks' })).toBeNull();
   expect(screen.queryByRole('header', { name: 'Deadline' })).toBeNull();
   act(() =>
@@ -211,7 +211,7 @@ it('shows only the requested offer and removes actions when it leaves the inbox'
     ]),
   );
   expect(screen.queryByText('1×')).toBeNull();
-  expect(screen.queryByText('Dogovorjeno število ponovitev')).toBeNull();
+  expect(screen.queryByText('Agreed number of repetitions')).toBeNull();
 
   expect(screen.queryByText('Museum · EXPERIENCE')).toBeNull();
   expect(

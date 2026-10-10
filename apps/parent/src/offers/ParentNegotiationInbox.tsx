@@ -1,10 +1,10 @@
+import { ParentHomeCard, ParentHomeRow } from '../navigation/ParentHomeRow';
 import { useRouter } from 'expo-router';
 import {
   FocusHeading,
   announceAction,
   ProposalTerms,
   OfferOutcome,
-  CountBadge,
   CollectionHeading,
   HomeListRow,
   Button,
@@ -49,16 +49,22 @@ export function ParentNegotiationInbox({
   authUid,
   familyId,
   preview = false,
+  list = false,
+  showHeading = true,
+  offerId,
 }: {
   activeChildren: readonly ChildFamilyMembership[];
   preview?: boolean;
+  list?: boolean;
+  showHeading?: boolean;
+  offerId?: string;
   authUid: string;
   familyId: string;
 }) {
   const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
   const [subscriptionAttempt, setSubscriptionAttempt] = useState(0);
-  const subscriptionKey = `${authUid}:${familyId}:${subscriptionAttempt}`;
+  const subscriptionKey = `${authUid}:${familyId}:${offerId ?? 'all'}:${subscriptionAttempt}`;
   const [state, setState] = useState<ParentNegotiationInboxState>({
     subscriptionKey,
     status: 'loading',
@@ -199,29 +205,24 @@ export function ParentNegotiationInbox({
 
   const displayedState: ParentNegotiationInboxState =
     state.subscriptionKey === subscriptionKey
-      ? state
+      ? state.status === 'ready' && offerId
+        ? {
+            ...state,
+            items: state.items.filter(({ offer }) => offer.id === offerId),
+          }
+        : state
       : { subscriptionKey, status: 'loading' };
 
   return (
-    <View className="gap-4 rounded-3xl border border-home-border bg-home-surface p-5">
-      <View className="gap-2">
-        <CollectionHeading
-          label="See all Offers"
-          onSeeAll={preview ? () => router.navigate('/offers') : undefined}
-        >
-          Counteroffers
+    <View style={{ gap: homeTokens.spacing.section, flexGrow: 1 }}>
+      {list &&
+      showHeading &&
+      displayedState.status === 'ready' &&
+      displayedState.items.length > 0 ? (
+        <CollectionHeading count={displayedState.items.length} label="Offers">
+          Offers
         </CollectionHeading>
-        {displayedState.status === 'ready' ? (
-          <CountBadge count={displayedState.items.length} />
-        ) : null}
-        <Text
-          allowFontScaling={false}
-          className="text-home-muted"
-          style={dynamicType.body}
-        >
-          Reward changes waiting for your response.
-        </Text>
-      </View>
+      ) : null}
 
       {message ? (
         <OfferOutcome
@@ -233,6 +234,7 @@ export function ParentNegotiationInbox({
                 : 'New proposal sent'
           }
           success={message === 'Contract active'}
+          centered={message === 'Contract active'}
         >
           {message}
         </OfferOutcome>
@@ -265,146 +267,176 @@ export function ParentNegotiationInbox({
       ) : null}
 
       {displayedState.status === 'ready' &&
-      displayedState.items.length === 0 ? (
-        <OfferOutcome title="No counteroffers">
+      displayedState.items.length === 0 &&
+      !message ? (
+        <OfferOutcome
+          centered
+          illustration="no-offers"
+          title={offerId ? 'Offer unavailable' : 'No counteroffers'}
+        >
           No counteroffers are waiting for you.
         </OfferOutcome>
       ) : null}
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
         <View className="gap-4">
-          {preview
-            ? displayedState.items
-                .slice(0, 2)
-                .map(({ offer, revision }) => (
-                  <HomeListRow
-                    key={offer.id}
+          {list
+            ? displayedState.items.map(({ offer, revision }) => (
+                <ParentHomeCard key={offer.id}>
+                  <ParentHomeRow
+                    dense
                     reward={revision.reward}
                     title={revision.reward.title}
                     detail={`${activeChildren.find((child) => child.uid === offer.childUid)?.displayName ?? 'Child'} · Your turn`}
-                    label={`Open Offer: ${revision.reward.title}`}
-                    icon="document-text-outline"
-                    onPress={() => router.navigate('/offers')}
+                    badge="Your turn"
+                    action="View offer"
+                    label="View offer"
+                    onPress={() =>
+                      router.push({
+                        pathname: '/offers/[offerId]',
+                        params: { offerId: offer.id },
+                      })
+                    }
                   />
-                ))
-            : displayedState.items.map((item) => {
-                const { offer, revision } = item;
-                const identity = `${subscriptionKey}:${offer.id}:${revision.id}`;
-                const childName =
-                  activeChildren.find((child) => child.uid === offer.childUid)
-                    ?.displayName ?? 'Child profile unavailable';
-                return (
-                  <View
-                    className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
-                    key={offer.id}
-                  >
-                    <ProposalTerms
-                      revision={revision}
-                      status="Your turn"
-                      author={`Proposed by ${childName}`}
-                      support={`${childName} made a counteroffer. Review the current terms below.`}
+                </ParentHomeCard>
+              ))
+            : preview
+              ? displayedState.items
+                  .slice(0, 2)
+                  .map(({ offer, revision }) => (
+                    <HomeListRow
+                      key={offer.id}
+                      reward={revision.reward}
+                      title={revision.reward.title}
+                      detail={`${activeChildren.find((child) => child.uid === offer.childUid)?.displayName ?? 'Child'} · Your turn`}
+                      label={`Open Offer: ${revision.reward.title}`}
+                      icon="document-text-outline"
+                      onPress={() => router.navigate('/offers')}
                     />
-                    {rejectionConfirmation === identity ? (
-                      <View className="gap-3">
-                        <FocusHeading
-                          allowFontScaling={false}
-                          accessibilityRole="alert"
-                          accessibilityLiveRegion="assertive"
-                          className="text-home-text"
-                          style={dynamicType.body}
-                        >
-                          Rejecting this counteroffer ends this Offer
-                          negotiation. The terms will remain in its history.
-                        </FocusHeading>
-                        <Button
-                          label="Confirm reject counteroffer"
-                          variant="danger"
-                          loading={busy}
-                          onPress={() => void rejectCounteroffer(item)}
-                        />
-                        <Button
-                          label="Keep negotiating"
-                          variant="outline"
-                          disabled={busy}
-                          onPress={() => setRejectionConfirmation(undefined)}
-                        />
-                      </View>
-                    ) : editing === identity ? (
-                      <ParentCounterofferForm
-                        key={identity}
+                  ))
+              : displayedState.items.map((item) => {
+                  const { offer, revision } = item;
+                  const identity = `${subscriptionKey}:${offer.id}:${revision.id}`;
+                  const childName =
+                    activeChildren.find((child) => child.uid === offer.childUid)
+                      ?.displayName ?? 'Child profile unavailable';
+                  return (
+                    <View
+                      style={{ gap: homeTokens.spacing.medium }}
+                      key={offer.id}
+                    >
+                      <ProposalTerms
+                        layout="rewardFirst"
                         revision={revision}
-                        busy={busy}
-                        onCancel={() => setEditing(undefined)}
-                        onSubmit={sendCounteroffer}
+                        status="Your turn"
+                        author={`Proposed by ${childName}`}
+                        support={`${childName} made a counteroffer. Review the current terms below.`}
                       />
-                    ) : confirmation === identity ? (
-                      <View className="gap-3">
-                        <FocusHeading
-                          allowFontScaling={false}
-                          accessibilityLiveRegion="polite"
-                          className="text-home-text"
-                          style={dynamicType.body}
-                        >
-                          Accept these tasks, reward and deadline? This creates
-                          an active Contract.
-                        </FocusHeading>
-                        <Button
-                          label="Confirm accept counteroffer"
-                          loading={busy}
-                          onPress={() => void acceptCounteroffer(item)}
+                      {rejectionConfirmation === identity ? (
+                        <View className="gap-3">
+                          <FocusHeading
+                            allowFontScaling={false}
+                            accessibilityRole="alert"
+                            accessibilityLiveRegion="assertive"
+                            className="text-home-text"
+                            style={dynamicType.body}
+                          >
+                            Rejecting this counteroffer ends this Offer
+                            negotiation. The terms will remain in its history.
+                          </FocusHeading>
+                          <Button
+                            label="Confirm reject counteroffer"
+                            variant="danger"
+                            loading={busy}
+                            onPress={() => void rejectCounteroffer(item)}
+                          />
+                          <Button
+                            label="Keep negotiating"
+                            variant="outline"
+                            disabled={busy}
+                            onPress={() => setRejectionConfirmation(undefined)}
+                          />
+                        </View>
+                      ) : editing === identity ? (
+                        <ParentCounterofferForm
+                          key={identity}
+                          revision={revision}
+                          busy={busy}
+                          onCancel={() => setEditing(undefined)}
+                          onSubmit={sendCounteroffer}
                         />
+                      ) : confirmation === identity ? (
+                        <View className="gap-3">
+                          <FocusHeading
+                            allowFontScaling={false}
+                            accessibilityLiveRegion="polite"
+                            className="text-home-text"
+                            style={dynamicType.body}
+                          >
+                            Accept these tasks, reward and deadline? This
+                            creates an active Contract.
+                          </FocusHeading>
+                          <Button
+                            label="Confirm accept counteroffer"
+                            variant="blue"
+                            lightText
+                            loading={busy}
+                            onPress={() => void acceptCounteroffer(item)}
+                          />
+                          <Button
+                            label="Cancel acceptance"
+                            variant="outline"
+                            disabled={busy}
+                            onPress={() => setConfirmation(undefined)}
+                          />
+                        </View>
+                      ) : (
                         <Button
-                          label="Cancel acceptance"
+                          label="Accept counteroffer"
+                          variant="blue"
+                          lightText
+                          disabled={busy}
+                          onPress={() => {
+                            setConfirmation(identity);
+                            setActionError(undefined);
+                            setMessage(undefined);
+                          }}
+                        />
+                      )}
+                      {rejectionConfirmation !== identity &&
+                      editing !== identity &&
+                      confirmation !== identity ? (
+                        <Button
+                          label="Counteroffer"
                           variant="outline"
                           disabled={busy}
-                          onPress={() => setConfirmation(undefined)}
+                          onPress={() => {
+                            setEditing(identity);
+                            setConfirmation(undefined);
+                            setActionError(undefined);
+                            setMessage(undefined);
+                          }}
                         />
-                      </View>
-                    ) : (
-                      <Button
-                        label="Accept counteroffer"
-                        disabled={busy}
-                        onPress={() => {
-                          setConfirmation(identity);
-                          setActionError(undefined);
-                          setMessage(undefined);
-                        }}
-                      />
-                    )}
-                    {rejectionConfirmation !== identity &&
-                    editing !== identity &&
-                    confirmation !== identity ? (
-                      <Button
-                        label="Counteroffer"
-                        variant="outline"
-                        disabled={busy}
-                        onPress={() => {
-                          setEditing(identity);
-                          setConfirmation(undefined);
-                          setActionError(undefined);
-                          setMessage(undefined);
-                        }}
-                      />
-                    ) : null}
-                    {rejectionConfirmation !== identity &&
-                    editing !== identity &&
-                    confirmation !== identity ? (
-                      <Button
-                        label="Reject counteroffer"
-                        variant="danger"
-                        disabled={busy}
-                        onPress={() => {
-                          setRejectionConfirmation(identity);
-                          setConfirmation(undefined);
-                          setEditing(undefined);
-                          setActionError(undefined);
-                          setMessage(undefined);
-                        }}
-                      />
-                    ) : null}
-                  </View>
-                );
-              })}
+                      ) : null}
+                      {rejectionConfirmation !== identity &&
+                      editing !== identity &&
+                      confirmation !== identity ? (
+                        <Button
+                          label="Reject counteroffer"
+                          variant="danger"
+                          disabled={busy}
+                          onPress={() => {
+                            setRejectionConfirmation(identity);
+                            setConfirmation(undefined);
+                            setEditing(undefined);
+                            setActionError(undefined);
+                            setMessage(undefined);
+                          }}
+                        />
+                      ) : null}
+                    </View>
+                  );
+                })}
         </View>
       ) : null}
     </View>

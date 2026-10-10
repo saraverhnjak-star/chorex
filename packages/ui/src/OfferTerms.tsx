@@ -194,7 +194,7 @@ export function ProposalTerms({
               </DesignText>
               {layout === 'rewardFirst' && task.targetCount > 1 ? (
                 <DesignText style={styles.caption}>
-                  Dogovorjeno število ponovitev
+                  Agreed number of repetitions
                 </DesignText>
               ) : null}
               {task.description ? (

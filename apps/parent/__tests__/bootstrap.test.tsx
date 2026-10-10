@@ -181,6 +181,18 @@ jest.mock('@chorex/firebase-client', () => ({
   createFamily: jest.fn(),
   createOfferDraft: (...args: unknown[]) => mockCreateOfferDraft(...args),
   publishOffer: (...args: unknown[]) => mockPublishOffer(...args),
+  subscribeToCurrentChildOfferInbox: (
+    _familyId: string,
+    onItems: (items: unknown[]) => void,
+  ) => {
+    onItems([
+      {
+        ...parentNegotiationItems[0],
+        offer: { ...parentNegotiationItems[0].offer, status: 'AWAITING_CHILD' },
+      },
+    ]);
+    return jest.fn();
+  },
   subscribeToCurrentParentNegotiationInbox: (
     familyId: string,
     onItems: (items: typeof parentNegotiationItems) => void,
@@ -273,7 +285,7 @@ it('renders the parent screen through the public shared UI package', async () =>
     ['Settings', '/more'],
     ['Home', '/'],
     ['Create order', '/offers/create'],
-    ['Family', '/family'],
+    ['Offers', '/offers'],
   ]) {
     fireEvent.press(
       screen.queryByRole('tab', { name: label }) ??
@@ -360,11 +372,11 @@ it('renders the parent screen through the public shared UI package', async () =>
       <ParentSurface area="offers" />
     </AppNavigation>,
   );
-  await screen.findByText('Counteroffers');
-  expect(screen.getByText('Counteroffers')).toBeOnTheScreen();
-  expect(screen.getByText('Your turn')).toBeOnTheScreen();
-  expect(screen.getByText('One hour of games · PRIVILEGE')).toBeOnTheScreen();
-  expect(screen.getByText('This feels fair.')).toBeOnTheScreen();
+  await screen.findByRole('button', { name: 'View offer' });
+  expect(screen.getByText('One hour of games')).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Accept counteroffer' }),
+  ).toBeNull();
   expect(readCurrentParentFamily).toHaveBeenCalledTimes(1);
 });
 
@@ -586,4 +598,26 @@ it('combines actionable attention sources and preserves each existing destinatio
   view.unmount();
   mockAttentionReviews = [];
   mockAttentionRewards = [];
+});
+
+it('shows sent offers in a separate tab after counteroffers', async () => {
+  render(
+    <AppNavigation>
+      <ParentSurface area="offers" />
+    </AppNavigation>,
+  );
+  await screen.findByRole('tab', { name: 'Counteroffers' });
+  const tabs = screen.getAllByRole('tab');
+  expect(
+    tabs
+      .filter((tab) =>
+        ['Counteroffers', 'Sent'].includes(tab.props.accessibilityLabel),
+      )
+      .map((tab) => tab.props.accessibilityLabel),
+  ).toEqual(['Counteroffers', 'Sent']);
+  fireEvent.press(screen.getByRole('tab', { name: 'Sent' }));
+  expect(await screen.findByText("Child's turn")).toBeOnTheScreen();
+  expect(
+    screen.getByRole('button', { name: 'View offer: One hour of games' }),
+  ).toBeOnTheScreen();
 });

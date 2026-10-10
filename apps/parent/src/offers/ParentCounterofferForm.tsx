@@ -12,7 +12,7 @@ import {
 } from '@chorex/domain';
 import {
   RewardPicker,
-  SurfaceCard,
+  homeTokens,
   ProposalTerms,
   TermsHeading,
   Button,
@@ -146,7 +146,12 @@ export function ParentCounterofferForm({
     setProposal(result.data);
   };
   return (
-    <SurfaceCard>
+    <View
+      style={{
+        gap: homeTokens.spacing.medium,
+        marginTop: homeTokens.spacing.section,
+      }}
+    >
       <Text
         allowFontScaling={false}
         accessibilityRole="header"
@@ -165,7 +170,11 @@ export function ParentCounterofferForm({
       <FormMessage message={error} />
       {proposal ? (
         <>
-          <ProposalTerms revision={proposal} author="Your new proposal" />
+          <ProposalTerms
+            layout="rewardFirst"
+            revision={proposal}
+            author="Your new proposal"
+          />
           <Text
             allowFontScaling={false}
             className="text-home-muted"
@@ -175,6 +184,8 @@ export function ParentCounterofferForm({
           </Text>
           <Button
             label="Send counteroffer"
+            variant="blue"
+            lightText
             loading={busy}
             onPress={() => void onSubmit(proposal)}
           />
@@ -244,6 +255,7 @@ export function ParentCounterofferForm({
           ) : null}
           <TermsHeading icon="gift-outline">Choose reward</TermsHeading>
           <RewardPicker
+            prominent
             value={rewardSelection}
             disabled={busy}
             onChange={(selection) => {
@@ -306,6 +318,6 @@ export function ParentCounterofferForm({
         disabled={busy}
         onPress={onCancel}
       />
-    </SurfaceCard>
+    </View>
   );
 }

@@ -6,8 +6,8 @@ const items: readonly NavigationItem[] = [
   { id: 'home', label: 'Home', icon: 'home-outline' },
   { id: 'contracts', label: 'Contracts', icon: 'checkbox-outline' },
   { id: 'create', label: 'Create order', icon: 'add', prominent: true },
+  { id: 'offers', label: 'Offers', icon: 'document-text-outline' },
   { id: 'rewards', label: 'Rewards', icon: 'gift-outline' },
-  { id: 'family', label: 'Family', icon: 'people-outline' },
 ];
 const destinations = {
   home: '/',

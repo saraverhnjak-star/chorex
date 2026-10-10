@@ -52,7 +52,7 @@ import { useParentSession } from '../auth/session';
 import { getFamilyErrorMessage } from '../family/messages';
 import { getNotificationErrorMessage } from '../notifications/messages';
 import { OfferDraftComposer } from '../offers/OfferDraftComposer';
-import { ParentNegotiationInbox } from '../offers/ParentNegotiationInbox';
+import { OfferTabs } from '../offers/OfferTabs';
 
 type PairingState =
   | { status: 'idle' }
@@ -318,7 +318,9 @@ function ParentSurfaceContent({
             area !== 'contracts' &&
             area !== 'rewards' &&
             area !== 'more' &&
-            area !== 'family' ? (
+            area !== 'family' &&
+            area !== 'create' &&
+            area !== 'offers' ? (
               <SectionHeading>
                 {
                   (
@@ -397,12 +399,14 @@ function ParentSurfaceContent({
             ) : null}
             {area === 'offers' ? (
               <HomeSection>
-                <Button
-                  label="Create Offer"
-                  onPress={() => router.push('/offers/create')}
-                />
-                <ParentNegotiationInbox
+                <OfferTabs
                   activeChildren={familyState.home.children}
+                  childNames={Object.fromEntries(
+                    familyState.home.children.map((child) => [
+                      child.uid,
+                      child.displayName,
+                    ]),
+                  )}
                   authUid={user.uid}
                   familyId={familyState.home.family.id}
                 />

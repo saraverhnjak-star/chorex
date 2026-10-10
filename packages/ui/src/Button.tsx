@@ -4,7 +4,8 @@ import { ActivityIndicator, Pressable, Text, type View } from 'react-native';
 import { amberAuroraColors, amberAuroraPalette } from './theme';
 import { useDynamicTypeStyles } from './typography';
 
-type ButtonVariant = 'primary' | 'secondary' | 'blue' | 'outline' | 'danger';
+type ButtonVariant =
+  'primary' | 'secondary' | 'blue' | 'outlineBlue' | 'outline' | 'danger';
 
 interface ButtonProps {
   lightText?: boolean;
@@ -22,6 +23,7 @@ const containerClasses: Record<ButtonVariant, string> = {
   secondary: 'bg-secondary',
   blue: 'bg-secondary',
   outline: 'bg-home-surface',
+  outlineBlue: 'bg-home-surface',
   danger: 'bg-home-surface',
 };
 
@@ -57,8 +59,11 @@ export function Button({
       onFocus={() => setFocused(true)}
       onPress={onPress}
       style={
-        home || variant === 'blue'
+        home || variant === 'blue' || variant === 'outlineBlue'
           ? {
+              ...(variant === 'outlineBlue'
+                ? { borderColor: amberAuroraPalette.auroraBlue }
+                : {}),
               backgroundColor:
                 variant === 'blue'
                   ? amberAuroraPalette.auroraBlue
@@ -89,6 +94,9 @@ export function Button({
                     lineHeight: Number(dynamicType.body.fontSize) * 1.35,
                   }
                 : undefined,
+            variant === 'outlineBlue'
+              ? { color: amberAuroraPalette.auroraBlue }
+              : undefined,
             lightText ? { color: amberAuroraPalette.paper } : undefined,
           ]}
         >

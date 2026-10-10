@@ -1,8 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ParentNegotiationInbox } from '../src/offers/ParentNegotiationInbox';
 
+const mockPush = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ navigate: jest.fn() }),
+  useRouter: () => ({ navigate: jest.fn(), push: mockPush }),
 }));
 
 const mockAccept = jest.fn();
@@ -61,7 +62,7 @@ const item = {
       type: 'PRIVILEGE',
       iconKey: 'museum' as const,
     },
-    deadlineAt: '2026-10-10T18:00:00.000Z',
+    deadlineAt: '2099-10-10T18:00:00.000Z',
     note: 'This feels fair.',
     createdAt: '2026-10-03T12:35:56.789Z',
   },
@@ -94,9 +95,9 @@ it('renders realtime Parent counteroffer changes and cleans up subscriptions', (
 
   act(() => emitItems?.([item]));
   expect(screen.getByText('Proposed by Mia')).toBeOnTheScreen();
-  expect(screen.getByText('One hour of games · PRIVILEGE')).toBeOnTheScreen();
+  expect(screen.getByText('One hour of games')).toBeOnTheScreen();
   expect(screen.getByText('This feels fair.')).toBeOnTheScreen();
-  expect(screen.getByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  expect(screen.getByText('Load the dishwasher')).toBeOnTheScreen();
 
   act(() =>
     emitItems?.([
@@ -114,11 +115,11 @@ it('renders realtime Parent counteroffer changes and cleans up subscriptions', (
       },
     ]),
   );
-  expect(screen.getByText('Museum · EXPERIENCE')).toBeOnTheScreen();
+  expect(screen.getByText('Museum')).toBeOnTheScreen();
   expect(screen.queryByText('This feels fair.')).not.toBeOnTheScreen();
 
   act(() => emitItems?.([]));
-  expect(screen.queryByText('Museum · EXPERIENCE')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Museum')).not.toBeOnTheScreen();
 
   view.rerender(
     <ParentNegotiationInbox
@@ -212,9 +213,9 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
     'value',
     'Load the dishwasher',
   );
-  expect(screen.getByText('Selected reward: Custom')).toBeOnTheScreen();
+  expect(screen.getByText('Custom')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1 title'), 'Water plants');
-  expect(screen.getByText('Selected reward: Custom')).toBeOnTheScreen();
+  expect(screen.getByText('Custom')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1 target count'), '3');
   fireEvent.changeText(
     screen.getByLabelText('Task 1 description (optional)'),
@@ -222,7 +223,7 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
   );
   fireEvent.press(screen.getByRole('button', { name: 'Add task' }));
   fireEvent.changeText(screen.getByLabelText('Task 2 title'), 'Set the table');
-  fireEvent.press(screen.getByRole('button', { name: 'Choose reward' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Change' }));
   fireEvent.press(screen.getByRole('button', { name: 'Choose Museum reward' }));
   expect(screen.queryByLabelText('Reward title')).toBeNull();
   fireEvent.press(
@@ -252,8 +253,8 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
   fireEvent.press(screen.getByRole('button', { name: 'Review counteroffer' }));
   expect(mockCounter).not.toHaveBeenCalled();
   expect(screen.getByText('Review your counteroffer')).toBeOnTheScreen();
-  expect(screen.getByText('Water plants · 3×')).toBeOnTheScreen();
-  expect(screen.getByText('Museum · EXPERIENCE')).toBeOnTheScreen();
+  expect(screen.getByText('Water plants')).toBeOnTheScreen();
+  expect(screen.getByText('Museum')).toBeOnTheScreen();
   await act(async () =>
     fireEvent.press(screen.getByRole('button', { name: 'Send counteroffer' })),
   );
@@ -425,4 +426,24 @@ it('retains the same rejection key after a failed request and invalidates stale 
     screen.getByRole('button', { name: 'Reject counteroffer' }),
   ).toBeOnTheScreen();
   expect(mockReject).toHaveBeenCalledTimes(2);
+});
+
+it('lists offers and opens the selected offer on its details route', () => {
+  render(
+    <ParentNegotiationInbox
+      list
+      activeChildren={children}
+      authUid="parent-1"
+      familyId="family-1"
+    />,
+  );
+  act(() => emitItems?.([item]));
+  expect(
+    screen.queryByRole('button', { name: 'Accept counteroffer' }),
+  ).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'View offer' }));
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/offers/[offerId]',
+    params: { offerId: item.offer.id },
+  });
 });

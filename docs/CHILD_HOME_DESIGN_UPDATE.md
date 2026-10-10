@@ -68,3 +68,7 @@ Parent Contracts uses equal-width dark pill tabs for the existing Active and For
 Contracts tabs order is For review, then Active; For review is selected initially. The review tab count badge and its additional subscription sharing introduced for the badge were reverted.
 
 Parent Create offer now uses one Send offer action: the existing server draft command is followed immediately by publishOffer. No separate save/publish step is shown. If publishing fails, Retry sending offer reuses the saved offer and publish idempotency key; Create another offer is disabled during submission. Server lifecycle and authorization remain unchanged.
+
+Parent Offers now shows a list of counteroffer cards. View offer opens /offers/[offerId] with a fixed header and Back to Offers link. Details reuse rewardFirst terms, larger reward art, repeat pills and deadline artwork without outer wrappers. Parent accept/reject confirmations and server commands are preserved; counteroffer editing and preview use the same unboxed presentation.
+
+Parent Offers has dark Counteroffers and Sent tabs, in that order, with Counteroffers initially selected. Sent subscribes to AWAITING_CHILD offers using the existing participant/family-scoped inbox query and opens a read-only rewardFirst detail with Child's turn. These reads retain Firestore membership/participant rules; no server mutation or lifecycle state was added.

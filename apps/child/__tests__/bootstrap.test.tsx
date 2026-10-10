@@ -287,7 +287,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(
     screen.queryByRole('button', { name: 'See all My chores' }),
   ).toBeNull();
-  expect(screen.queryByText('Dogovorjeno število ponovitev')).toBeNull();
+  expect(screen.queryByText('Agreed number of repetitions')).toBeNull();
   for (const [label, route] of [
     ['My chores', '/contracts'],
     ['Offers', '/offers'],
