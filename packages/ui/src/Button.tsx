@@ -1,12 +1,13 @@
 import { homeTokens, useHomeTheme } from './Home';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, type View } from 'react-native';
-import { amberAuroraColors } from './theme';
+import { amberAuroraColors, amberAuroraPalette } from './theme';
 import { useDynamicTypeStyles } from './typography';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger';
 
 interface ButtonProps {
+  lightText?: boolean;
   label: string;
   ref?: React.Ref<View>;
   accessibilityLabel?: string;
@@ -25,6 +26,7 @@ const containerClasses: Record<ButtonVariant, string> = {
 
 export function Button({
   label,
+  lightText = false,
   ref,
   accessibilityLabel = label,
   onPress,
@@ -67,7 +69,9 @@ export function Button({
       }
     >
       {loading ? (
-        <ActivityIndicator color={amberAuroraColors.text} />
+        <ActivityIndicator
+          color={lightText ? amberAuroraPalette.paper : amberAuroraColors.text}
+        />
       ) : (
         <Text
           allowFontScaling={false}
@@ -82,6 +86,7 @@ export function Button({
                     lineHeight: Number(dynamicType.body.fontSize) * 1.35,
                   }
                 : undefined,
+            lightText ? { color: amberAuroraPalette.paper } : undefined,
           ]}
         >
           {label}

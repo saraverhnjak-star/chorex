@@ -128,7 +128,11 @@ export function NavigationFrame({
 export function HomeScreenFrame({
   children,
   keyboard = false,
+  header,
+  fill = false,
 }: {
+  header?: ReactNode;
+  fill?: boolean;
   children: ReactNode;
   child?: boolean;
   keyboard?: boolean;
@@ -141,11 +145,19 @@ export function HomeScreenFrame({
         behavior={keyboard && Platform.OS === 'ios' ? 'padding' : undefined}
         style={[s.frame, { paddingTop: insets.top }]}
       >
+        {header ? (
+          <View style={{ paddingHorizontal: 18, paddingTop: 4 }}>{header}</View>
+        ) : null}
         <ScrollView
+          style={{ flex: 1 }}
           contentInsetAdjustmentBehavior="never"
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[s.content, { paddingTop: 12 }]}
+          contentContainerStyle={[
+            s.content,
+            { paddingTop: header ? 4 : 12 },
+            fill ? { flexGrow: 1 } : undefined,
+          ]}
           showsVerticalScrollIndicator={false}
         >
           {children}
@@ -209,14 +221,18 @@ export function CollectionHeading({
 export function HomeHeader({
   name,
   child = false,
+  leading,
+  compact = false,
 }: {
+  leading?: ReactNode;
+  compact?: boolean;
   name: string;
   child?: boolean;
 }) {
   const { navigate } = useContext(HomeContext);
   return (
-    <View style={s.header}>
-      <View style={{ flex: 1 }} />
+    <View style={[s.header, compact ? { marginBottom: 0 } : undefined]}>
+      <View style={{ flex: 1 }}>{leading}</View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Notification settings"

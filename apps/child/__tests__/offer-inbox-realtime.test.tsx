@@ -70,7 +70,7 @@ it('applies realtime add, change, and remove events and cleans up subscriptions'
   ).not.toBeOnTheScreen();
 
   act(() => emitItems?.([item]));
-  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
+  expect(screen.getByText('Reward: Cinema')).toBeOnTheScreen();
 
   act(() =>
     emitItems?.([
@@ -87,11 +87,11 @@ it('applies realtime add, change, and remove events and cleans up subscriptions'
       },
     ]),
   );
-  expect(screen.getByText('Museum · EXPERIENCE')).toBeOnTheScreen();
-  expect(screen.queryByText('Cinema · EXPERIENCE')).not.toBeOnTheScreen();
+  expect(screen.getByText('Reward: Museum')).toBeOnTheScreen();
+  expect(screen.queryByText('Reward: Cinema')).not.toBeOnTheScreen();
 
   act(() => emitItems?.([]));
-  expect(screen.queryByText('Museum · EXPERIENCE')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Reward: Museum')).not.toBeOnTheScreen();
 
   view.rerender(<OfferInbox authUid="child-2" familyId="family-2" />);
   expect(mockSubscribe).toHaveBeenLastCalledWith(
@@ -129,8 +129,8 @@ it('shows the Home offer card only while an offer is available', () => {
   ).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Suggest a change' }));
   expect(mockNavigate).toHaveBeenLastCalledWith({
-    pathname: '/offers',
-    params: { counterOfferId: 'offer-1' },
+    pathname: '/offers/[offerId]',
+    params: { offerId: 'offer-1', counterOfferId: 'offer-1' },
   });
   act(() => emitItems?.([]));
   expect(view.toJSON()).toBeNull();
@@ -141,6 +141,7 @@ it('opens the selected counteroffer form after the Offers subscription loads', (
     <OfferInbox
       authUid="child-1"
       familyId="family-1"
+      offerId="offer-1"
       initialCounterOfferId="offer-1"
     />,
   );
@@ -153,4 +154,71 @@ it('opens the selected counteroffer form after the Offers subscription loads', (
   expect(
     screen.queryByRole('button', { name: 'Send counteroffer' }),
   ).toBeNull();
+});
+
+it('lists all offers and navigates to the selected offer without exposing mutation controls', () => {
+  render(<OfferInbox authUid="child-1" familyId="family-1" />);
+  const second = {
+    ...item,
+    offer: { ...item.offer, id: 'offer-2' },
+    revision: {
+      ...item.revision,
+      reward: { ...item.revision.reward, title: 'Museum' },
+    },
+  };
+  act(() => emitItems?.([item, second]));
+  expect(
+    screen.getByRole('button', { name: 'Open offer: Cinema' }),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Open offer: Museum' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith({
+    pathname: '/offers/[offerId]',
+    params: { offerId: 'offer-2' },
+  });
+  expect(screen.queryByRole('button', { name: 'Accept offer' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Counter reward' })).toBeNull();
+});
+
+it('shows only the requested offer and removes actions when it leaves the inbox', () => {
+  render(
+    <OfferInbox offerId="offer-1" authUid="child-1" familyId="family-1" />,
+  );
+  const other = {
+    ...item,
+    offer: { ...item.offer, id: 'offer-2' },
+    revision: {
+      ...item.revision,
+      reward: { ...item.revision.reward, title: 'Museum' },
+    },
+  };
+  act(() => emitItems?.([item, other]));
+  expect(screen.getByRole('header', { name: 'Cinema' })).toBeOnTheScreen();
+  expect(screen.getByText('2×')).toBeOnTheScreen();
+  expect(screen.getByText('Dogovorjeno število ponovitev')).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Tasks' })).toBeNull();
+  expect(screen.queryByRole('header', { name: 'Deadline' })).toBeNull();
+  act(() =>
+    emitItems?.([
+      {
+        ...item,
+        revision: {
+          ...item.revision,
+          tasks: [{ title: 'One task', targetCount: 1 }],
+        },
+      },
+      other,
+    ]),
+  );
+  expect(screen.queryByText('1×')).toBeNull();
+  expect(screen.queryByText('Dogovorjeno število ponovitev')).toBeNull();
+
+  expect(screen.queryByText('Museum · EXPERIENCE')).toBeNull();
+  expect(
+    screen.getByRole('button', { name: 'Accept offer' }),
+  ).toBeOnTheScreen();
+  act(() => emitItems?.([other]));
+  expect(screen.getByText('Offer unavailable')).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Accept offer' })).toBeNull();
+  fireEvent.press(screen.getByRole('link', { name: 'Back to Offers' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('/offers');
 });

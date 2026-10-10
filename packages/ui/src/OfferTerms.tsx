@@ -72,15 +72,60 @@ export function ProposalTerms({
   status,
   author,
   support,
+  layout = 'standard',
 }: {
   revision: Pick<OfferRevision, 'tasks' | 'reward' | 'deadlineAt' | 'note'> &
     Partial<Pick<OfferRevision, 'revisionNumber'>>;
   status?: string;
   author?: string;
   support?: string;
+  layout?: 'standard' | 'rewardFirst';
 }) {
   return (
     <View style={styles.terms}>
+      {layout === 'rewardFirst' ? (
+        <View style={{ gap: homeTokens.spacing.medium }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: homeTokens.spacing.medium,
+            }}
+          >
+            <RewardIcon terms={revision.reward} size={88} />
+            <View style={{ flex: 1, gap: homeTokens.spacing.small }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: homeTokens.spacing.small,
+                }}
+              >
+                <DesignText
+                  accessibilityRole="header"
+                  style={styles.rewardTitle}
+                >
+                  {revision.reward.title}
+                </DesignText>
+                {revision.revisionNumber !== undefined ? (
+                  <DesignText style={styles.revisionPill}>
+                    Revision {revision.revisionNumber}
+                  </DesignText>
+                ) : null}
+              </View>
+              <DesignText style={styles.secondary}>
+                {revision.reward.type}
+              </DesignText>
+            </View>
+          </View>
+          {revision.reward.description ? (
+            <DesignText style={styles.secondary}>
+              {revision.reward.description}
+            </DesignText>
+          ) : null}
+        </View>
+      ) : null}
       {status ? (
         <View style={styles.status}>
           <Ionicons
@@ -97,66 +142,132 @@ export function ProposalTerms({
           </View>
         </View>
       ) : null}
-      <DesignText accessibilityRole="header" style={styles.title}>
-        Proposal · {revision.reward.title}
-      </DesignText>
-      {author ? (
+      {layout === 'standard' ? (
+        <>
+          <DesignText accessibilityRole="header" style={styles.title}>
+            Proposal · {revision.reward.title}
+          </DesignText>
+          {author ? (
+            <DesignText style={styles.secondary}>{author}</DesignText>
+          ) : null}
+          <DesignText accessibilityRole="header" style={styles.title}>
+            {revision.revisionNumber
+              ? `Current proposal · Revision ${revision.revisionNumber}`
+              : 'Proposed terms'}
+          </DesignText>
+        </>
+      ) : author ? (
         <DesignText style={styles.secondary}>{author}</DesignText>
       ) : null}
-      <DesignText accessibilityRole="header" style={styles.title}>
-        {revision.revisionNumber
-          ? `Current proposal · Revision ${revision.revisionNumber}`
-          : 'Proposed terms'}
-      </DesignText>
       <DesignText style={styles.caption}>
         These terms form the agreement if accepted.
       </DesignText>
-      <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
-      {revision.tasks.map((task, index) => (
-        <View key={index} style={styles.task}>
-          <View style={styles.icon}>
-            <Ionicons
-              accessible={false}
-              name="checkmark-outline"
-              size={18}
-              color={homeTokens.success}
-            />
-          </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <DesignText style={styles.body}>
-              {task.title} · {task.targetCount}×
-            </DesignText>
-            {task.description ? (
-              <DesignText style={styles.secondary}>
-                {task.description}
+      {layout === 'standard' ? (
+        <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
+      ) : null}
+      <View
+        style={{
+          gap: homeTokens.spacing.medium,
+          marginTop: layout === 'rewardFirst' ? homeTokens.spacing.medium : 0,
+        }}
+      >
+        {revision.tasks.map((task, index) => (
+          <View key={index} style={styles.task}>
+            <View
+              style={[
+                styles.icon,
+                layout === 'rewardFirst' ? styles.largeTaskIcon : undefined,
+              ]}
+            >
+              <Ionicons
+                accessible={false}
+                name="checkmark-outline"
+                size={layout === 'rewardFirst' ? 26 : 18}
+                color={homeTokens.success}
+              />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <DesignText style={styles.body}>
+                {layout === 'rewardFirst'
+                  ? task.title
+                  : `${task.title} · ${task.targetCount}×`}
+              </DesignText>
+              {layout === 'rewardFirst' && task.targetCount > 1 ? (
+                <DesignText style={styles.caption}>
+                  Dogovorjeno število ponovitev
+                </DesignText>
+              ) : null}
+              {task.description ? (
+                <DesignText style={styles.secondary}>
+                  {task.description}
+                </DesignText>
+              ) : null}
+            </View>
+            {layout === 'rewardFirst' && task.targetCount > 1 ? (
+              <DesignText
+                accessibilityLabel={`${task.targetCount} repetitions`}
+                style={styles.repetitionsPill}
+              >
+                {task.targetCount}×
               </DesignText>
             ) : null}
           </View>
-        </View>
-      ))}
-      <TermsHeading icon="gift-outline">Reward</TermsHeading>
-      <View
-        style={[
-          styles.reward,
-          { flexDirection: 'row', alignItems: 'center', gap: 12 },
-        ]}
-      >
-        <RewardIcon terms={revision.reward} size={40} />
-        <View style={{ flex: 1, gap: 4 }}>
-          <DesignText style={styles.body}>
-            {revision.reward.title} · {revision.reward.type}
-          </DesignText>
-          {revision.reward.description ? (
-            <DesignText style={styles.secondary}>
-              {revision.reward.description}
-            </DesignText>
-          ) : null}
-        </View>
+        ))}
       </View>
-      <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
-      <DesignText style={styles.body}>
-        Deadline: {new Date(revision.deadlineAt).toLocaleString()}
-      </DesignText>
+      {layout === 'standard' ? (
+        <>
+          <TermsHeading icon="gift-outline">Reward</TermsHeading>
+          <View
+            style={[
+              styles.reward,
+              { flexDirection: 'row', alignItems: 'center', gap: 12 },
+            ]}
+          >
+            <RewardIcon terms={revision.reward} size={40} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <DesignText style={styles.body}>
+                {revision.reward.title} · {revision.reward.type}
+              </DesignText>
+              {revision.reward.description ? (
+                <DesignText style={styles.secondary}>
+                  {revision.reward.description}
+                </DesignText>
+              ) : null}
+            </View>
+          </View>
+        </>
+      ) : null}
+      {layout === 'rewardFirst' ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: homeTokens.spacing.medium,
+          }}
+        >
+          <View style={styles.deadlineIcon}>
+            <Ionicons
+              accessible={false}
+              name="calendar-outline"
+              size={28}
+              color={homeTokens.coral}
+            />
+          </View>
+          <DesignText
+            accessibilityLabel={`Deadline: ${new Date(revision.deadlineAt).toLocaleString()}`}
+            style={[styles.body, { flex: 1 }]}
+          >
+            {new Date(revision.deadlineAt).toLocaleString()}
+          </DesignText>
+        </View>
+      ) : (
+        <>
+          <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
+          <DesignText style={styles.body}>
+            Deadline: {new Date(revision.deadlineAt).toLocaleString()}
+          </DesignText>
+        </>
+      )}
       {revision.note ? (
         <>
           <TermsHeading icon="chatbox-outline">Proposal note</TermsHeading>
@@ -221,6 +332,43 @@ const styles = StyleSheet.create({
     backgroundColor: homeTokens.mint,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  largeTaskIcon: { width: 44, height: 44, borderRadius: 22 },
+  repetitionsPill: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: homeTokens.secondary,
+    backgroundColor: homeTokens.blue,
+    borderRadius: homeTokens.radius.pill,
+    paddingHorizontal: homeTokens.spacing.medium,
+    paddingVertical: homeTokens.spacing.small,
+    overflow: 'hidden',
+  },
+  deadlineIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: homeTokens.coralSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: homeTokens.text,
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  revisionPill: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: homeTokens.secondary,
+    backgroundColor: homeTokens.lavender,
+    borderRadius: homeTokens.radius.pill,
+    paddingHorizontal: homeTokens.spacing.medium,
+    paddingVertical: homeTokens.spacing.small,
+    overflow: 'hidden',
+    marginLeft: 'auto',
   },
   reward: {
     gap: 4,

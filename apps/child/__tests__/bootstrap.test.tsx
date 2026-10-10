@@ -280,7 +280,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
   await screen.findByRole('button', { name: 'Notification settings' });
   expect(screen.queryByText('Hi, Mia!')).toBeNull();
-  expect(screen.queryByText('Load the dishwasher · 2×')).toBeNull();
+  expect(screen.queryByText('Dogovorjeno število ponovitev')).toBeNull();
   for (const [label, route] of [
     ['My chores', '/contracts'],
     ['Offers', '/offers'],
@@ -288,7 +288,6 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     ['More', '/more'],
     ['Home', '/'],
     ['See all My chores', '/contracts'],
-    ['View offer', '/offers'],
     ['See all Rewards', '/rewards'],
   ]) {
     fireEvent.press(
@@ -297,20 +296,25 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     );
     expect(mockNavigate).toHaveBeenLastCalledWith(route);
   }
+  fireEvent.press(screen.getByRole('button', { name: 'View offer' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith({
+    pathname: '/offers/[offerId]',
+    params: { offerId: 'offer-test-id' },
+  });
   mockPath = '/contracts/contract-1';
   firstLaunch.rerender(
     <ChildSessionProvider>
       <AppNavigation>
-        <HomeScreen area="offers" />
+        <HomeScreen area="offers" offerId="offer-test-id" />
       </AppNavigation>
     </ChildSessionProvider>,
   );
   expect(screen.getByRole('tab', { name: 'My chores' })).toBeSelected();
-  expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
-  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
+  expect(await screen.findByText('Load the dishwasher')).toBeOnTheScreen();
+  expect(screen.getByRole('header', { name: 'Cinema' })).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Accept offer' }));
   expect(await screen.findByText('Contract is active.')).toBeOnTheScreen();
-  expect(screen.queryByText('Load the dishwasher · 2×')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Load the dishwasher')).not.toBeOnTheScreen();
   expect(mockAcceptOffer).toHaveBeenCalledWith({
     offerId: 'offer-test-id',
     currentRevisionId: 'revision-test-id',
@@ -355,7 +359,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   firstLaunch.unmount();
   const secondLaunch = render(
     <ChildSessionProvider>
-      <HomeScreen area="offers" />
+      <HomeScreen area="offers" offerId="offer-test-id" />
     </ChildSessionProvider>,
   );
   await waitFor(() =>
@@ -363,16 +367,16 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
       screen.getByRole('button', { name: 'Notification settings' }),
     ).toBeOnTheScreen(),
   );
-  expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  expect(await screen.findByText('Load the dishwasher')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));
   expect(screen.getByText('Reject this offer?')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Keep offer' }));
   expect(screen.queryByText('Reject this offer?')).not.toBeOnTheScreen();
-  expect(screen.getByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  expect(screen.getByText('Load the dishwasher')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));
   fireEvent.press(screen.getByRole('button', { name: 'Confirm rejection' }));
   expect(await screen.findByText('Offer rejected.')).toBeOnTheScreen();
-  expect(screen.queryByText('Load the dishwasher · 2×')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Load the dishwasher')).not.toBeOnTheScreen();
   expect(mockRejectOffer).toHaveBeenCalledWith({
     offerId: 'offer-test-id',
     currentRevisionId: 'revision-test-id',
@@ -382,10 +386,10 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   secondLaunch.unmount();
   render(
     <ChildSessionProvider>
-      <HomeScreen area="offers" />
+      <HomeScreen area="offers" offerId="offer-test-id" />
     </ChildSessionProvider>,
   );
-  expect(await screen.findByText('Load the dishwasher · 2×')).toBeOnTheScreen();
+  expect(await screen.findByText('Load the dishwasher')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Counter reward' }));
   expect(
     screen.getByRole('header', { name: 'Make a counteroffer' }),
@@ -407,7 +411,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   );
   fireEvent.press(screen.getByRole('button', { name: 'Send counteroffer' }));
   expect(await screen.findByText('Waiting for parent')).toBeOnTheScreen();
-  expect(screen.queryByText('Load the dishwasher · 2×')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Load the dishwasher')).not.toBeOnTheScreen();
   expect(mockCounterOffer).toHaveBeenCalledWith({
     offerId: 'offer-test-id',
     currentRevisionId: 'revision-test-id',
@@ -426,5 +430,6 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     expect.any(Function),
     expect.any(Function),
   );
-  expect(mockChildOfferUnsubscribe).toHaveBeenCalledTimes(2);
+  // Home-to-detail navigation replaces the scoped offer subscription.
+  expect(mockChildOfferUnsubscribe).toHaveBeenCalledTimes(3);
 });

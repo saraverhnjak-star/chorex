@@ -1,6 +1,7 @@
 import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
-import { useFocusEffect, Redirect } from 'expo-router';
+import { useFocusEffect, Redirect, useRouter } from 'expo-router';
 import {
+  DesignText,
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
@@ -20,7 +21,13 @@ import {
 import { EarnedRewards } from '../rewards/EarnedRewards';
 import { ActiveContracts } from '../contracts/ActiveContracts';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import { useReminderPreference } from '@chorex/firebase-client';
 import { useNotificationEducation } from '@chorex/notifications';
 import { useChildSession } from '../auth/session';
@@ -35,6 +42,7 @@ function newIdempotencyKey(): string {
 export function ChildSurface(props: {
   area?: 'home' | 'offers' | 'contracts' | 'rewards' | 'more';
   initialCounterOfferId?: string;
+  offerId?: string;
 }) {
   const [focused, setFocused] = useState(true);
   useFocusEffect(
@@ -55,11 +63,14 @@ export function ChildSurface(props: {
 function ChildSurfaceContent({
   area = 'home',
   initialCounterOfferId,
+  offerId,
 }: {
   area?: 'home' | 'offers' | 'contracts' | 'rewards' | 'more';
   initialCounterOfferId?: string;
+  offerId?: string;
 }) {
   const session = useChildSession();
+  const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
   const [token, setToken] = useState('');
   const idempotencyKey = useRef<string | undefined>(undefined);
@@ -104,16 +115,54 @@ function ChildSurfaceContent({
 
   if (session.user) {
     return (
-      <HomeScreenFrame child>
-        <View>
-          <HomeHeader
-            child
-            name={
-              familyState.status === 'ready'
-                ? familyState.home.profile.displayName
-                : 'Child'
-            }
-          />
+      <HomeScreenFrame
+        child
+        fill={Boolean(offerId)}
+        keyboard={Boolean(offerId)}
+        header={
+          offerId ? (
+            <HomeHeader
+              child
+              compact
+              name={
+                familyState.status === 'ready'
+                  ? familyState.home.profile.displayName
+                  : 'Child'
+              }
+              leading={
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel="Back to Offers"
+                  onPress={() => router.navigate('/offers')}
+                  style={{
+                    alignSelf: 'flex-start',
+                    minHeight: 44,
+                    justifyContent: 'center',
+                  }}
+                  className="active:opacity-60"
+                >
+                  <DesignText
+                    style={{ fontSize: 14, color: homeTokens.coralText }}
+                  >
+                    ← Offers
+                  </DesignText>
+                </Pressable>
+              }
+            />
+          ) : undefined
+        }
+      >
+        <View style={offerId ? { flexGrow: 1 } : undefined}>
+          {!offerId ? (
+            <HomeHeader
+              child
+              name={
+                familyState.status === 'ready'
+                  ? familyState.home.profile.displayName
+                  : 'Child'
+              }
+            />
+          ) : null}
           {familyState.status === 'loading' ? (
             <View className="items-center py-6">
               <ActivityIndicator
@@ -139,13 +188,17 @@ function ChildSurfaceContent({
           ) : null}
 
           {familyState.status === 'ready' ? (
-            <View className="gap-5">
-              {area === 'home' || area === 'contracts' ? null : (
+            <View
+              className="gap-5"
+              style={offerId ? { flexGrow: 1 } : undefined}
+            >
+              {area === 'home' ||
+              area === 'contracts' ||
+              area === 'offers' ? null : (
                 <SectionHeading>
                   {
                     (
                       {
-                        offers: 'Offers',
                         rewards: 'Rewards',
                         more: 'Settings',
                       } as const
@@ -155,6 +208,8 @@ function ChildSurfaceContent({
               )}
               {area === 'offers' || area === 'home' ? (
                 <OfferInbox
+                  showBackLink={false}
+                  offerId={offerId}
                   initialCounterOfferId={initialCounterOfferId}
                   preview={area === 'home'}
                   authUid={session.user.uid}
