@@ -81,3 +81,5 @@ export { FocusHeading, announceAction } from './accessibility';
 export { ClientErrorFallback } from './ClientErrorFallback';
 
 export { HomeFeatureCard, HomeCardAction } from './HomeFeatureCard';
+
+export { RewardPicker } from './RewardPicker';

@@ -185,3 +185,10 @@ export {
   type RewardIconKey,
 } from './rewardIcons';
 export * from './accountDeletion';
+
+export {
+  rewardPresets,
+  rewardSelectionFor,
+  rewardTermsForSelection,
+  type RewardSelection,
+} from './rewardSelection';

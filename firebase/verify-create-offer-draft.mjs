@@ -138,7 +138,7 @@ try {
     familyId: 'unresolved',
     childUid: 'unresolved',
     tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
-    reward: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'plant' },
+    reward: { title: 'Bowling', type: 'EXPERIENCE', iconKey: 'bowling' },
     deadlineAt: futureDeadline,
     idempotencyKey: 'offer-draft-001',
   };

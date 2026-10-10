@@ -355,27 +355,33 @@ it('publishes the saved Offer draft and shows the published result', async () =>
     />,
   );
 
-  expect(screen.getByText('Reward icon: Cinema')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Change icon' }));
+  expect(screen.getByText('Selected reward: Cinema')).toBeOnTheScreen();
+  expect(screen.queryByLabelText('Reward title')).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Choose reward' }));
   expect(
-    screen.getByRole('button', { name: 'Choose Cinema icon', selected: true }),
+    screen.getByRole('button', {
+      name: 'Choose Cinema reward',
+      selected: true,
+    }),
   ).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Choose Plant icon' }));
-  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Select money' }));
-  expect(screen.getByText('Reward icon: Pocket money')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Select experience' }));
-  expect(screen.getByText('Reward icon: Cinema')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Change icon' }));
-  fireEvent.press(screen.getByRole('button', { name: 'Choose Plant icon' }));
-  fireEvent.changeText(screen.getByLabelText('Task 1'), 'Load the dishwasher');
+  fireEvent.press(screen.getByRole('button', { name: 'Choose Custom reward' }));
   fireEvent.changeText(screen.getByLabelText('Reward title'), 'Cinema');
+  expect(screen.getByLabelText('Reward title')).toHaveProp('value', 'Cinema');
+  fireEvent.press(screen.getByRole('button', { name: 'Choose reward' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Choose Plant reward' }));
+  expect(screen.queryByLabelText('Reward title')).toBeNull();
+  expect(screen.getByText('Selected reward: Plant')).toBeOnTheScreen();
+  fireEvent.changeText(screen.getByLabelText('Task 1'), 'Load the dishwasher');
   fireEvent.press(screen.getByRole('button', { name: 'Save offer draft' }));
 
   expect(await screen.findByText('Draft saved')).toBeOnTheScreen();
   expect(mockCreateOfferDraft).toHaveBeenCalledWith(
     expect.objectContaining({
-      reward: expect.objectContaining({ iconKey: 'plant' }),
+      reward: expect.objectContaining({
+        title: 'Plant',
+        type: 'ITEM',
+        iconKey: 'plant',
+      }),
     }),
   );
   fireEvent.press(screen.getByRole('button', { name: 'Publish offer' }));

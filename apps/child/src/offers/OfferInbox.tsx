@@ -2,10 +2,9 @@ import {
   DesignText,
   FocusHeading,
   announceAction,
-  RewardIconPicker,
+  RewardPicker,
   ProposalTerms,
   OfferOutcome,
-  ChoiceChip,
   CountBadge,
   SectionHeading,
   HomeFeatureCard,
@@ -27,9 +26,10 @@ import {
   type ChildOfferInboxItem,
 } from '@chorex/firebase-client';
 import {
-  rewardTypeSchema,
-  rewardTypeDefaultIcons,
+  rewardSelectionFor,
+  rewardTermsForSelection,
   type RewardType,
+  type RewardSelection,
   type RewardIconKey,
 } from '@chorex/domain';
 import {
@@ -56,6 +56,7 @@ type MutationState =
   { offerId: string; action: 'accept' | 'reject' | 'counter' } | undefined;
 
 interface CounterOfferFormState {
+  rewardSelection: RewardSelection;
   offerId: string;
   rewardTitle: string;
   rewardType: RewardType;
@@ -63,8 +64,6 @@ interface CounterOfferFormState {
   rewardDescription: string;
   note: string;
 }
-
-const rewardTypes = rewardTypeSchema.options;
 
 export function OfferInbox({
   authUid,
@@ -131,6 +130,7 @@ export function OfferInbox({
               setCounterOfferForm({
                 offerId: item.offer.id,
                 rewardTitle: item.revision.reward.title,
+                rewardSelection: rewardSelectionFor(item.revision.reward),
                 rewardType: item.revision.reward.type,
                 rewardIconKey: item.revision.reward.iconKey,
                 rewardDescription: item.revision.reward.description ?? '',
@@ -325,6 +325,7 @@ export function OfferInbox({
     setCounterOfferForm({
       offerId: item.offer.id,
       rewardTitle: item.revision.reward.title,
+      rewardSelection: rewardSelectionFor(item.revision.reward),
       rewardType: item.revision.reward.type,
       rewardIconKey: item.revision.reward.iconKey,
       rewardDescription: item.revision.reward.description ?? '',
@@ -532,7 +533,10 @@ export function OfferInbox({
                     />
                   </View>
                 ) : counterOfferForm?.offerId === offer.id ? (
-                  <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
+                  <View
+                    className="gap-3"
+                    style={{ marginTop: homeTokens.spacing.section }}
+                  >
                     <FocusHeading
                       allowFontScaling={false}
                       accessibilityRole="header"
@@ -549,63 +553,55 @@ export function OfferInbox({
                       Your changes become a new proposal for your Parent to
                       review. Tasks and deadline stay the same.
                     </Text>
-                    <TextField
-                      editable={mutation === undefined}
-                      error={counterOfferTitleError}
-                      label="Counteroffer reward title"
-                      onChangeText={(rewardTitle) => {
+                    <RewardPicker
+                      prominent
+                      currentReward={{
+                        title: counterOfferForm.rewardTitle,
+                        iconKey: counterOfferForm.rewardIconKey,
+                      }}
+                      value={counterOfferForm.rewardSelection}
+                      disabled={mutation !== undefined}
+                      onChange={(selection) => {
+                        if (selection === counterOfferForm.rewardSelection)
+                          return;
+                        const reward = rewardTermsForSelection(selection);
                         setCounterOfferTitleError(undefined);
                         setCounterOfferForm((current) =>
-                          current ? { ...current, rewardTitle } : current,
+                          current
+                            ? {
+                                ...current,
+                                rewardTitle: reward.title,
+                                rewardSelection: selection,
+                                rewardType: reward.type,
+                                rewardIconKey: reward.iconKey,
+                              }
+                            : current,
                         );
                       }}
-                      value={counterOfferForm.rewardTitle}
                     />
-                    <Text
-                      allowFontScaling={false}
-                      className="font-semibold text-home-text"
-                      style={dynamicType.body}
-                    >
-                      Counteroffer reward type
-                    </Text>
-                    <View className="flex-row flex-wrap gap-2">
-                      {rewardTypes.map((rewardType) => (
-                        <ChoiceChip
-                          key={rewardType}
-                          label={`${counterOfferForm.rewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
-                          disabled={mutation !== undefined}
-                          onPress={() =>
+                    {counterOfferForm.rewardSelection === 'custom' ? (
+                      <>
+                        <TextField
+                          editable={mutation === undefined}
+                          error={counterOfferTitleError}
+                          label="Selected reward"
+                          onChangeText={(rewardTitle) => {
+                            setCounterOfferTitleError(undefined);
                             setCounterOfferForm((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    rewardType,
-                                    rewardIconKey:
-                                      current.rewardType === rewardType
-                                        ? current.rewardIconKey
-                                        : rewardTypeDefaultIcons[rewardType],
-                                  }
-                                : current,
-                            )
-                          }
-                          selected={counterOfferForm.rewardType === rewardType}
+                              current ? { ...current, rewardTitle } : current,
+                            );
+                          }}
+                          value={counterOfferForm.rewardTitle}
                         />
-                      ))}
-                    </View>
-                    <RewardIconPicker
-                      value={counterOfferForm.rewardIconKey}
-                      disabled={mutation !== undefined}
-                      onChange={(rewardIconKey) =>
-                        setCounterOfferForm((current) =>
-                          current ? { ...current, rewardIconKey } : current,
-                        )
-                      }
-                    />
+                      </>
+                    ) : null}
                     <TextField
                       required={false}
                       editable={mutation === undefined}
                       label="Counteroffer reward description (optional)"
                       multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
                       onChangeText={(rewardDescription) =>
                         setCounterOfferForm((current) =>
                           current ? { ...current, rewardDescription } : current,
@@ -618,6 +614,8 @@ export function OfferInbox({
                       editable={mutation === undefined}
                       label="Counteroffer note (optional)"
                       multiline
+                      numberOfLines={4}
+                      textAlignVertical="top"
                       onChangeText={(note) =>
                         setCounterOfferForm((current) =>
                           current ? { ...current, note } : current,

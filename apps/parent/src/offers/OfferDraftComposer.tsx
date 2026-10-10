@@ -1,3 +1,4 @@
+import { DeadlinePicker } from './DeadlinePicker';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -13,11 +14,14 @@ import {
   rewardTypeSchema,
   rewardIconKeySchema,
   rewardTypeDefaultIcons,
+  rewardPresets,
+  rewardTermsForSelection,
+  type RewardSelection,
   type CreateOfferDraftOutput,
   type PublishOfferOutput,
 } from '@chorex/domain';
 import {
-  RewardIconPicker,
+  RewardPicker,
   SurfaceCard,
   ProposalTerms,
   ChoiceChip,
@@ -73,8 +77,6 @@ const formSchema = z.strictObject({
 
 type OfferDraftForm = z.output<typeof formSchema>;
 type ActiveChild = ParentFamilyHome['children'][number];
-
-const rewardTypes = rewardTypeSchema.options;
 
 function newIdempotencyKey(): string {
   return `offer-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -186,7 +188,7 @@ export function OfferDraftComposer({
     defaultValues: {
       childUid: activeChildren[0]?.uid ?? '',
       tasks: [{ title: '', targetCount: '1' }],
-      rewardTitle: '',
+      rewardTitle: rewardPresets.cinema.title,
       rewardType: 'EXPERIENCE',
       rewardIconKey: rewardTypeDefaultIcons.EXPERIENCE,
       rewardDescription: '',
@@ -195,8 +197,10 @@ export function OfferDraftComposer({
   });
   const { fields, append, remove } = useFieldArray({ control, name: 'tasks' });
   const selectedChildUid = useWatch({ control, name: 'childUid' });
-  const selectedRewardType = useWatch({ control, name: 'rewardType' });
-  const selectedRewardIcon = useWatch({ control, name: 'rewardIconKey' });
+  const [rewardSelection, setRewardSelection] =
+    useState<RewardSelection>('cinema');
+  const deadlineDate = useWatch({ control, name: 'deadlineDate' });
+  const deadlineTime = useWatch({ control, name: 'deadlineTime' });
 
   useEffect(() => {
     if (
@@ -271,10 +275,11 @@ export function OfferDraftComposer({
   };
 
   const startAnother = () => {
+    setRewardSelection('cinema');
     reset({
       childUid: activeChildren[0]?.uid ?? '',
       tasks: [{ title: '', targetCount: '1' }],
-      rewardTitle: '',
+      rewardTitle: rewardPresets.cinema.title,
       rewardType: 'EXPERIENCE',
       rewardIconKey: rewardTypeDefaultIcons.EXPERIENCE,
       rewardDescription: '',
@@ -402,51 +407,40 @@ export function OfferDraftComposer({
             />
           ) : null}
 
-          <TermsHeading icon="gift-outline">Reward</TermsHeading>
-          <Controller
-            control={control}
-            name="rewardTitle"
-            render={({ field }) => (
-              <TextField
-                editable={!isSubmitting}
-                error={errors.rewardTitle?.message}
-                label="Reward title"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                value={field.value}
-              />
-            )}
-          />
-          <TermsHeading icon="gift-outline">Reward type</TermsHeading>
-          <View className="flex-row flex-wrap gap-2">
-            {rewardTypes.map((rewardType) => (
-              <ChoiceChip
-                key={rewardType}
-                label={`${selectedRewardType === rewardType ? 'Selected' : 'Select'} ${rewardType.toLowerCase()}`}
-                disabled={isSubmitting}
-                onPress={() => {
-                  if (rewardType !== selectedRewardType) {
-                    setValue('rewardType', rewardType, {
-                      shouldValidate: true,
-                    });
-                    setValue(
-                      'rewardIconKey',
-                      rewardTypeDefaultIcons[rewardType],
-                      { shouldValidate: true },
-                    );
-                  }
-                }}
-                selected={selectedRewardType === rewardType}
-              />
-            ))}
-          </View>
-          <RewardIconPicker
-            value={selectedRewardIcon}
+          <TermsHeading icon="gift-outline">Choose reward</TermsHeading>
+          <RewardPicker
+            value={rewardSelection}
             disabled={isSubmitting}
-            onChange={(key) =>
-              setValue('rewardIconKey', key, { shouldValidate: true })
-            }
+            onChange={(selection) => {
+              if (selection === rewardSelection) return;
+              setRewardSelection(selection);
+              const reward = rewardTermsForSelection(selection);
+              setValue('rewardTitle', reward.title, { shouldValidate: true });
+              setValue('rewardType', reward.type, { shouldValidate: true });
+              setValue('rewardIconKey', reward.iconKey, {
+                shouldValidate: true,
+              });
+            }}
           />
+          {rewardSelection === 'custom' ? (
+            <>
+              {' '}
+              <Controller
+                control={control}
+                name="rewardTitle"
+                render={({ field }) => (
+                  <TextField
+                    editable={!isSubmitting}
+                    error={errors.rewardTitle?.message}
+                    label="Reward title"
+                    onBlur={field.onBlur}
+                    onChangeText={field.onChange}
+                    value={field.value}
+                  />
+                )}
+              />
+            </>
+          ) : null}
           <Controller
             control={control}
             name="rewardDescription"
@@ -464,35 +458,15 @@ export function OfferDraftComposer({
             )}
           />
           <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
-          <Controller
-            control={control}
-            name="deadlineDate"
-            render={({ field }) => (
-              <TextField
-                autoCapitalize="none"
-                editable={!isSubmitting}
-                error={errors.deadlineDate?.message}
-                label="Deadline date (YYYY-MM-DD)"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                value={field.value}
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="deadlineTime"
-            render={({ field }) => (
-              <TextField
-                autoCapitalize="none"
-                editable={!isSubmitting}
-                error={errors.deadlineTime?.message}
-                label="Deadline time (local, HH:mm)"
-                onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                value={field.value}
-              />
-            )}
+          <DeadlinePicker
+            date={deadlineDate}
+            time={deadlineTime}
+            disabled={isSubmitting}
+            error={errors.deadlineDate?.message ?? errors.deadlineTime?.message}
+            onChange={({ date, time }) => {
+              setValue('deadlineDate', date, { shouldValidate: true });
+              setValue('deadlineTime', time, { shouldValidate: true });
+            }}
           />
           <Button
             label="Save offer draft"

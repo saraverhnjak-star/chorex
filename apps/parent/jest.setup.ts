@@ -4,3 +4,10 @@ jest.mock(
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 jest.mock('@expo/vector-icons/Ionicons', () => () => null);
+
+jest.mock(
+  '@react-native-community/datetimepicker',
+  () =>
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Jest native adapter
+    require('./__mocks__/dateTimePicker').default,
+);

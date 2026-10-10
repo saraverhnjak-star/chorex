@@ -1,19 +1,19 @@
+import { DeadlinePicker } from './DeadlinePicker';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import {
   parentCounterOfferInputSchema,
   offerValidationBounds,
-  rewardTypeSchema,
-  rewardTypeDefaultIcons,
+  rewardSelectionFor,
+  rewardTermsForSelection,
   type CounterOfferInput,
   type OfferRevision,
   type RewardType,
 } from '@chorex/domain';
 import {
-  RewardIconPicker,
+  RewardPicker,
   SurfaceCard,
   ProposalTerms,
-  ChoiceChip,
   TermsHeading,
   Button,
   FormMessage,
@@ -71,6 +71,9 @@ export function ParentCounterofferForm({
       description: task.description ?? '',
       targetCount: String(task.targetCount),
     })),
+  );
+  const [rewardSelection, setRewardSelection] = useState(() =>
+    rewardSelectionFor(revision.reward),
   );
   const [rewardTitle, setRewardTitle] = useState(revision.reward.title);
   const [rewardDescription, setRewardDescription] = useState(
@@ -239,14 +242,28 @@ export function ParentCounterofferForm({
               }
             />
           ) : null}
-          <TermsHeading icon="gift-outline">Reward</TermsHeading>
-          <TextField
-            label="Reward title"
-            value={rewardTitle}
-            editable={!busy}
-            maxLength={offerValidationBounds.titleMaxLength}
-            onChangeText={setRewardTitle}
+          <TermsHeading icon="gift-outline">Choose reward</TermsHeading>
+          <RewardPicker
+            value={rewardSelection}
+            disabled={busy}
+            onChange={(selection) => {
+              if (selection === rewardSelection) return;
+              setRewardSelection(selection);
+              const reward = rewardTermsForSelection(selection);
+              setRewardTitle(reward.title);
+              setRewardType(reward.type);
+              setRewardIconKey(reward.iconKey);
+            }}
           />
+          {rewardSelection === 'custom' ? (
+            <TextField
+              label="Reward title"
+              value={rewardTitle}
+              editable={!busy}
+              maxLength={offerValidationBounds.titleMaxLength}
+              onChangeText={setRewardTitle}
+            />
+          ) : null}
           <TextField
             required={false}
             label="Reward description (optional)"
@@ -256,41 +273,15 @@ export function ParentCounterofferForm({
             maxLength={offerValidationBounds.descriptionMaxLength}
             onChangeText={setRewardDescription}
           />
-          <View className="flex-row flex-wrap gap-2">
-            {rewardTypeSchema.options.map((type) => (
-              <ChoiceChip
-                key={type}
-                label={`${rewardType === type ? 'Selected' : 'Select'} ${type.toLowerCase()}`}
-                selected={rewardType === type}
-                disabled={busy}
-                onPress={() => {
-                  if (type !== rewardType) {
-                    setRewardType(type);
-                    setRewardIconKey(rewardTypeDefaultIcons[type]);
-                  }
-                }}
-              />
-            ))}
-          </View>
-          <RewardIconPicker
-            value={rewardIconKey}
-            disabled={busy}
-            onChange={setRewardIconKey}
-          />
           <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
-          <TextField
-            label="Deadline date (YYYY-MM-DD)"
-            value={date}
-            editable={!busy}
-            autoCapitalize="none"
-            onChangeText={setDate}
-          />
-          <TextField
-            label="Deadline time (local, HH:mm)"
-            value={time}
-            editable={!busy}
-            autoCapitalize="none"
-            onChangeText={setTime}
+          <DeadlinePicker
+            date={date}
+            time={time}
+            disabled={busy}
+            onChange={({ date, time }) => {
+              setDate(date);
+              setTime(time);
+            }}
           />
           <TermsHeading icon="chatbox-outline">Optional note</TermsHeading>
           <TextField

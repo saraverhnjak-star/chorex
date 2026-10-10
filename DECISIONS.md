@@ -1985,3 +1985,13 @@ Require Firebase email/password reauthentication and server-validated auth_time 
 Parent has a small Privacy & Data screen with concise data/crash/notification disclosures and deletion entry, including pre-family onboarding access. No export, analytics controls, Crashlytics toggle, guardian transfer or independent Child-delete UI. Preserve installation UUID and education metadata; tear down account/session state and logically clear native cache without claiming forensic/remote-offline erasure. Processor crash/log/backup retention is separately disclosed; current Crashlytics has no account UID for selective report deletion.
 
 Independent Child removal applicability, policy/external deletion-request URLs, exception handling, processor retention and legal/store review remain public-release gates. No legal compliance conclusion is made.
+
+# ADR-051 — Reward Selection and Native Deadline Picker
+
+**Status:** Accepted (explicit user request, 2026-10-10).
+
+**Partially supersedes:** ADR-047's editable reward-type/default-icon UI policy only. Frozen RewardTerms, validated server commands and immutable accepted snapshots remain unchanged.
+
+Offer creation and Parent/Child counteroffers use one reward selection containing all 24 existing reward illustrations plus Custom. Presets provide a display title, RewardType and semantic iconKey together; only Custom exposes a title input. Custom uses CUSTOM and the gift illustration for new selections. Existing negotiated titles/types/icon keys that do not exactly match a preset remain editable as Custom without silently rewriting the current promise. Selecting a different preset replaces the editable title/type/icon fields; existing descriptions remain editable. Presets are UI authoring suggestions, not server-authoritative fulfillment catalog records. No new persisted selection field or historical migration is introduced. Extend the closed icon-key schema to cover all existing artwork. Existing keys and read compatibility remain valid. Server Zod validation, authorization, idempotency and snapshot copying remain unchanged.
+
+Parent draft and counteroffer deadline inputs use a native date/time picker instead of manual text entry. Render locale dates and preserve local selection -> UTC serialization; server deadline validation remains authoritative. Add the Expo-compatible @react-native-community/datetimepicker 9.1.0 only to Parent. Parent native binaries require rebuilding; Child gains no native dependency.

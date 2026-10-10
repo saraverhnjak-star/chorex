@@ -104,7 +104,18 @@ export function TextField({
           selectionColor={home ? homeTokens.coral : amberAuroraColors.focus}
           style={[
             dynamicType.body,
-            { minWidth: 120 },
+            {
+              minWidth: 120,
+              ...(inputProps.multiline && (inputProps.numberOfLines ?? 1) > 1
+                ? {
+                    minHeight:
+                      Number(dynamicType.body.fontSize) *
+                        1.35 *
+                        inputProps.numberOfLines! +
+                      homeTokens.spacing.section,
+                  }
+                : {}),
+            },
             home
               ? {
                   color: homeTokens.text,

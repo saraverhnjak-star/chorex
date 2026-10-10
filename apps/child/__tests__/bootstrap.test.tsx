@@ -151,7 +151,7 @@ const mockCounterOffer = jest.fn().mockResolvedValue({
     proposedByRole: 'CHILD',
     tasks: [{ title: 'Load the dishwasher', targetCount: 2 }],
     reward: {
-      title: 'One hour of games',
+      title: 'Screen time',
       description: 'After dinner',
       type: 'PRIVILEGE',
       iconKey: 'screen-time' as const,
@@ -395,12 +395,24 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     screen.getByRole('header', { name: 'Make a counteroffer' }),
   ).toBeOnTheScreen();
   fireEvent.changeText(
-    screen.getByLabelText('Counteroffer reward title'),
+    screen.getByLabelText('Selected reward'),
     'One hour of games',
   );
-  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Select privilege' }));
-  expect(screen.getByText('Reward icon: Screen time')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Selected reward')).toHaveProp(
+    'value',
+    'One hour of games',
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Change' }));
+  expect(
+    screen.getByRole('button', {
+      name: 'Choose Custom reward',
+      selected: true,
+    }),
+  ).toBeOnTheScreen();
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Choose Screen time reward' }),
+  );
+  expect(screen.queryByLabelText('Selected reward')).toBeNull();
   fireEvent.changeText(
     screen.getByLabelText('Counteroffer reward description (optional)'),
     'After dinner',
@@ -416,7 +428,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     offerId: 'offer-test-id',
     currentRevisionId: 'revision-test-id',
     reward: {
-      title: 'One hour of games',
+      title: 'Screen time',
       type: 'PRIVILEGE',
       iconKey: 'screen-time' as const,
       description: 'After dinner',

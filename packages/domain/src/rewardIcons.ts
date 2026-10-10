@@ -12,6 +12,20 @@ export const rewardIconKeys = [
   'pizza',
   'ice-cream',
   'game-night',
+  'museum',
+  'sleepover',
+  'shopping-treat',
+  'baking-together',
+  'zoo',
+  'concert-music',
+  'swimming',
+  'football-match',
+  'choose-dinner',
+  'amusement-park',
+  'mini-golf',
+  'new-toy',
+  'later-bedtime',
+  'bowling',
 ] as const;
 export const rewardIconKeySchema = z.enum(rewardIconKeys);
 export type RewardIconKey = z.output<typeof rewardIconKeySchema>;

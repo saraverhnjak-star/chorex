@@ -487,7 +487,7 @@ try {
       title: 'Museum trip',
       description: 'On Saturday',
       type: 'EXPERIENCE',
-      iconKey: 'plant',
+      iconKey: 'museum',
     },
     note: 'How about these terms?',
     idempotencyKey: 'parent-counter-main-001',
@@ -760,7 +760,12 @@ try {
     ),
     'Parent counter created Contract',
   );
-  assert((await allAdmin('rewards')).empty, 'Counteroffer created Reward');
+  assert(
+    !(await allAdmin('rewards')).docs.some(
+      (d) => d.data().familyId === familyId,
+    ),
+    'Counteroffer created Reward',
+  );
 
   const raceDraft = await createDraft(
     parent,

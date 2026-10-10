@@ -18,6 +18,20 @@ export const rewardIconAssets = {
   pizza: require('../assets/rewards/pizza-night.png'),
   'ice-cream': require('../assets/rewards/ice-cream.png'),
   'game-night': require('../assets/rewards/game-night.png'),
+  museum: require('../assets/rewards/museum.png'),
+  sleepover: require('../assets/rewards/sleepover.png'),
+  'shopping-treat': require('../assets/rewards/shopping-treat.png'),
+  'baking-together': require('../assets/rewards/baking-together.png'),
+  zoo: require('../assets/rewards/zoo.png'),
+  'concert-music': require('../assets/rewards/concert-music.png'),
+  swimming: require('../assets/rewards/swimming.png'),
+  'football-match': require('../assets/rewards/football-match.png'),
+  'choose-dinner': require('../assets/rewards/choose-dinner.png'),
+  'amusement-park': require('../assets/rewards/amusement-park.png'),
+  'mini-golf': require('../assets/rewards/mini-golf.png'),
+  'new-toy': require('../assets/rewards/new-toy.png'),
+  'later-bedtime': require('../assets/rewards/later-bedtime.png'),
+  bowling: require('../assets/rewards/bowling.png'),
 } satisfies Record<RewardIconKey, ImageSourcePropType>;
 
 export const rewardIconLabels = {
@@ -31,6 +45,20 @@ export const rewardIconLabels = {
   pizza: 'Pizza night',
   'ice-cream': 'Ice cream',
   'game-night': 'Game night',
+  museum: 'Museum',
+  sleepover: 'Sleepover',
+  'shopping-treat': 'Shopping treat',
+  'baking-together': 'Baking together',
+  zoo: 'Zoo',
+  'concert-music': 'Concert',
+  swimming: 'Swimming',
+  'football-match': 'Football match',
+  'choose-dinner': 'Choose dinner',
+  'amusement-park': 'Amusement park',
+  'mini-golf': 'Mini golf',
+  'new-toy': 'New toy',
+  'later-bedtime': 'Later bedtime',
+  bowling: 'Bowling',
 } satisfies Record<RewardIconKey, string>;
 
 export function resolveRewardIconKey(terms: {

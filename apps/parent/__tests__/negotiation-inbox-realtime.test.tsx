@@ -59,7 +59,7 @@ const item = {
     reward: {
       title: 'One hour of games',
       type: 'PRIVILEGE',
-      iconKey: 'plant' as const,
+      iconKey: 'museum' as const,
     },
     deadlineAt: '2026-10-10T18:00:00.000Z',
     note: 'This feels fair.',
@@ -212,9 +212,9 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
     'value',
     'Load the dishwasher',
   );
-  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
+  expect(screen.getByText('Selected reward: Custom')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1 title'), 'Water plants');
-  expect(screen.getByText('Reward icon: Plant')).toBeOnTheScreen();
+  expect(screen.getByText('Selected reward: Custom')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1 target count'), '3');
   fireEvent.changeText(
     screen.getByLabelText('Task 1 description (optional)'),
@@ -222,19 +222,29 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
   );
   fireEvent.press(screen.getByRole('button', { name: 'Add task' }));
   fireEvent.changeText(screen.getByLabelText('Task 2 title'), 'Set the table');
-  fireEvent.changeText(screen.getByLabelText('Reward title'), 'Museum');
-  fireEvent.press(screen.getByRole('button', { name: 'Select experience' }));
-  expect(screen.getByText('Reward icon: Cinema')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Change icon' }));
-  fireEvent.press(screen.getByRole('button', { name: 'Choose Plant icon' }));
-  fireEvent.changeText(
-    screen.getByLabelText('Deadline date (YYYY-MM-DD)'),
-    '2099-10-11',
+  fireEvent.press(screen.getByRole('button', { name: 'Choose reward' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Choose Museum reward' }));
+  expect(screen.queryByLabelText('Reward title')).toBeNull();
+  fireEvent.press(
+    screen.getByRole('button', { name: /Choose deadline date:/ }),
   );
-  fireEvent.changeText(
-    screen.getByLabelText('Deadline time (local, HH:mm)'),
-    '17:30',
+  fireEvent(
+    screen.getByLabelText('Deadline date'),
+    'onChange',
+    { type: 'set' },
+    new Date(2099, 9, 11),
   );
+  fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+  fireEvent.press(
+    screen.getByRole('button', { name: /Choose deadline time:/ }),
+  );
+  fireEvent(
+    screen.getByLabelText('Deadline time'),
+    'onChange',
+    { type: 'set' },
+    new Date(2099, 9, 11, 17, 30),
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Done' }));
   fireEvent.changeText(
     screen.getByLabelText('Proposal note (optional)'),
     'New proposal',
@@ -266,7 +276,7 @@ it('reviews complete Parent terms before sending, retries safely, and follows re
       reward: {
         title: 'Museum',
         type: 'EXPERIENCE',
-        iconKey: 'plant' as const,
+        iconKey: 'museum' as const,
       },
       note: 'New proposal',
     }),

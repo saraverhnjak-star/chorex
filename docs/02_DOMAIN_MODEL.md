@@ -112,7 +112,7 @@ Do not represent `100x` as 100 duplicated task documents.
 
 Terms are negotiated before the contract exists. An earned reward is created only after approval.
 
-ADR-047 extends this frozen promise with a required semantic iconKey. Editable forms default EXPERIENCE to cinema, ITEM/CUSTOM to gift, MONEY to money and PRIVILEGE to screen-time. A type change resets that choice; a manual override is negotiated in the next immutable revision. Acceptance and approval preserve the exact key, with no later editing. Domain keys carry no asset references. Presentation-only fallback never changes stored terms; canonical schemas remain strict for pre-production fixtures.
+ADR-047 extends this frozen promise with a required semantic iconKey. ADR-051 supersedes its editable type/icon controls with 24 reward presets plus Custom; presets populate title/type/icon together and only Custom exposes a title field. All existing reward artwork has a closed domain key; the key set in packages/domain is canonical. Existing non-preset negotiated terms retain their exact fields until explicitly edited. New drafts default to the Cinema preset. Custom choices start with CUSTOM/gift and require a title. Selection changes are negotiated in a new immutable revision. Acceptance and approval preserve the exact key, with no later editing. Domain keys carry no asset references. Presentation-only fallback never changes stored terms; canonical schemas remain strict for pre-production fixtures.
 
 ```ts
 export type RewardType =
@@ -128,7 +128,11 @@ export type RewardIconKey =
   | 'plant'
   | 'pizza'
   | 'ice-cream'
-  | 'game-night';
+  | 'game-night'
+  | 'museum' | 'sleepover' | 'shopping-treat' | 'baking-together'
+  | 'zoo' | 'concert-music' | 'swimming' | 'football-match'
+  | 'choose-dinner' | 'amusement-park' | 'mini-golf' | 'new-toy'
+  | 'later-bedtime' | 'bowling';
 
 export interface RewardTerms {
   title: string;
