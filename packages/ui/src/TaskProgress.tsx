@@ -8,11 +8,13 @@ export function TaskProgress({
   description,
   completedCount,
   targetCount,
+  compact = false,
 }: {
   title: string;
   description?: string;
   completedCount: number;
   targetCount: number;
+  compact?: boolean;
 }) {
   const progress =
     completedCount === targetCount
@@ -26,19 +28,19 @@ export function TaskProgress({
       accessibilityLabel={`${title}. ${description ? `${description}. ` : ''}${completedCount} of ${targetCount} completions recorded. ${progress}.`}
       style={{
         gap: 12,
-        padding: homeTokens.spacing.card,
-        borderWidth: 1,
+        padding: compact ? homeTokens.spacing.medium : homeTokens.spacing.card,
+        borderWidth: compact ? 0 : 1,
         borderColor: homeTokens.border,
         borderRadius: homeTokens.radius.card,
-        backgroundColor: homeTokens.surface,
+        backgroundColor: compact ? undefined : homeTokens.surface,
       }}
     >
       <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
         <View
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
+            width: compact ? 44 : 32,
+            height: compact ? 44 : 32,
+            borderRadius: compact ? 22 : 16,
             backgroundColor:
               progress === 'Complete' ? homeTokens.mint : homeTokens.blue,
             alignItems: 'center',
@@ -50,7 +52,7 @@ export function TaskProgress({
             name={
               progress === 'Complete' ? 'checkmark-outline' : 'checkbox-outline'
             }
-            size={20}
+            size={compact ? 26 : 20}
             color={
               progress === 'Complete'
                 ? homeTokens.success

@@ -156,8 +156,10 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
     ),
   ).toBeOnTheScreen();
   expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
-  expect(screen.getByText('Promised reward')).toBeOnTheScreen();
-  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
+  expect(screen.queryByText('Promised reward')).toBeNull();
+  expect(
+    screen.getByRole('header', { name: 'Promised reward: Cinema, EXPERIENCE' }),
+  ).toBeOnTheScreen();
   expect(screen.getByText('Choose a movie')).toBeOnTheScreen();
   expect(
     screen.getByLabelText(
@@ -274,14 +276,18 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
 it('opens the stable-ID detail route with a heading and natural Back navigation and a safe collection fallback', async () => {
   render(<ContractScreen />);
   await act(async () => {});
-  expect(screen.getByRole('header', { name: 'Contract' })).toBeOnTheScreen();
+  expect(
+    screen.getByRole('link', { name: 'Back to My chores' }),
+  ).toBeOnTheScreen();
   emitReady();
-  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  expect(
+    screen.getByRole('header', { name: 'Promised reward: Cinema, EXPERIENCE' }),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('link', { name: 'Back to My chores' }));
   expect(mockReplace).toHaveBeenCalledWith('/contracts');
   mockReplace.mockClear();
   mockCanGoBack = true;
-  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  fireEvent.press(screen.getByRole('link', { name: 'Back to My chores' }));
   expect(mockBack).toHaveBeenCalledTimes(1);
   expect(mockReplace).not.toHaveBeenCalled();
   mockCanGoBack = false;

@@ -81,6 +81,102 @@ export function ContractSummary({
   ).length;
   const completed = tasks.reduce((sum, task) => sum + task.completedCount, 0);
   const required = tasks.reduce((sum, task) => sum + task.targetCount, 0);
+  if (viewer === 'CHILD')
+    return (
+      <View style={{ gap: homeTokens.spacing.section }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: homeTokens.spacing.medium,
+          }}
+        >
+          <RewardIcon terms={contract.rewardTerms} size={88} />
+          <View style={{ flex: 1, gap: homeTokens.spacing.small }}>
+            <DesignText
+              accessibilityRole="header"
+              accessibilityLabel={`Promised reward: ${contract.rewardTerms.title}, ${contract.rewardTerms.type}`}
+              style={{
+                fontSize: 26,
+                fontWeight: '700',
+                color: homeTokens.text,
+              }}
+            >
+              {contract.rewardTerms.title}
+            </DesignText>
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: tone,
+                borderRadius: homeTokens.radius.card,
+                paddingHorizontal: homeTokens.spacing.medium,
+                paddingVertical: homeTokens.spacing.small,
+              }}
+            >
+              <DesignText
+                accessibilityLabel={`Contract status: ${contractStatusLabel(status, viewer)}`}
+                style={s.title}
+              >
+                {contractStatusLabel(status, viewer)}
+              </DesignText>
+            </View>
+          </View>
+        </View>
+        {contract.rewardTerms.description ? (
+          <DesignText style={s.body}>
+            {contract.rewardTerms.description}
+          </DesignText>
+        ) : null}
+        {responsibility && isParticipant ? (
+          <DesignText style={s.body}>{responsibility}</DesignText>
+        ) : null}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: homeTokens.spacing.medium,
+          }}
+        >
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 24,
+              backgroundColor: homeTokens.coralSurface,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons
+              accessible={false}
+              name="calendar-outline"
+              size={28}
+              color={homeTokens.text}
+            />
+          </View>
+          <DesignText
+            accessibilityLabel={`Deadline: ${new Date(contract.deadlineAt).toLocaleString()}`}
+            style={[s.body, { flex: 1 }]}
+          >
+            {new Date(contract.deadlineAt).toLocaleString()}
+          </DesignText>
+        </View>
+        {contract.approvedAt ? (
+          <DesignText style={s.caption}>
+            Approved: {new Date(contract.approvedAt).toLocaleString()}
+          </DesignText>
+        ) : null}
+        <View style={{ gap: homeTokens.spacing.small }}>
+          <DesignText style={s.title}>
+            {completeTasks} of {tasks.length} tasks complete
+          </DesignText>
+          <CompletionBar completed={completed} required={required} decorative />
+          <DesignText style={s.caption}>
+            {completed} / {required} completions recorded
+          </DesignText>
+        </View>
+      </View>
+    );
   return (
     <SurfaceCard>
       <View style={[s.status, { backgroundColor: tone }]}>
