@@ -368,7 +368,7 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(readCurrentParentFamily).toHaveBeenCalledTimes(1);
 });
 
-it('publishes the saved Offer draft and shows the published result', async () => {
+it('sends an offer in one step and shows the published result', async () => {
   render(
     <OfferDraftComposer
       activeChildren={[
@@ -402,9 +402,9 @@ it('publishes the saved Offer draft and shows the published result', async () =>
   expect(screen.queryByLabelText('Reward title')).toBeNull();
   expect(screen.getByText('Plant')).toBeOnTheScreen();
   fireEvent.changeText(screen.getByLabelText('Task 1'), 'Load the dishwasher');
-  fireEvent.press(screen.getByRole('button', { name: 'Save offer draft' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Send offer' }));
 
-  expect(await screen.findByText('Draft saved')).toBeOnTheScreen();
+  expect(await screen.findByText('Offer published')).toBeOnTheScreen();
   expect(mockCreateOfferDraft).toHaveBeenCalledWith(
     expect.objectContaining({
       reward: expect.objectContaining({
@@ -414,7 +414,6 @@ it('publishes the saved Offer draft and shows the published result', async () =>
       }),
     }),
   );
-  fireEvent.press(screen.getByRole('button', { name: 'Publish offer' }));
 
   expect(await screen.findByText('Offer published')).toBeOnTheScreen();
   expect(screen.getByText('Waiting for the child response.')).toBeOnTheScreen();
@@ -423,6 +422,33 @@ it('publishes the saved Offer draft and shows the published result', async () =>
       offerId: 'offer-test-id',
       currentRevisionId: 'revision-test-id',
     }),
+  );
+});
+
+it('retries sending the same offer without creating another draft', async () => {
+  const home = await readCurrentParentFamily();
+  if (!home) throw new Error('Missing test fixture');
+  mockCreateOfferDraft.mockClear();
+  mockPublishOffer.mockClear();
+  mockPublishOffer.mockRejectedValueOnce(new Error('network failure'));
+  render(
+    <OfferDraftComposer
+      familyId={home.family.id}
+      activeChildren={home.children}
+    />,
+  );
+  fireEvent.changeText(screen.getByLabelText('Task 1'), 'Water plants');
+  fireEvent.press(screen.getByRole('button', { name: 'Send offer' }));
+  const retry = await screen.findByRole('button', {
+    name: 'Retry sending offer',
+  });
+  await waitFor(() => expect(retry).toBeEnabled());
+  fireEvent.press(retry);
+  expect(await screen.findByText('Offer published')).toBeOnTheScreen();
+  expect(mockCreateOfferDraft).toHaveBeenCalledTimes(1);
+  expect(mockPublishOffer).toHaveBeenCalledTimes(2);
+  expect(mockPublishOffer.mock.calls[1][0]).toEqual(
+    mockPublishOffer.mock.calls[0][0],
   );
 });
 

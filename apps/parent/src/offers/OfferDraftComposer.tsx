@@ -162,21 +162,19 @@ function SavedDraft({
           color: homeTokens.secondary,
         }}
       >
-        {published ? 'Offer published' : 'Draft saved'}
+        {published ? 'Offer published' : 'Offer not sent yet'}
       </Text>
       <ProposalTerms
         layout="rewardFirst"
         revision={draft.revision}
         author={childName ? `For ${childName}` : undefined}
         status={
-          published
-            ? `Waiting for ${childName ?? 'the child'}`
-            : 'Draft · not sent'
+          published ? `Waiting for ${childName ?? 'the child'}` : 'Not sent'
         }
         support={
           published
             ? `${childName ?? 'The child'} can accept, decline or counter the reward.`
-            : 'Review these terms, then publish when you are ready.'
+            : 'Retry sending this offer to your child.'
         }
       />
       {published ? (
@@ -283,21 +281,22 @@ export function OfferDraftComposer({
       setSavedDraft(output);
       setPublishedOffer(undefined);
       setPendingRequest(undefined);
+      await publishSavedDraft(output);
     } catch (error) {
       setError('root.offer', { message: getFamilyErrorMessage(error) });
     }
   };
 
-  const publishSavedDraft = async () => {
-    if (!savedDraft) return;
+  const publishSavedDraft = async (draft = savedDraft) => {
+    if (!draft) return;
     const requestKey = publishIdempotencyKey ?? newIdempotencyKey();
     setPublishIdempotencyKey(requestKey);
     setPublishError(undefined);
     setIsPublishing(true);
     try {
       const output = await publishOffer({
-        offerId: savedDraft.offer.id,
-        currentRevisionId: savedDraft.revision.id,
+        offerId: draft.offer.id,
+        currentRevisionId: draft.revision.id,
         idempotencyKey: requestKey,
       });
       setPublishedOffer(output);
@@ -342,7 +341,7 @@ export function OfferDraftComposer({
           <FormMessage message={publishError} />
           {!publishedOffer ? (
             <Button
-              label="Publish offer"
+              label="Retry sending offer"
               variant="blue"
               lightText
               loading={isPublishing}
@@ -350,7 +349,8 @@ export function OfferDraftComposer({
             />
           ) : null}
           <Button
-            label="Create another draft"
+            label="Create another offer"
+            disabled={isPublishing || isSubmitting}
             onPress={startAnother}
             variant="outline"
           />
@@ -605,7 +605,7 @@ export function OfferDraftComposer({
             }}
           >
             <Button
-              label="Save offer draft"
+              label="Send offer"
               variant="blue"
               lightText
               loading={isSubmitting}
@@ -618,7 +618,7 @@ export function OfferDraftComposer({
                 textAlign: 'center',
               }}
             >
-              Review your draft before sending it to your child.
+              Your child can accept the offer or suggest a change.
             </DesignText>
           </View>
         </>

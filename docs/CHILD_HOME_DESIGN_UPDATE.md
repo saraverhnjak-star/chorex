@@ -66,3 +66,5 @@ Parent Contracts uses equal-width dark pill tabs for the existing Active and For
 
 
 Contracts tabs order is For review, then Active; For review is selected initially. The review tab count badge and its additional subscription sharing introduced for the badge were reverted.
+
+Parent Create offer now uses one Send offer action: the existing server draft command is followed immediately by publishOffer. No separate save/publish step is shown. If publishing fails, Retry sending offer reuses the saved offer and publish idempotency key; Create another offer is disabled during submission. Server lifecycle and authorization remain unchanged.
