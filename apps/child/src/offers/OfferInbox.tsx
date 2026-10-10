@@ -5,6 +5,7 @@ import {
   RewardPicker,
   ProposalTerms,
   OfferOutcome,
+  WaitingState,
   CountBadge,
   SectionHeading,
   HomeFeatureCard,
@@ -377,6 +378,16 @@ export function OfferInbox({
     );
   }
 
+  if (resultMessage === 'Waiting for parent' && offerId)
+    return <WaitingState>{resultMessage}</WaitingState>;
+
+  if (resultMessage === 'Contract is active.' && offerId)
+    return (
+      <OfferOutcome title="Agreement reached" success centered>
+        {resultMessage}
+      </OfferOutcome>
+    );
+
   return (
     <View className="gap-4" style={offerId ? { flexGrow: 1 } : undefined}>
       {offerId && showBackLink ? (
@@ -454,7 +465,11 @@ export function OfferInbox({
       {displayedState.status === 'ready' &&
       displayedState.items.length === 0 &&
       !resultMessage ? (
-        <OfferOutcome title={offerId ? 'Offer unavailable' : 'No new offers'}>
+        <OfferOutcome
+          title={offerId ? 'Offer unavailable' : 'No new offers'}
+          centered={!offerId}
+          illustration={!offerId ? 'no-offers' : undefined}
+        >
           {offerId
             ? 'This offer is no longer waiting for your response.'
             : 'No offers are waiting for you.'}

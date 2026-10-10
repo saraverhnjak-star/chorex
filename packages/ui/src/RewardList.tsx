@@ -233,6 +233,8 @@ export function RewardList({
       {!loading && !error && rewards.length === 0 ? (
         <OfferOutcome
           title={fromCache ? 'No rewards are saved on this device yet.' : empty}
+          centered={viewer === 'CHILD'}
+          illustration={viewer === 'CHILD' ? 'no-rewards' : undefined}
         >
           {viewer === 'CHILD'
             ? 'Your earned rewards will appear here.'
@@ -243,7 +245,11 @@ export function RewardList({
       !error &&
       rewards.length > 0 &&
       filteredRewards.length === 0 ? (
-        <OfferOutcome title="No rewards in this status" />
+        <OfferOutcome
+          title="No rewards in this status"
+          centered
+          illustration="no-rewards"
+        />
       ) : null}
       {groups.map((group) => (
         <View

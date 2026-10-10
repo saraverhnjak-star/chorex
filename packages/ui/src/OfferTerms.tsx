@@ -1,6 +1,6 @@
 import { RewardIcon } from './RewardIcon';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { OfferRevision } from '@chorex/domain';
 import { DesignText, homeTokens } from './Home';
@@ -281,11 +281,59 @@ export function OfferOutcome({
   title,
   children,
   success = false,
+  centered = false,
+  illustration,
 }: {
   title: string;
   children?: ReactNode;
   success?: boolean;
+  centered?: boolean;
+  illustration?: 'no-offers' | 'no-chores' | 'no-rewards';
 }) {
+  if (centered && (success || illustration))
+    return (
+      <View
+        accessibilityLiveRegion="polite"
+        style={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: homeTokens.spacing.medium,
+          paddingVertical: homeTokens.spacing.section,
+        }}
+      >
+        <Image
+          accessible={false}
+          source={
+            illustration === 'no-offers'
+              ? require('../assets/icons/no_offers.png')
+              : illustration === 'no-chores'
+                ? require('../assets/icons/no_chores.png')
+                : illustration === 'no-rewards'
+                  ? require('../assets/icons/no_rewards.png')
+                  : require('../assets/icons/success.png')
+          }
+          style={{ width: 180, height: 180 }}
+          resizeMode="contain"
+        />
+        <DesignText
+          accessibilityRole="header"
+          style={{
+            fontSize: 26,
+            fontWeight: '700',
+            color: homeTokens.text,
+            textAlign: 'center',
+          }}
+        >
+          {title}
+        </DesignText>
+        {children ? (
+          <DesignText style={[styles.secondary, { textAlign: 'center' }]}>
+            {children}
+          </DesignText>
+        ) : null}
+      </View>
+    );
   return (
     <View
       accessibilityLiveRegion="polite"

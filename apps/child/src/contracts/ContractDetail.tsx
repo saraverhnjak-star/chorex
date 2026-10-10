@@ -124,7 +124,6 @@ export function ContractDetail({
           </Text>
         </View>
       ) : null}
-      <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
       {tasks.length === 0 ? (
         <Text
           allowFontScaling={false}
@@ -134,33 +133,46 @@ export function ContractDetail({
           No tasks are available.
         </Text>
       ) : (
-        tasks.map((task) => (
-          <View key={task.id} className="gap-2">
-            <TaskProgress
-              compact
-              title={task.title}
-              description={task.description}
-              completedCount={task.completedCount}
-              targetCount={task.targetCount}
-            />
-            {contract.status === 'ACTIVE' &&
-            contract.childUid === authUid &&
-            task.assigneeUid === authUid &&
-            task.completedCount < task.targetCount ? (
-              <TaskCompletionAction task={task} />
-            ) : null}
-          </View>
-        ))
+        <View
+          style={{
+            marginTop: homeTokens.spacing.section,
+            gap: homeTokens.spacing.section,
+          }}
+        >
+          {tasks.map((task) => (
+            <View key={task.id} className="gap-2">
+              <TaskProgress
+                compact
+                title={task.title}
+                description={task.description}
+                completedCount={task.completedCount}
+                targetCount={task.targetCount}
+              />
+              {contract.status === 'ACTIVE' &&
+              contract.childUid === authUid &&
+              task.assigneeUid === authUid &&
+              task.completedCount < task.targetCount ? (
+                <TaskCompletionAction task={task} />
+              ) : null}
+            </View>
+          ))}
+        </View>
       )}
-      <ReviewHistory
-        loading={history.status === 'loading'}
-        error={history.status === 'error'}
-        reviews={history.status === 'ready' ? history.reviews : []}
-        fromCache={history.status === 'ready' && history.fromCache}
-      />
+      {history.status !== 'ready' || history.reviews.length > 0 ? (
+        <ReviewHistory
+          loading={history.status === 'loading'}
+          error={history.status === 'error'}
+          reviews={history.status === 'ready' ? history.reviews : []}
+          fromCache={history.status === 'ready' && history.fromCache}
+        />
+      ) : null}
       {contract.childUid === authUid ? (
         <View
-          style={{ marginTop: 'auto', paddingTop: homeTokens.spacing.section }}
+          style={
+            contract.status === 'READY_FOR_REVIEW'
+              ? { flexGrow: 1, paddingTop: homeTokens.spacing.section }
+              : { marginTop: 'auto', paddingTop: homeTokens.spacing.section }
+          }
         >
           <SubmitForReviewAction
             key={`${contract.id}:${authUid}:${contract.reviewCycle + (contract.status === 'CHANGES_REQUESTED' ? 1 : 0)}`}

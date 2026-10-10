@@ -792,7 +792,8 @@ it('shows accessible loading, empty and error history without creating a pending
   ).toBeOnTheScreen();
   expect(screen.getByText('Loading review history…')).toBeOnTheScreen();
   act(() => mockHistory({ data: [], fromCache: false }));
-  expect(screen.getByText('No reviews yet')).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Review history' })).toBeNull();
+  expect(screen.queryByText('No reviews yet')).toBeNull();
   expect(screen.queryByText('Review 1: Approved')).not.toBeOnTheScreen();
   act(() => mockHistoryError(new Error('read failure')));
   expect(
@@ -943,4 +944,18 @@ it('keeps every Contract reachable when Home shows a compact preview', () => {
       name: new RegExp('^Open Contract: ' + third.rewardTerms.title),
     }),
   ).toBeNull();
+});
+
+it('hides the aggregate progress for one repeated task and shows it for multiple tasks', () => {
+  render(<ContractDetail {...props} />);
+  emitReady();
+  expect(screen.queryByText('0 of 1 tasks complete')).toBeNull();
+  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  act(() =>
+    mockTasks({
+      data: [task, { ...task, id: 'task-2', title: 'Plants' }],
+      fromCache: false,
+    }),
+  );
+  expect(screen.getByText('0 of 2 tasks complete')).toBeOnTheScreen();
 });

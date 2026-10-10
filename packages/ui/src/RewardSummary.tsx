@@ -1,3 +1,4 @@
+import { WaitingState } from './WaitingState';
 import { RewardIcon } from './RewardIcon';
 import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -69,9 +70,13 @@ export function RewardSummary({
             {reward.terms.description}
           </DesignText>
         ) : null}
-        <DesignText style={{ fontSize: 16, color: homeTokens.secondary }}>
-          {rewardResponsibility(reward, viewer)}
-        </DesignText>
+        {reward.status === 'PENDING_FULFILLMENT' ? (
+          <WaitingState>{rewardResponsibility(reward, viewer)}</WaitingState>
+        ) : (
+          <DesignText style={{ fontSize: 16, color: homeTokens.secondary }}>
+            {rewardResponsibility(reward, viewer)}
+          </DesignText>
+        )}
         <View style={{ gap: homeTokens.spacing.medium }}>
           <TermsHeading icon="checkmark-done-outline">
             Reward journey

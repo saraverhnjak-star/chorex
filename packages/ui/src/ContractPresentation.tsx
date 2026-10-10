@@ -1,3 +1,4 @@
+import { amberAuroraPalette } from './theme';
 import { RewardIcon } from './RewardIcon';
 import { View, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -166,15 +167,22 @@ export function ContractSummary({
             Approved: {new Date(contract.approvedAt).toLocaleString()}
           </DesignText>
         ) : null}
-        <View style={{ gap: homeTokens.spacing.small }}>
-          <DesignText style={s.title}>
-            {completeTasks} of {tasks.length} tasks complete
-          </DesignText>
-          <CompletionBar completed={completed} required={required} decorative />
-          <DesignText style={s.caption}>
-            {completed} / {required} completions recorded
-          </DesignText>
-        </View>
+        {tasks.length > 1 ? (
+          <View style={{ gap: homeTokens.spacing.small }}>
+            <DesignText style={s.title}>
+              {completeTasks} of {tasks.length} tasks complete
+            </DesignText>
+            <CompletionBar
+              completed={completed}
+              required={required}
+              decorative
+              tone="blue"
+            />
+            <DesignText style={s.caption}>
+              {completed} / {required} completions recorded
+            </DesignText>
+          </View>
+        ) : null}
       </View>
     );
   return (
@@ -257,10 +265,12 @@ export function CompletionBar({
   completed,
   required,
   decorative = false,
+  tone = 'green',
 }: {
   completed: number;
   required: number;
   decorative?: boolean;
+  tone?: 'green' | 'blue';
 }) {
   return (
     <View
@@ -280,6 +290,9 @@ export function CompletionBar({
       <View
         style={[
           s.fill,
+          tone === 'blue'
+            ? { backgroundColor: amberAuroraPalette.auroraBlue }
+            : undefined,
           {
             width: `${required ? Math.min(100, (completed / required) * 100) : 0}%`,
           },

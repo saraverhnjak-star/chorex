@@ -3,6 +3,7 @@ import {
   announceAction,
   Button,
   FormMessage,
+  WaitingState,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { useEffect, useRef, useState } from 'react';
@@ -97,14 +98,9 @@ export function SubmitForReviewAction({
         </Text>
       ) : null}
       {contract.status === 'READY_FOR_REVIEW' ? (
-        <Text
-          allowFontScaling={false}
-          accessibilityLiveRegion="polite"
-          className="text-home-muted"
-          style={styles.body}
-        >
+        <WaitingState>
           Your Parent now needs to review this agreement.
-        </Text>
+        </WaitingState>
       ) : confirmed ? (
         <Text
           allowFontScaling={false}

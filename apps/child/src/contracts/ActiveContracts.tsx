@@ -97,7 +97,11 @@ function ActiveContractsContent({
                   : 'No active agreements'}
               </HomeEmptyState>
             ) : (
-              <OfferOutcome title="No active agreements">
+              <OfferOutcome
+                title="No active agreements"
+                centered
+                illustration="no-chores"
+              >
                 {state.fromCache
                   ? 'No active Contracts are saved on this device yet.'
                   : 'No active Contracts yet.'}

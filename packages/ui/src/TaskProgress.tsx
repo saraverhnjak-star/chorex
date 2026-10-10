@@ -28,7 +28,7 @@ export function TaskProgress({
       accessibilityLabel={`${title}. ${description ? `${description}. ` : ''}${completedCount} of ${targetCount} completions recorded. ${progress}.`}
       style={{
         gap: 12,
-        padding: compact ? homeTokens.spacing.medium : homeTokens.spacing.card,
+        padding: compact ? 0 : homeTokens.spacing.card,
         borderWidth: compact ? 0 : 1,
         borderColor: homeTokens.border,
         borderRadius: homeTokens.radius.card,
