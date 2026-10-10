@@ -7,7 +7,6 @@ const items: readonly NavigationItem[] = [
   { id: 'offers', label: 'Offers', icon: 'document-text-outline' },
   { id: 'contracts', label: 'Contracts', icon: 'checkbox-outline' },
   { id: 'rewards', label: 'Rewards', icon: 'gift-outline' },
-  { id: 'more', label: 'More', icon: 'ellipsis-horizontal' },
 ];
 const destinations = {
   home: '/',

@@ -256,7 +256,7 @@ it('renders the parent screen through the public shared UI package', async () =>
     ['Offers', '/offers'],
     ['Contracts', '/contracts'],
     ['Rewards', '/rewards'],
-    ['More', '/more'],
+    ['Notification settings', '/more'],
     ['Home', '/'],
     ['See all Contracts', '/contracts'],
     ['Create Offer', '/offers/create'],

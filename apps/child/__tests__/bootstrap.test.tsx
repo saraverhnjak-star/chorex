@@ -285,7 +285,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     ['My chores', '/contracts'],
     ['Offers', '/offers'],
     ['Rewards', '/rewards'],
-    ['More', '/more'],
+    ['Notification settings', '/more'],
     ['Home', '/'],
     ['See all My chores', '/contracts'],
     ['See all Rewards', '/rewards'],

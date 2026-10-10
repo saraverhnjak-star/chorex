@@ -73,7 +73,7 @@ export function SettingsRow({
       <View
         style={{
           flexDirection: 'row',
-          alignItems: 'flex-start',
+          alignItems: subtitle ? 'flex-start' : 'center',
           gap: homeTokens.spacing.medium,
           minHeight: 48,
         }}

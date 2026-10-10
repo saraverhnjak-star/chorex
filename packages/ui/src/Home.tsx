@@ -73,7 +73,7 @@ export function NavigationFrame({
 }) {
   const navigate = onNavigate;
   const { fontScale } = useWindowDimensions();
-  // Keep five concise destinations readable at narrow widths; full accessible labels remain available.
+  // Keep navigation labels readable at narrow widths; full accessible labels remain available.
   const labelSize = 11 * Math.min(fontScale, 1.3);
   const insets = useSafeAreaInsets();
   return (
