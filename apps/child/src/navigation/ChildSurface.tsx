@@ -140,13 +140,12 @@ function ChildSurfaceContent({
 
           {familyState.status === 'ready' ? (
             <View className="gap-5">
-              {area === 'home' ? null : (
+              {area === 'home' || area === 'contracts' ? null : (
                 <SectionHeading>
                   {
                     (
                       {
                         offers: 'Offers',
-                        contracts: 'My chores',
                         rewards: 'Rewards',
                         more: 'Settings',
                       } as const

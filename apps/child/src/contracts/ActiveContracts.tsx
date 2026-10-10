@@ -7,6 +7,7 @@ import {
   Button,
   HomeEmptyState,
   CollectionHeading,
+  SectionHeading,
   CountBadge,
   OfferOutcome,
   FormMessage,
@@ -30,22 +31,24 @@ function ActiveContractsContent({
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   return (
-    <View
-      className={
-        preview
-          ? 'gap-3'
-          : 'gap-4 rounded-3xl border border-home-border bg-home-surface p-5'
-      }
-    >
-      <CollectionHeading
-        label="See all My chores"
-        onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
-      >
-        {preview ? 'My agreement' : 'Active agreements'}
-      </CollectionHeading>
-      {!preview && state.status === 'ready' ? (
-        <CountBadge count={state.contracts.length} />
-      ) : null}
+    <View className={preview ? 'gap-3' : 'gap-4'}>
+      {preview ? (
+        <CollectionHeading
+          label="See all My chores"
+          onSeeAll={() => router.navigate('/contracts')}
+        >
+          My agreement
+        </CollectionHeading>
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <SectionHeading>Active agreements</SectionHeading>
+          </View>
+          {state.status === 'ready' ? (
+            <CountBadge count={state.contracts.length} />
+          ) : null}
+        </View>
+      )}
       {state.status === 'loading' ? (
         <Text
           allowFontScaling={false}
@@ -104,7 +107,7 @@ function ActiveContractsContent({
             (preview ? state.contracts.slice(0, 1) : state.contracts).map(
               (contract) => (
                 <HomeContractRow
-                  preview={preview}
+                  preview
                   key={contract.id}
                   contract={contract}
                   authUid={authUid}

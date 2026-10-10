@@ -11,3 +11,5 @@ Offer titles use the first task title because the existing offer schema has no s
 Validation: workspace typecheck and lint, Child and Parent unit suites. Native screenshots and device visual acceptance have not been captured for this update.
 
 Visual refinement: offer actions are stacked vertically at full card width, following the latest requested adjustment. The offer illustration grows to 108pt with three decorative coral rays. Agreement and reward illustrations have no additional surrounding circle or border. The Child reward action uses the shared success green with light text.
+
+My chores collection refinement: remove the duplicate My chores screen title and outer collection card. Active agreements has its count at the right of the heading. All agreements use the Home agreement card, including task progress and the existing detail action; Home still previews only one.

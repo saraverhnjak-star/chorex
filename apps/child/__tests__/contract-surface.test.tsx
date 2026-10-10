@@ -258,14 +258,14 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
     }),
   );
   fireEvent.press(
-    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema\./ }),
+    screen.getByRole('button', { name: /^Open Contract: Cinema$/ }),
   );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/contracts/[contractId]',
     params: { contractId: 'contract-1' },
   });
   expect(
-    screen.getByRole('button', { name: /^Open\ Contract:\ Museum\./ }),
+    screen.getByRole('button', { name: /^Open Contract: Museum$/ }),
   ).toBeOnTheScreen();
   view.unmount();
   expect(mockListStop).toHaveBeenCalled();
