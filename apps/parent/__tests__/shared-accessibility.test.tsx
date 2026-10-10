@@ -130,3 +130,24 @@ it('announces a new iOS submission error once, without repeating unchanged messa
   announce.mockRestore();
   platform.restore();
 });
+
+it('navigates immediately without an overlay', () => {
+  const navigate = jest.fn();
+  render(
+    <NavigationFrame
+      items={[{ id: 'rewards', label: 'Rewards', icon: 'gift-outline' }]}
+      active="home"
+      onNavigate={navigate}
+    >
+      <HomeListRow
+        title="Cinema"
+        detail="Reward"
+        label="Cinema"
+        onPress={jest.fn()}
+      />
+    </NavigationFrame>,
+  );
+  fireEvent.press(screen.getByRole('tab', { name: 'Rewards' }));
+  expect(navigate).toHaveBeenCalledWith('rewards');
+  expect(screen.queryByTestId('navigation-loader')).toBeNull();
+});

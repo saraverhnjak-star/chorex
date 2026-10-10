@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import {
   DesignText,
   FocusHeading,
@@ -16,7 +17,6 @@ import {
   homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
-import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import {
@@ -147,6 +147,7 @@ export function OfferInbox({
             status: 'error',
             message: getOfferInboxErrorMessage(error),
           }),
+        offerId,
       );
     } catch (error) {
       const message = getOfferInboxErrorMessage(error);

@@ -1,5 +1,5 @@
 import { Pressable } from 'react-native';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import {
   HomeScreenFrame,
   HomeHeader,

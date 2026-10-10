@@ -3,7 +3,13 @@ import { AppNavigation } from '../../src/navigation/AppNavigation';
 export default function AuthenticatedLayout() {
   return (
     <AppNavigation>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'none',
+          freezeOnBlur: true,
+        }}
+      />
     </AppNavigation>
   );
 }

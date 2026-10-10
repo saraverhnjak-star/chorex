@@ -113,10 +113,22 @@ function ChildNavigator() {
 
   return session.user ? (
     <AppNavigation>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'none',
+          freezeOnBlur: true,
+        }}
+      />
     </AppNavigation>
   ) : (
-    <Stack screenOptions={{ headerShown: false }} />
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'none',
+        freezeOnBlur: true,
+      }}
+    />
   );
 }
 

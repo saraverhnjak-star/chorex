@@ -1,7 +1,7 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { HomeContractRow } from './HomeContractRow';
 import { Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useActiveContracts } from '@chorex/firebase-client';
 import {
   Button,

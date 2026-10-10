@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { useEarnedRewards } from '@chorex/firebase-client';
 import { RewardList } from '@chorex/ui';
 function EarnedRewardsContent({

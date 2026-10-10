@@ -268,7 +268,16 @@ it('renders the parent screen through the public shared UI package', async () =>
       screen.queryByRole('tab', { name: label }) ??
         screen.getByRole('button', { name: new RegExp('^' + label) }),
     );
-    expect(mockNavigate).toHaveBeenLastCalledWith(route);
+    await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith(route));
+    mockPath = route;
+    view.rerender(
+      <AppNavigation>
+        <HomeScreen />
+      </AppNavigation>,
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId('navigation-loader')).toBeNull(),
+    );
   }
   mockPath = '/rewards/reward-1';
   view.rerender(

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import {
   FocusHeading,
   announceAction,
@@ -11,7 +12,6 @@ import {
   homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
-import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import type { ChildFamilyMembership, CounterOfferInput } from '@chorex/domain';

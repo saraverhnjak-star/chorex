@@ -71,12 +71,13 @@ export function NavigationFrame({
   active: string;
   onNavigate: (id: string) => void;
 }) {
+  const navigate = onNavigate;
   const { fontScale } = useWindowDimensions();
   // Keep five concise destinations readable at narrow widths; full accessible labels remain available.
   const labelSize = 11 * Math.min(fontScale, 1.3);
   const insets = useSafeAreaInsets();
   return (
-    <HomeContext.Provider value={{ active: true, navigate: onNavigate }}>
+    <HomeContext.Provider value={{ active: true, navigate }}>
       <View style={s.frame}>
         <View style={{ flex: 1 }}>{children}</View>
         <View style={[s.nav, { paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -86,7 +87,7 @@ export function NavigationFrame({
               accessibilityRole="tab"
               accessibilityLabel={item.label}
               accessibilityState={{ selected: active === item.id }}
-              onPress={() => onNavigate(item.id)}
+              onPress={() => navigate(item.id)}
               className="active:opacity-60"
               style={s.navItem}
             >

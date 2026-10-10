@@ -1,3 +1,4 @@
+import { createSharedObserver } from './sharedObserver';
 import {
   recordOperationalError,
   setObservabilityContext,
@@ -43,6 +44,7 @@ import {
   clearPersistence,
   serverTimestamp,
   collection,
+  documentId,
   connectFirestoreEmulator,
   doc,
   getDoc,
@@ -936,6 +938,7 @@ export function subscribeToCurrentChildOfferInbox(
   familyId: string,
   onItems: (items: readonly ChildOfferInboxItem[]) => void,
   onError: (error: OfferInboxClientError) => void,
+  offerId?: string,
 ): () => void {
   const user = requireOfferSubscriptionContext(familyId);
   const firestore = getInitializedFirestore();
@@ -944,6 +947,7 @@ export function subscribeToCurrentChildOfferInbox(
     where('familyId', '==', familyId),
     where('participantUids', 'array-contains', user.uid),
     where('status', '==', 'AWAITING_CHILD'),
+    ...(offerId ? [where(documentId(), '==', offerId)] : []),
     orderBy('updatedAt', 'desc'),
   );
 
@@ -1284,7 +1288,25 @@ function requireContractReadContext(id: string): string {
   return user.uid;
 }
 
+const sharedContract = createSharedObserver<
+  ReadSnapshot<Contract | null>,
+  ContractReadError
+>();
 export function observeContract(
+  contractId: string,
+  callback: (snapshot: ReadSnapshot<Contract | null>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(contractId);
+  return sharedContract.subscribe(
+    JSON.stringify([uid, contractId]),
+    (value, error) => observeContractUnshared(contractId, value, error),
+    callback,
+    onError,
+  );
+}
+
+function observeContractUnshared(
   contractId: string,
   callback: (snapshot: ReadSnapshot<Contract | null>) => void,
   onError: (error: ContractReadError) => void,
@@ -1322,7 +1344,25 @@ export function observeContract(
   }
 }
 
+const sharedTasks = createSharedObserver<
+  ReadSnapshot<readonly ContractTask[]>,
+  ContractReadError
+>();
 export function observeTasks(
+  contractId: string,
+  callback: (snapshot: ReadSnapshot<readonly ContractTask[]>) => void,
+  onError: (error: ContractReadError) => void,
+): () => void {
+  const uid = requireContractReadContext(contractId);
+  return sharedTasks.subscribe(
+    JSON.stringify([uid, contractId]),
+    (value, error) => observeTasksUnshared(contractId, value, error),
+    callback,
+    onError,
+  );
+}
+
+function observeTasksUnshared(
   contractId: string,
   callback: (snapshot: ReadSnapshot<readonly ContractTask[]>) => void,
   onError: (error: ContractReadError) => void,
@@ -2032,6 +2072,8 @@ export async function requestParentAccountDeletion(
 }
 // Caller gates/unmounts authenticated UI before invoking. Preserve installation metadata.
 export async function clearAccountSession(): Promise<void> {
+  sharedContract.clear();
+  sharedTasks.clear();
   for (const stop of [...accountListeners]) stop();
   await signOutCurrentUser();
   const state = registry.__chorexDevelopmentFirebase;

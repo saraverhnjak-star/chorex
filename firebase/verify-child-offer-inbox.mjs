@@ -6,6 +6,7 @@ import {
 import {
   collection,
   deleteDoc,
+  documentId,
   doc,
   getDoc,
   getDocs,
@@ -44,12 +45,13 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function inboxQuery(firestore, familyId, uid) {
+function inboxQuery(firestore, familyId, uid, offerId) {
   return query(
     collection(firestore, 'offers'),
     where('familyId', '==', familyId),
     where('participantUids', 'array-contains', uid),
     where('status', '==', 'AWAITING_CHILD'),
+    ...(offerId ? [where(documentId(), '==', offerId)] : []),
     orderBy('updatedAt', 'desc'),
   );
 }
@@ -188,6 +190,16 @@ try {
   assert(
     inbox.docs[0].id === publishedOfferId,
     'Child inbox returned the wrong Offer',
+  );
+  const detail = await assertSucceeds(
+    getDocs(inboxQuery(childFirestore, familyId, childUid, publishedOfferId)),
+  );
+  assert(
+    detail.size === 1 && detail.docs[0].id === publishedOfferId,
+    'Scoped detail query did not return the selected Offer',
+  );
+  await assertFails(
+    getDocs(inboxQuery(childFirestore, familyId, childUid, draftOfferId)),
   );
   const loaded = await loadExactCurrentRevisions(
     childFirestore,

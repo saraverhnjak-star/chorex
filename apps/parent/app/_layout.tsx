@@ -111,7 +111,13 @@ function ParentNavigator() {
   if (session.status === 'error') return <SessionErrorScreen />;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'none',
+        freezeOnBlur: true,
+      }}
+    >
       <Stack.Protected guard={!session.user}>
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="register" />

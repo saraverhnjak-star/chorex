@@ -1,5 +1,5 @@
 import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
-import { useFocusEffect, Redirect, useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import {
   DesignText,
   HomeScreenFrame,
@@ -20,7 +20,7 @@ import {
 } from '@chorex/ui';
 import { EarnedRewards } from '../rewards/EarnedRewards';
 import { ActiveContracts } from '../contracts/ActiveContracts';
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -44,13 +44,6 @@ export function ChildSurface(props: {
   initialCounterOfferId?: string;
   offerId?: string;
 }) {
-  const [focused, setFocused] = useState(true);
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
   const family = useChildFamily();
   if (!family)
     return (
@@ -58,7 +51,7 @@ export function ChildSurface(props: {
         <ChildSurface {...props} />
       </ChildFamilyProvider>
     );
-  return focused ? <ChildSurfaceContent {...props} /> : null;
+  return <ChildSurfaceContent {...props} />;
 }
 function ChildSurfaceContent({
   area = 'home',

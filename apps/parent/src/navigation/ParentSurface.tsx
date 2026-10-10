@@ -1,6 +1,6 @@
 import { HomeAttention } from './HomeAttention';
 import { ParentFamilyProvider, useParentFamily } from './FamilyContext';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { HomeFamilyOverview } from '../family/HomeFamilyOverview';
 import {
   HomeScreenFrame,
@@ -24,7 +24,7 @@ import {
   ActiveContracts,
   ReadyForReviewContracts,
 } from '../contracts/ActiveContracts';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ActivityIndicator, Linking, Text, View } from 'react-native';
@@ -73,13 +73,6 @@ export function ParentSurface(props: {
   area?:
     'home' | 'offers' | 'contracts' | 'rewards' | 'more' | 'create' | 'family';
 }) {
-  const [focused, setFocused] = useState(true);
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
   const family = useParentFamily();
   if (!family)
     return (
@@ -87,7 +80,7 @@ export function ParentSurface(props: {
         <ParentSurface {...props} />
       </ParentFamilyProvider>
     );
-  return focused ? <ParentSurfaceContent {...props} /> : null;
+  return <ParentSurfaceContent {...props} />;
 }
 function ParentSurfaceContent({
   area = 'home',

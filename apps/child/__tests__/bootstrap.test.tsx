@@ -294,13 +294,26 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
       screen.queryByRole('tab', { name: label }) ??
         screen.getByRole('button', { name: new RegExp('^' + label) }),
     );
-    expect(mockNavigate).toHaveBeenLastCalledWith(route);
+    await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith(route));
+    mockPath = route;
+    firstLaunch.rerender(
+      <ChildSessionProvider>
+        <AppNavigation>
+          <HomeScreen />
+        </AppNavigation>
+      </ChildSessionProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId('navigation-loader')).toBeNull(),
+    );
   }
   fireEvent.press(screen.getByRole('button', { name: 'View offer' }));
-  expect(mockNavigate).toHaveBeenLastCalledWith({
-    pathname: '/offers/[offerId]',
-    params: { offerId: 'offer-test-id' },
-  });
+  await waitFor(() =>
+    expect(mockNavigate).toHaveBeenLastCalledWith({
+      pathname: '/offers/[offerId]',
+      params: { offerId: 'offer-test-id' },
+    }),
+  );
   mockPath = '/contracts/contract-1';
   firstLaunch.rerender(
     <ChildSessionProvider>
