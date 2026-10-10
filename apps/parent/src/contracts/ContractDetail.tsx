@@ -7,10 +7,9 @@ import {
 } from '@chorex/firebase-client';
 import {
   ContractSummary,
-  SurfaceCard,
   TermsHeading,
-  RewardIcon,
   FormMessage,
+  homeTokens,
   ReviewFeedback,
   ReviewHistory,
   TaskProgress,
@@ -79,7 +78,7 @@ export function ContractDetail({
   const { contract, tasks, fromCache } = state;
   const childName = childNames[contract.childUid];
   return (
-    <View className="gap-4">
+    <View className="gap-4" style={{ flexGrow: 1 }}>
       {fromCache ? (
         <Text
           allowFontScaling={false}
@@ -99,7 +98,10 @@ export function ContractDetail({
       />
 
       {contract.status === 'CHANGES_REQUESTED' ? (
-        <SurfaceCard>
+        <View
+          className="gap-3"
+          style={{ marginTop: homeTokens.spacing.section }}
+        >
           <TermsHeading icon="chatbox-ellipses-outline">
             Current request
           </TermsHeading>
@@ -111,9 +113,8 @@ export function ContractDetail({
             }
             fromCache={feedback.status === 'ready' && feedback.fromCache}
           />
-        </SurfaceCard>
+        </View>
       ) : null}
-      <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
       {tasks.length === 0 ? (
         <Text
           allowFontScaling={false}
@@ -123,49 +124,44 @@ export function ContractDetail({
           No tasks are available.
         </Text>
       ) : (
-        tasks.map((task) => (
-          <View key={task.id} className="gap-2">
-            <TaskProgress
-              title={task.title}
-              description={task.description}
-              completedCount={task.completedCount}
-              targetCount={task.targetCount}
-            />
-          </View>
-        ))
-      )}
-      <SurfaceCard>
-        <TermsHeading icon="gift-outline">Promised reward</TermsHeading>
-        <RewardIcon terms={contract.rewardTerms} />
-        <Text
-          allowFontScaling={false}
-          accessibilityLabel={`Promised reward: ${contract.rewardTerms.title}, ${contract.rewardTerms.type}`}
-          className="text-home-text"
-          style={styles.body}
+        <View
+          style={{
+            marginTop: homeTokens.spacing.section,
+            gap: homeTokens.spacing.section,
+          }}
         >
-          {contract.rewardTerms.title} · {contract.rewardTerms.type}
-        </Text>
-        {contract.rewardTerms.description ? (
-          <Text
-            allowFontScaling={false}
-            className="text-home-muted"
-            style={styles.body}
-          >
-            {contract.rewardTerms.description}
-          </Text>
-        ) : null}
-      </SurfaceCard>
-      <ReviewHistory
-        loading={history.status === 'loading'}
-        error={history.status === 'error'}
-        reviews={history.status === 'ready' ? history.reviews : []}
-        fromCache={history.status === 'ready' && history.fromCache}
-      />
-      <ApproveContractAction
-        key={`${contract.id}:${authUid}`}
-        contract={contract}
-        authUid={authUid}
-      />
+          {tasks.map((task) => (
+            <View key={task.id} className="gap-2">
+              <TaskProgress
+                compact
+                title={task.title}
+                description={task.description}
+                completedCount={task.completedCount}
+                targetCount={task.targetCount}
+              />
+            </View>
+          ))}
+        </View>
+      )}
+      {history.status !== 'ready' || history.reviews.length > 0 ? (
+        <ReviewHistory
+          collapsible
+          key={`${contract.id}:${authUid}`}
+          loading={history.status === 'loading'}
+          error={history.status === 'error'}
+          reviews={history.status === 'ready' ? history.reviews : []}
+          fromCache={history.status === 'ready' && history.fromCache}
+        />
+      ) : null}
+      <View
+        style={{ marginTop: 'auto', paddingTop: homeTokens.spacing.section }}
+      >
+        <ApproveContractAction
+          key={`${contract.id}:${authUid}`}
+          contract={contract}
+          authUid={authUid}
+        />
+      </View>
     </View>
   );
 }

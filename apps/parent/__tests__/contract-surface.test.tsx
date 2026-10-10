@@ -40,6 +40,17 @@ jest.mock('expo-router', () => ({
   }),
   useLocalSearchParams: () => ({ contractId: 'contract-1' }),
 }));
+jest.mock('../src/navigation/FamilyContext', () => ({
+  useParentFamily: () => ({
+    state: {
+      status: 'ready',
+      home: {
+        profile: { uid: 'parent-1', displayName: 'Parent' },
+        children: [{ uid: 'child-1', displayName: 'Mia' }],
+      },
+    },
+  }),
+}));
 jest.mock('@chorex/firebase-client', () => {
   const hooks = jest.requireActual(
     '../../../packages/firebase-client/src/contractHooks',
@@ -154,8 +165,10 @@ it('renders frozen terms, persisted progress and locale deadline with no mutatio
     ),
   ).toBeOnTheScreen();
   expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
-  expect(screen.getByText('Promised reward')).toBeOnTheScreen();
-  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText('Promised reward: Cinema, EXPERIENCE'),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText('Promised reward')).toBeNull();
   expect(screen.getByText('Choose a movie')).toBeOnTheScreen();
   expect(
     screen.getByLabelText(
@@ -265,14 +278,16 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
 it('opens the stable-ID detail route with a heading and natural Back navigation and a safe collection fallback', async () => {
   render(<ContractScreen />);
   await act(async () => {});
-  expect(screen.getByRole('header', { name: 'Contract' })).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Contract' })).toBeNull();
   emitReady();
-  expect(screen.getByText('Cinema · EXPERIENCE')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  expect(
+    screen.getByLabelText('Promised reward: Cinema, EXPERIENCE'),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('link', { name: 'Back to Contracts' }));
   expect(mockReplace).toHaveBeenCalledWith('/contracts');
   mockReplace.mockClear();
   mockCanGoBack = true;
-  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
+  fireEvent.press(screen.getByRole('link', { name: 'Back to Contracts' }));
   expect(mockBack).toHaveBeenCalledTimes(1);
   expect(mockReplace).not.toHaveBeenCalled();
   mockCanGoBack = false;
@@ -565,7 +580,7 @@ it('shows accessible loading, empty and error history without creating a pending
   ).toBeOnTheScreen();
   expect(screen.getByText('Loading review history…')).toBeOnTheScreen();
   act(() => mockHistory({ data: [], fromCache: false }));
-  expect(screen.getByText('No reviews yet')).toBeOnTheScreen();
+  expect(screen.queryByText('No reviews yet')).toBeNull();
   expect(screen.queryByText('Review 1: Approved')).not.toBeOnTheScreen();
   act(() => mockHistoryError(new Error('read failure')));
   expect(
@@ -585,6 +600,12 @@ it('renders all immutable rounds with one-based labels, notes and realtime final
   act(() =>
     mockHistory({ data: historicalReviews.slice(0, 2), fromCache: true }),
   );
+  expect(screen.queryByText('Historical feedback 0')).toBeNull();
+  expect(screen.getByRole('button', { name: 'Review history' })).toHaveProp(
+    'accessibilityState',
+    { expanded: false },
+  );
+  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
   expect(screen.getByText('Historical feedback 0')).toBeOnTheScreen();
   expect(screen.getByText('Historical feedback 1')).toBeOnTheScreen();
   expect(
@@ -619,6 +640,8 @@ it('renders all immutable rounds with one-based labels, notes and realtime final
     screen.queryByText('Showing saved review history. Updates may be pending.'),
   ).not.toBeOnTheScreen();
   expect(mockHistoryObserve).toHaveBeenCalledTimes(1);
+  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
+  expect(screen.queryByText('Review 3: Approved')).toBeNull();
 });
 it('retains the history listener across cycles/statuses, clears it on identity change and ignores stale callbacks', () => {
   const view = render(<ContractDetail {...props} />);
@@ -632,6 +655,7 @@ it('retains the history listener across cycles/statuses, clears it on identity c
       fromCache: false,
     }),
   );
+  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
   expect(screen.getByText('Historical feedback 0')).toBeOnTheScreen();
   expect(mockHistoryObserve).toHaveBeenCalledTimes(1);
   const old = mockHistory;
@@ -659,6 +683,7 @@ it('distinguishes the current request from historical context and adds no histor
   expect(
     screen.getByRole('header', { name: 'Review history' }),
   ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
   expect(screen.getAllByText('Historical feedback 0')).toHaveLength(2);
   for (const name of ['Edit feedback', 'Reply', 'Acknowledge', 'Delete review'])
     expect(screen.queryByRole('button', { name })).not.toBeOnTheScreen();

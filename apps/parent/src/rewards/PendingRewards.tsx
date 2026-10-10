@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAwaitingRewards, usePendingRewards } from '@chorex/firebase-client';
-import { RewardList, DesignText, homeTokens } from '@chorex/ui';
+import { DesignText, homeTokens } from '@chorex/ui';
+import { ParentRewardList } from './ParentRewardList';
 function PendingRewardsContent({
   familyId,
   authUid,
@@ -20,7 +21,7 @@ function PendingRewardsContent({
   const awaiting = useAwaitingRewards(familyId, authUid);
   return (
     <>
-      <RewardList
+      <ParentRewardList
         onRetry={onRetry}
         preview={preview}
         onSeeAll={preview ? () => router.navigate('/rewards') : undefined}
@@ -55,7 +56,7 @@ function PendingRewardsContent({
             No rewards waiting for confirmation
           </DesignText>
         ) : (
-          <RewardList
+          <ParentRewardList
             onRetry={onRetry}
             viewer="PARENT"
             title="Waiting for child confirmation"

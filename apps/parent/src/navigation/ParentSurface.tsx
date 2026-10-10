@@ -317,7 +317,7 @@ function ParentSurfaceContent({
 
         {familyState.status === 'ready' ? (
           <View className="gap-5">
-            {area !== 'home' && area !== 'contracts' ? (
+            {area !== 'home' && area !== 'contracts' && area !== 'rewards' ? (
               <SectionHeading>
                 {
                   (

@@ -252,6 +252,8 @@ export function ApproveContractAction({
               />
               <Button
                 label="Send feedback"
+                variant="blue"
+                lightText
                 loading={pending}
                 disabled={!validNote || pending}
                 onPress={() => void handleSubmit(requestChanges)()}
@@ -284,6 +286,8 @@ export function ApproveContractAction({
               </Text>
               <Button
                 label="Confirm approval"
+                variant="blue"
+                lightText
                 loading={pending}
                 onPress={() => void approve()}
               />
@@ -298,6 +302,8 @@ export function ApproveContractAction({
             <View className="gap-2">
               <Button
                 label="Approve"
+                variant="blue"
+                lightText
                 onPress={() => setConfirming('APPROVE')}
               />
               <Button
