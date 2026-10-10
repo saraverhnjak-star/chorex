@@ -251,6 +251,10 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(screen.queryByRole('header', { name: 'ChoreX' })).toBeNull();
   await screen.findByText('Mia');
   expect(screen.queryByText('Hello, Alex!')).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: 'Notification settings' }),
+  ).toBeNull();
+  expect(screen.getByRole('button', { name: 'Settings' })).toBeOnTheScreen();
   expect(screen.getByRole('tab', { name: 'All children' })).toBeOnTheScreen();
   expect(screen.getByText('Mia')).toBeOnTheScreen();
   expect(screen.queryByText('Create an offer draft')).toBeNull();
@@ -258,7 +262,7 @@ it('renders the parent screen through the public shared UI package', async () =>
   for (const [label, route] of [
     ['Contracts', '/contracts'],
     ['Rewards', '/rewards'],
-    ['Notification settings', '/more'],
+    ['Settings', '/more'],
     ['Home', '/'],
     ['See all Contracts', '/contracts'],
     ['Create Offer', '/offers/create'],
@@ -292,7 +296,12 @@ it('renders the parent screen through the public shared UI package', async () =>
       <ParentSurface area="more" />
     </AppNavigation>,
   );
-  await screen.findByRole('header', { name: 'Settings' });
+  await screen.findByRole('header', { name: 'Notifications' });
+  expect(screen.queryByRole('header', { name: 'Settings' })).toBeNull();
+  expect(screen.getByText('Parent account')).toBeTruthy();
+  expect(
+    screen.getByRole('header', { name: 'Privacy & account' }),
+  ).toBeTruthy();
   expect(mockRegisterCurrentDevice).not.toHaveBeenCalled();
   const reminderSwitch = screen.getByRole('switch', {
     name: 'Pending reward reminders',
@@ -319,6 +328,8 @@ it('renders the parent screen through the public shared UI package', async () =>
     </AppNavigation>,
   );
   await screen.findByText('Add a child');
+  expect(screen.queryByRole('header', { name: 'Family' })).toBeNull();
+  expect(screen.getByRole('header', { name: 'Children' })).toBeTruthy();
   fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
   expect(await screen.findByText('AbCdEfGhIjKlMnOpQrStUw')).toBeOnTheScreen();
   expect(createPairingSession).toHaveBeenCalledWith(
@@ -429,6 +440,8 @@ it('uses the existing family and child commands before offering device pairing',
   fireEvent.changeText(screen.getByLabelText('Family name'), ' Rivera Family ');
   fireEvent.press(screen.getByRole('button', { name: 'Create family' }));
   await screen.findByText('Add a child');
+  expect(screen.queryByRole('header', { name: 'Family' })).toBeNull();
+  expect(screen.getByRole('header', { name: 'Children' })).toBeTruthy();
   expect(createFamily).toHaveBeenCalledWith({
     displayName: 'Alex',
     familyName: 'Rivera Family',

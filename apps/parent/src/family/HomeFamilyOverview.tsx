@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { ParentFamilyHome } from '@chorex/firebase-client';
@@ -6,12 +7,16 @@ import {
   useReadyForReviewContracts,
 } from '@chorex/firebase-client';
 import { homeTokens, CollectionHeading, DesignText as Text } from '@chorex/ui';
+type ChildProfile = { uid: string; displayName: string };
+
 export function HomeFamilyOverview({
   home,
   authUid,
   preview = false,
+  renderChildActions,
 }: {
   preview?: boolean;
+  renderChildActions?: (child: ChildProfile) => ReactNode;
   home: ParentFamilyHome;
   authUid: string;
 }) {
@@ -21,13 +26,15 @@ export function HomeFamilyOverview({
   return (
     <View style={{ gap: 12 }}>
       <CollectionHeading
+        count={home.children.length}
         label="See all Family"
         onSeeAll={preview ? () => router.navigate('/family') : undefined}
       >
-        Family overview
+        Children
       </CollectionHeading>
       <FamilyOverviewRows
         preview={preview}
+        renderChildActions={renderChildActions}
         members={preview ? home.children.slice(0, 2) : home.children}
         active={
           active.status === 'ready'
@@ -47,7 +54,7 @@ export function HomeFamilyOverview({
 }
 
 export function FamilyOverviewRows({
-  preview = false,
+  renderChildActions,
   members,
   active,
   review,
@@ -55,6 +62,7 @@ export function FamilyOverviewRows({
   reviewCached = false,
 }: {
   preview?: boolean;
+  renderChildActions?: (child: ChildProfile) => ReactNode;
   members: readonly { uid: string; displayName: string }[];
   active?: readonly string[];
   review?: readonly string[];
@@ -64,12 +72,7 @@ export function FamilyOverviewRows({
   return (
     <View
       style={{
-        padding: preview ? homeTokens.spacing.card : 12,
-        borderRadius: homeTokens.radius.card,
-        borderWidth: preview ? 0 : 1,
-        borderColor: homeTokens.border,
-        backgroundColor: homeTokens.surface,
-        gap: preview ? homeTokens.spacing.medium : 8,
+        gap: homeTokens.spacing.medium,
       }}
     >
       {members.length === 0 ? (
@@ -80,49 +83,63 @@ export function FamilyOverviewRows({
         members.map((child) => (
           <View
             key={child.uid}
-            style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}
+            style={{
+              padding: homeTokens.spacing.card,
+              gap: homeTokens.spacing.medium,
+              borderRadius: homeTokens.radius.card,
+              backgroundColor: homeTokens.surface,
+            }}
           >
             <View
               style={{
-                width: preview ? 56 : 36,
-                height: preview ? 56 : 36,
-                borderRadius: homeTokens.radius.pill,
-                backgroundColor: homeTokens.lavender,
+                flexDirection: 'row',
+                gap: homeTokens.spacing.medium,
                 alignItems: 'center',
-                justifyContent: 'center',
               }}
             >
-              <Text style={{ color: homeTokens.text, fontSize: 20 }}>
-                {child.displayName.slice(0, 1).toUpperCase()}
-              </Text>
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text
+              <View
                 style={{
-                  fontWeight: '600',
-                  color: homeTokens.text,
-                  fontSize: preview ? 20 : 15,
-                  lineHeight: preview ? 27 : 20,
+                  width: 64,
+                  height: 64,
+                  borderRadius: homeTokens.radius.pill,
+                  backgroundColor: homeTokens.lavender,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                {child.displayName}
-              </Text>
-              <Text
-                style={{
-                  color: homeTokens.secondary,
-                  fontSize: 12,
-                  lineHeight: 16,
-                }}
-              >
-                {active !== undefined
-                  ? `${active.filter((uid) => uid === child.uid).length} active${activeCached ? ' (saved)' : ''}`
-                  : 'Active count unavailable'}{' '}
-                ·{' '}
-                {review !== undefined
-                  ? `${review.filter((uid) => uid === child.uid).length} need review${reviewCached ? ' (saved)' : ''}`
-                  : 'Review count unavailable'}
-              </Text>
+                <Text style={{ color: homeTokens.text, fontSize: 20 }}>
+                  {child.displayName.slice(0, 1).toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text
+                  style={{
+                    fontWeight: '600',
+                    color: homeTokens.text,
+                    fontSize: 22,
+                    lineHeight: 28,
+                  }}
+                >
+                  {child.displayName}
+                </Text>
+                <Text
+                  style={{
+                    color: homeTokens.secondary,
+                    fontSize: 14,
+                    lineHeight: 20,
+                  }}
+                >
+                  {active !== undefined
+                    ? `${active.filter((uid) => uid === child.uid).length} active${activeCached ? ' (saved)' : ''}`
+                    : 'Active count unavailable'}{' '}
+                  ·{' '}
+                  {review !== undefined
+                    ? `${review.filter((uid) => uid === child.uid).length} need review${reviewCached ? ' (saved)' : ''}`
+                    : 'Review count unavailable'}
+                </Text>
+              </View>
             </View>
+            {renderChildActions?.(child)}
           </View>
         ))
       )}

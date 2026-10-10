@@ -1,3 +1,4 @@
+import { ParentSettingsSection } from './ParentSettingsSection';
 import { ContractTabs } from '../contracts/ContractTabs';
 import { HomeAttention } from './HomeAttention';
 import { ParentFamilyProvider, useParentFamily } from './FamilyContext';
@@ -11,7 +12,6 @@ import {
   DesignText,
   SectionHeading,
   ReminderPreferenceCard,
-  SettingsSection,
   SettingsRow,
   Button,
   SetupSection,
@@ -315,7 +315,11 @@ function ParentSurfaceContent({
 
         {familyState.status === 'ready' ? (
           <View className="gap-5">
-            {area !== 'home' && area !== 'contracts' && area !== 'rewards' ? (
+            {area !== 'home' &&
+            area !== 'contracts' &&
+            area !== 'rewards' &&
+            area !== 'more' &&
+            area !== 'family' ? (
               <SectionHeading>
                 {
                   (
@@ -451,14 +455,6 @@ function ParentSurfaceContent({
                 />
               </HomeSection>
             ) : null}
-            {area === 'family' ? (
-              <HomeSection>
-                <HomeFamilyOverview
-                  home={familyState.home}
-                  authUid={user.uid}
-                />
-              </HomeSection>
-            ) : null}
             {area === 'home' ? (
               <HomeCardAction
                 label="＋ New offer"
@@ -485,153 +481,190 @@ function ParentSurfaceContent({
               </HomeSection>
             ) : null}
             {area === 'family' ? (
-              <SetupSection
-                title="Add a child"
-                description="Create their profile, then connect their Child app. No child email is needed."
-              >
-                <FormMessage message={childErrors.root?.child?.message} />
-                <Controller
-                  control={childControl}
-                  name="displayName"
-                  render={({ field }) => (
-                    <TextField
-                      autoCapitalize="words"
-                      editable={!isCreatingChild}
-                      error={childErrors.displayName?.message}
-                      label="Child's name"
-                      onBlur={field.onBlur}
-                      onChangeText={(value) => {
-                        setChildIdempotencyKey(undefined);
-                        field.onChange(value);
-                      }}
-                      onSubmitEditing={handleChildSubmit(onCreateChild)}
-                      returnKeyType="done"
-                      value={field.value}
+              <HomeFamilyOverview
+                home={familyState.home}
+                authUid={user.uid}
+                renderChildActions={(child) => (
+                  <View style={{ gap: homeTokens.spacing.medium }}>
+                    <Button
+                      label={
+                        pairingState.status === 'ready' &&
+                        pairingState.childUid === child.uid
+                          ? 'Create new code'
+                          : 'Pair device'
+                      }
+                      loading={
+                        pairingState.status === 'loading' &&
+                        pairingState.childUid === child.uid
+                      }
+                      onPress={() => onCreatePairingSession(child.uid)}
+                      variant="blue"
+                      lightText
                     />
-                  )}
-                />
-                <Button
-                  label="Create child profile"
-                  loading={isCreatingChild}
-                  onPress={handleChildSubmit(onCreateChild)}
-                />
-              </SetupSection>
-            ) : null}
-            {area === 'more' || area === 'family' ? (
-              <HomeSection>
-                {area === 'family' ? (
-                  <View>
-                    <View className="rounded-3xl border border-home-border bg-home-surface p-5">
-                      <SectionHeading>Children</SectionHeading>
-                      {familyState.home.children.length === 0 ? (
+                    {pairingState.status === 'ready' &&
+                    pairingState.childUid === child.uid ? (
+                      <View
+                        className="gap-3 rounded-2xl p-4"
+                        style={{
+                          backgroundColor: homeTokens.coralSurface,
+                        }}
+                      >
                         <Text
                           allowFontScaling={false}
-                          className="mt-3 text-home-muted"
+                          className="text-home-text"
                           style={dynamicType.body}
                         >
-                          No child profiles yet.
+                          Use this temporary code in the Child app to connect{' '}
+                          {child.displayName}&apos;s device. It can only be used
+                          once.
                         </Text>
-                      ) : (
-                        <View className="mt-3 gap-2">
-                          {familyState.home.children.map((child) => (
-                            <View
-                              className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4"
-                              key={child.uid}
-                            >
-                              <Text
-                                allowFontScaling={false}
-                                className="font-semibold text-home-text"
-                                style={dynamicType.body}
-                              >
-                                {child.displayName}
-                              </Text>
-                              <Button
-                                label={
-                                  pairingState.status === 'ready' &&
-                                  pairingState.childUid === child.uid
-                                    ? 'Create new code'
-                                    : 'Pair device'
-                                }
-                                loading={
-                                  pairingState.status === 'loading' &&
-                                  pairingState.childUid === child.uid
-                                }
-                                onPress={() =>
-                                  onCreatePairingSession(child.uid)
-                                }
-                                variant="secondary"
-                              />
-                              {pairingState.status === 'ready' &&
-                              pairingState.childUid === child.uid ? (
-                                <View
-                                  className="gap-3 rounded-2xl p-4"
-                                  style={{
-                                    backgroundColor: homeTokens.coralSurface,
-                                  }}
-                                >
-                                  <Text
-                                    allowFontScaling={false}
-                                    className="text-home-text"
-                                    style={dynamicType.body}
-                                  >
-                                    Use this temporary code in the Child app to
-                                    connect {child.displayName}&apos;s device.
-                                    It can only be used once.
-                                  </Text>
-                                  {pairingState.token ? (
-                                    <Text
-                                      allowFontScaling={false}
-                                      className="font-bold text-home-text"
-                                      selectable
-                                      style={dynamicType.body}
-                                    >
-                                      {pairingState.token}
-                                    </Text>
-                                  ) : (
-                                    <Text
-                                      allowFontScaling={false}
-                                      className="text-home-muted"
-                                      style={dynamicType.body}
-                                    >
-                                      This code was already shown. Create a new
-                                      code to connect a device.
-                                    </Text>
-                                  )}
-                                  <Text
-                                    allowFontScaling={false}
-                                    className="text-home-muted"
-                                    style={dynamicType.small}
-                                  >
-                                    Expires:{' '}
-                                    {new Date(
-                                      pairingState.expiresAt,
-                                    ).toLocaleString()}
-                                  </Text>
-                                </View>
-                              ) : null}
-                              {pairingState.status === 'error' &&
-                              pairingState.childUid === child.uid ? (
-                                <FormMessage message={pairingState.message} />
-                              ) : null}
-                            </View>
-                          ))}
-                        </View>
-                      )}
-                    </View>
+                        {pairingState.token ? (
+                          <Text
+                            allowFontScaling={false}
+                            className="font-bold text-home-text"
+                            selectable
+                            style={dynamicType.body}
+                          >
+                            {pairingState.token}
+                          </Text>
+                        ) : (
+                          <Text
+                            allowFontScaling={false}
+                            className="text-home-muted"
+                            style={dynamicType.body}
+                          >
+                            This code was already shown. Create a new code to
+                            connect a device.
+                          </Text>
+                        )}
+                        <Text
+                          allowFontScaling={false}
+                          className="text-home-muted"
+                          style={dynamicType.small}
+                        >
+                          Expires:{' '}
+                          {new Date(pairingState.expiresAt).toLocaleString()}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {pairingState.status === 'error' &&
+                    pairingState.childUid === child.uid ? (
+                      <FormMessage message={pairingState.message} />
+                    ) : null}
                   </View>
-                ) : null}
+                )}
+              />
+            ) : null}
+            {area === 'family' ? (
+              <ParentSettingsSection title="Add a child">
+                <View
+                  style={{
+                    padding: homeTokens.spacing.card,
+                    gap: homeTokens.spacing.medium,
+                  }}
+                >
+                  <DesignText
+                    style={{ fontSize: 16, color: homeTokens.secondary }}
+                  >
+                    Create their profile, then connect their Child app. No child
+                    email is needed.
+                  </DesignText>
+                  <FormMessage message={childErrors.root?.child?.message} />
+                  <Controller
+                    control={childControl}
+                    name="displayName"
+                    render={({ field }) => (
+                      <TextField
+                        autoCapitalize="words"
+                        editable={!isCreatingChild}
+                        error={childErrors.displayName?.message}
+                        label="Child's name"
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          setChildIdempotencyKey(undefined);
+                          field.onChange(value);
+                        }}
+                        onSubmitEditing={handleChildSubmit(onCreateChild)}
+                        returnKeyType="done"
+                        value={field.value}
+                      />
+                    )}
+                  />
+                  <Button
+                    label="Create child profile"
+                    loading={isCreatingChild}
+                    onPress={handleChildSubmit(onCreateChild)}
+                  />
+                </View>
+              </ParentSettingsSection>
+            ) : null}
+            {area === 'more' ? (
+              <HomeSection>
                 {area === 'more' ? (
                   <>
-                    <SettingsSection title="Account">
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: homeTokens.spacing.medium,
+                        paddingVertical: homeTokens.spacing.medium,
+                      }}
+                    >
+                      <View
+                        accessible={false}
+                        style={{
+                          width: 72,
+                          height: 72,
+                          borderRadius: homeTokens.radius.pill,
+                          backgroundColor: homeTokens.blue,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <DesignText
+                          style={{
+                            fontSize: 26,
+                            fontWeight: '700',
+                            color: homeTokens.text,
+                          }}
+                        >
+                          {familyState.home.profile.displayName
+                            .trim()
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((part) => part.charAt(0))
+                            .join('')
+                            .toUpperCase()}
+                        </DesignText>
+                      </View>
+                      <View style={{ flex: 1, gap: homeTokens.spacing.small }}>
+                        <DesignText
+                          style={{
+                            fontSize: 26,
+                            fontWeight: '700',
+                            color: homeTokens.text,
+                          }}
+                        >
+                          {familyState.home.profile.displayName}
+                        </DesignText>
+                        <DesignText
+                          style={{ fontSize: 16, color: homeTokens.secondary }}
+                        >
+                          Parent account
+                        </DesignText>
+                      </View>
+                    </View>
+                    <ParentSettingsSection title="Family">
                       <SettingsRow
                         last
-                        title={familyState.home.profile.displayName}
-                        subtitle="Parent account"
-                        icon="person-outline"
-                        tone="blue"
+                        title="Family"
+                        subtitle="View your family and existing child profiles."
+                        icon="people-outline"
+                        tone="mint"
+                        onPress={() => router.navigate('/family')}
                       />
-                    </SettingsSection>
-                    <SettingsSection title="Notifications">
+                    </ParentSettingsSection>
+                    <ParentSettingsSection title="Notifications">
                       <NotificationPermissionCard
                         benefit="Stay updated when your child responds, submits an agreement or needs your attention."
                         education={education.showEducation}
@@ -672,17 +705,7 @@ function ParentSurfaceContent({
                           void reminder.save(enabled);
                         }}
                       />
-                    </SettingsSection>
-                    <SettingsSection title="Family">
-                      <SettingsRow
-                        last
-                        title="Family"
-                        subtitle="View your family and existing child profiles."
-                        icon="people-outline"
-                        tone="mint"
-                        onPress={() => router.navigate('/family')}
-                      />
-                    </SettingsSection>
+                    </ParentSettingsSection>
                   </>
                 ) : null}
               </HomeSection>
@@ -695,7 +718,7 @@ function ParentSurfaceContent({
           <View className="mt-6 gap-4">
             <FormMessage message={signOutError} />
             {area === 'more' ? (
-              <SettingsSection title="Account actions">
+              <ParentSettingsSection title="Privacy & account">
                 <SettingsRow
                   title="Privacy & Data"
                   icon="shield-checkmark-outline"
@@ -712,7 +735,7 @@ function ParentSurfaceContent({
                   disabled={signingOut}
                   onPress={handleSignOut}
                 />
-              </SettingsSection>
+              </ParentSettingsSection>
             ) : (
               <View className="gap-3">
                 <Button
