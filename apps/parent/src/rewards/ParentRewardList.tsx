@@ -5,6 +5,7 @@ import {
   CollectionHeading,
   DesignText,
   FormMessage,
+  OfferOutcome,
   homeTokens,
   type RewardList,
 } from '@chorex/ui';
@@ -58,9 +59,15 @@ export function ParentRewardList({
         </>
       ) : null}
       {!loading && !error && !rewards.length ? (
-        <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-          {fromCache ? 'No rewards saved yet.' : empty}
-        </DesignText>
+        preview ? (
+          <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
+            {fromCache ? 'No rewards saved yet.' : empty}
+          </DesignText>
+        ) : (
+          <OfferOutcome centered illustration="no-rewards" title="No rewards">
+            {fromCache ? 'No rewards saved yet.' : empty}
+          </OfferOutcome>
+        )
       ) : null}
       {(preview ? rewards.slice(0, 1) : rewards).map((reward) => {
         const pending = reward.status === 'PENDING_FULFILLMENT';

@@ -172,6 +172,8 @@ function ContractList({
               </HomeEmptyState>
             ) : (
               <OfferOutcome
+                centered
+                illustration="no-chores"
                 title={
                   readyForReview
                     ? 'Nothing waiting for review'

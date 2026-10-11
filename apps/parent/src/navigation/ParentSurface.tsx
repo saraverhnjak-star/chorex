@@ -27,6 +27,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -364,6 +365,12 @@ function ParentSurfaceContent({
                   gap: homeTokens.spacing.card,
                 }}
               >
+                <Image
+                  accessible={false}
+                  source={require('../../../../packages/ui/assets/icons/add_child.png')}
+                  resizeMode="contain"
+                  style={{ width: 120, height: 120 }}
+                />
                 <DesignText
                   accessibilityRole="header"
                   style={{
