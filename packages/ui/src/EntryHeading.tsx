@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 import { DesignText, homeTokens } from './Home';
+import { amberAuroraPalette } from './theme';
 
 /** Presentation only: no session, navigation or onboarding state. */
 export function EntryHeading({
@@ -18,10 +19,15 @@ export function EntryHeading({
     <View style={{ gap: 12 }}>
       <DesignText
         accessibilityRole="header"
-        style={{ fontSize: 30, fontWeight: '800', color: homeTokens.text }}
+        style={{
+          fontSize: 30,
+          fontWeight: '800',
+          color: homeTokens.text,
+          marginBottom: homeTokens.spacing.medium,
+        }}
       >
         Chore
-        <DesignText style={{ fontSize: 30, color: homeTokens.coral }}>
+        <DesignText style={{ fontSize: 30, color: amberAuroraPalette.auroraBlue }}>
           X
         </DesignText>
       </DesignText>
