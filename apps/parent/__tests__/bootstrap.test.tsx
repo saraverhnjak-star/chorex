@@ -110,7 +110,11 @@ jest.mock('expo-router', () => ({
   Redirect: () => null,
   usePathname: () => mockPath,
   useFocusEffect: (effect: () => void) => mockUseEffect(effect, [effect]),
-  useRouter: () => ({ navigate: mockNavigate, push: mockNavigate }),
+  useRouter: () => ({
+    navigate: mockNavigate,
+    push: mockNavigate,
+    replace: mockNavigate,
+  }),
 }));
 
 jest.mock('@chorex/firebase-client', () => ({
@@ -478,7 +482,7 @@ it('uses the existing family and child commands before offering device pairing',
     },
     membership: { ...home.children[0]!, uid: 'new-child', displayName: 'Lea' },
   });
-  render(
+  const view = render(
     <AppNavigation>
       <ParentSurface area="family" />
     </AppNavigation>,
@@ -494,6 +498,15 @@ it('uses the existing family and child commands before offering device pairing',
     displayName: 'Alex',
     familyName: 'Rivera Family',
   });
+  expect(screen.getByText(home.family.name)).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Child's name")).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Add a child' }));
+  expect(mockNavigate).toHaveBeenCalledWith('/family/add-child');
+  view.rerender(
+    <AppNavigation>
+      <ParentSurface area="add-child" />
+    </AppNavigation>,
+  );
   fireEvent.changeText(screen.getByLabelText("Child's name"), ' Lea ');
   fireEvent.press(screen.getByRole('button', { name: 'Create child profile' }));
   await waitFor(() =>
@@ -503,10 +516,16 @@ it('uses the existing family and child commands before offering device pairing',
       idempotencyKey: expect.any(String),
     }),
   );
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/family'));
+  expect(screen.getByLabelText("Child's name").props.value).toBe('');
+  view.rerender(
+    <AppNavigation>
+      <ParentSurface area="family" />
+    </AppNavigation>,
+  );
   expect(
     await screen.findByRole('button', { name: 'Pair device' }),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Child's name").props.value).toBe('');
 });
 
 it('combines actionable attention sources and preserves each existing destination', async () => {

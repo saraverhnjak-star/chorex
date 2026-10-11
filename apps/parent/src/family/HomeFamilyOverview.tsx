@@ -2,27 +2,22 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { ParentFamilyHome } from '@chorex/firebase-client';
-import {
-  useActiveContracts,
-  useReadyForReviewContracts,
-} from '@chorex/firebase-client';
 import { homeTokens, CollectionHeading, DesignText as Text } from '@chorex/ui';
 type ChildProfile = { uid: string; displayName: string };
 
 export function HomeFamilyOverview({
   home,
-  authUid,
   preview = false,
   renderChildActions,
+  renderChildDetails,
 }: {
   preview?: boolean;
   renderChildActions?: (child: ChildProfile) => ReactNode;
+  renderChildDetails?: (child: ChildProfile) => ReactNode;
   home: ParentFamilyHome;
   authUid: string;
 }) {
   const router = useRouter();
-  const active = useActiveContracts(home.family.id, authUid);
-  const review = useReadyForReviewContracts(home.family.id, authUid);
   return (
     <View style={{ gap: 12 }}>
       <CollectionHeading
@@ -35,19 +30,8 @@ export function HomeFamilyOverview({
       <FamilyOverviewRows
         preview={preview}
         renderChildActions={renderChildActions}
+        renderChildDetails={renderChildDetails}
         members={preview ? home.children.slice(0, 2) : home.children}
-        active={
-          active.status === 'ready'
-            ? active.contracts.map((c) => c.childUid)
-            : undefined
-        }
-        review={
-          review.status === 'ready'
-            ? review.contracts.map((c) => c.childUid)
-            : undefined
-        }
-        activeCached={active.status === 'ready' && active.fromCache}
-        reviewCached={review.status === 'ready' && review.fromCache}
       />
     </View>
   );
@@ -55,19 +39,13 @@ export function HomeFamilyOverview({
 
 export function FamilyOverviewRows({
   renderChildActions,
+  renderChildDetails,
   members,
-  active,
-  review,
-  activeCached = false,
-  reviewCached = false,
 }: {
   preview?: boolean;
   renderChildActions?: (child: ChildProfile) => ReactNode;
+  renderChildDetails?: (child: ChildProfile) => ReactNode;
   members: readonly { uid: string; displayName: string }[];
-  active?: readonly string[];
-  review?: readonly string[];
-  activeCached?: boolean;
-  reviewCached?: boolean;
 }) {
   return (
     <View
@@ -84,7 +62,7 @@ export function FamilyOverviewRows({
           <View
             key={child.uid}
             style={{
-              padding: homeTokens.spacing.card,
+              padding: homeTokens.spacing.medium,
               gap: homeTokens.spacing.medium,
               borderRadius: homeTokens.radius.card,
               backgroundColor: homeTokens.surface,
@@ -99,8 +77,8 @@ export function FamilyOverviewRows({
             >
               <View
                 style={{
-                  width: 64,
-                  height: 64,
+                  width: 48,
+                  height: 48,
                   borderRadius: homeTokens.radius.pill,
                   backgroundColor: homeTokens.lavender,
                   alignItems: 'center',
@@ -116,30 +94,16 @@ export function FamilyOverviewRows({
                   style={{
                     fontWeight: '600',
                     color: homeTokens.text,
-                    fontSize: 22,
+                    fontSize: 20,
                     lineHeight: 28,
                   }}
                 >
                   {child.displayName}
                 </Text>
-                <Text
-                  style={{
-                    color: homeTokens.secondary,
-                    fontSize: 14,
-                    lineHeight: 20,
-                  }}
-                >
-                  {active !== undefined
-                    ? `${active.filter((uid) => uid === child.uid).length} active${activeCached ? ' (saved)' : ''}`
-                    : 'Active count unavailable'}{' '}
-                  ·{' '}
-                  {review !== undefined
-                    ? `${review.filter((uid) => uid === child.uid).length} need review${reviewCached ? ' (saved)' : ''}`
-                    : 'Review count unavailable'}
-                </Text>
               </View>
+              {renderChildActions?.(child)}
             </View>
-            {renderChildActions?.(child)}
+            {renderChildDetails?.(child)}
           </View>
         ))
       )}

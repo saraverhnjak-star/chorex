@@ -76,7 +76,14 @@ function newIdempotencyKey(): string {
 
 export function ParentSurface(props: {
   area?:
-    'home' | 'offers' | 'contracts' | 'rewards' | 'more' | 'create' | 'family';
+    | 'home'
+    | 'offers'
+    | 'contracts'
+    | 'rewards'
+    | 'more'
+    | 'create'
+    | 'family'
+    | 'add-child';
 }) {
   const family = useParentFamily();
   if (!family)
@@ -91,7 +98,14 @@ function ParentSurfaceContent({
   area = 'home',
 }: {
   area?:
-    'home' | 'offers' | 'contracts' | 'rewards' | 'more' | 'create' | 'family';
+    | 'home'
+    | 'offers'
+    | 'contracts'
+    | 'rewards'
+    | 'more'
+    | 'create'
+    | 'family'
+    | 'add-child';
 }) {
   const router = useRouter();
   const { user, signOut, notifications } = useParentSession();
@@ -170,6 +184,7 @@ function ParentSurfaceContent({
       });
       setChildIdempotencyKey(undefined);
       resetChildForm();
+      if (area === 'add-child') router.replace('/family');
     } catch (error) {
       setChildError('root.child', { message: getFamilyErrorMessage(error) });
     }
@@ -229,6 +244,20 @@ function ParentSurfaceContent({
     <HomeScreenFrame
       header={
         <HomeHeader
+          leading={
+            area === 'add-child' ? (
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel="Back to Family"
+                onPress={() => router.replace('/family')}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+              >
+                <DesignText style={{ color: homeTokens.secondary }}>
+                  ← Family
+                </DesignText>
+              </Pressable>
+            ) : undefined
+          }
           name={
             familyState.status === 'ready'
               ? familyState.home.profile.displayName
@@ -236,7 +265,7 @@ function ParentSurfaceContent({
           }
         />
       }
-      keyboard={area === 'family' || familyState.status === 'onboarding'}
+      keyboard={area === 'add-child' || familyState.status === 'onboarding'}
     >
       <View>
         {familyState.status === 'loading' ? (
@@ -320,7 +349,8 @@ function ParentSurfaceContent({
             area !== 'more' &&
             area !== 'family' &&
             area !== 'create' &&
-            area !== 'offers' ? (
+            area !== 'offers' &&
+            area !== 'add-child' ? (
               <SectionHeading>
                 {
                   (
@@ -474,11 +504,23 @@ function ParentSurfaceContent({
               </HomeSection>
             ) : null}
             {area === 'family' ? (
+              <DesignText
+                accessibilityRole="header"
+                style={{
+                  fontSize: 28,
+                  fontWeight: '700',
+                  color: homeTokens.text,
+                }}
+              >
+                {familyState.home.family.name}
+              </DesignText>
+            ) : null}
+            {area === 'family' ? (
               <HomeFamilyOverview
                 home={familyState.home}
                 authUid={user.uid}
                 renderChildActions={(child) => (
-                  <View style={{ gap: homeTokens.spacing.medium }}>
+                  <View style={{ alignSelf: 'flex-start' }}>
                     <Button
                       label={
                         pairingState.status === 'ready' &&
@@ -491,9 +533,13 @@ function ParentSurfaceContent({
                         pairingState.childUid === child.uid
                       }
                       onPress={() => onCreatePairingSession(child.uid)}
-                      variant="blue"
+                      variant="deepBlue"
                       lightText
                     />
+                  </View>
+                )}
+                renderChildDetails={(child) => (
+                  <View style={{ gap: homeTokens.spacing.medium }}>
                     {pairingState.status === 'ready' &&
                     pairingState.childUid === child.uid ? (
                       <View
@@ -549,6 +595,14 @@ function ParentSurfaceContent({
               />
             ) : null}
             {area === 'family' ? (
+              <Button
+                label="Add a child"
+                variant="blue"
+                lightText
+                onPress={() => router.push('/family/add-child')}
+              />
+            ) : null}
+            {area === 'add-child' ? (
               <ParentSettingsSection title="Add a child">
                 <View
                   style={{
@@ -585,6 +639,8 @@ function ParentSurfaceContent({
                   />
                   <Button
                     label="Create child profile"
+                    variant="blue"
+                    lightText
                     loading={isCreatingChild}
                     onPress={handleChildSubmit(onCreateChild)}
                   />

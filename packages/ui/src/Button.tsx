@@ -5,7 +5,13 @@ import { amberAuroraColors, amberAuroraPalette } from './theme';
 import { useDynamicTypeStyles } from './typography';
 
 type ButtonVariant =
-  'primary' | 'secondary' | 'blue' | 'outlineBlue' | 'outline' | 'danger';
+  | 'primary'
+  | 'secondary'
+  | 'blue'
+  | 'deepBlue'
+  | 'outlineBlue'
+  | 'outline'
+  | 'danger';
 
 interface ButtonProps {
   lightText?: boolean;
@@ -22,6 +28,7 @@ const containerClasses: Record<ButtonVariant, string> = {
   primary: 'bg-primary',
   secondary: 'bg-secondary',
   blue: 'bg-secondary',
+  deepBlue: 'bg-secondary',
   outline: 'bg-home-surface',
   outlineBlue: 'bg-home-surface',
   danger: 'bg-home-surface',
@@ -59,19 +66,24 @@ export function Button({
       onFocus={() => setFocused(true)}
       onPress={onPress}
       style={
-        home || variant === 'blue' || variant === 'outlineBlue'
+        home ||
+        variant === 'blue' ||
+        variant === 'deepBlue' ||
+        variant === 'outlineBlue'
           ? {
               ...(variant === 'outlineBlue'
                 ? { borderColor: amberAuroraPalette.auroraBlue }
                 : {}),
               backgroundColor:
-                variant === 'blue'
-                  ? amberAuroraPalette.auroraBlue
-                  : variant === 'primary'
-                    ? homeTokens.coral
-                    : variant === 'secondary'
-                      ? homeTokens.blue
-                      : homeTokens.surface,
+                variant === 'deepBlue'
+                  ? amberAuroraPalette.deepBlue
+                  : variant === 'blue'
+                    ? amberAuroraPalette.auroraBlue
+                    : variant === 'primary'
+                      ? homeTokens.coral
+                      : variant === 'secondary'
+                        ? homeTokens.blue
+                        : homeTokens.surface,
             }
           : undefined
       }
