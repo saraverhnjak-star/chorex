@@ -2,6 +2,7 @@ export type AmberAuroraPalette = Readonly<{
   midnightPlum: string;
   warmAmber: string;
   auroraBlue: string;
+  deepBlue: string;
   warmCanvas: string;
   peachGlow: string;
   paper: string;

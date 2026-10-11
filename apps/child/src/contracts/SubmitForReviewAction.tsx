@@ -146,6 +146,8 @@ export function SubmitForReviewAction({
                 label={
                   resubmitting ? 'Confirm resubmission' : 'Confirm submission'
                 }
+                variant="blue"
+                lightText
                 loading={pending}
                 onPress={() => void submit()}
               />
@@ -158,6 +160,8 @@ export function SubmitForReviewAction({
             </>
           ) : (
             <Button
+              variant="blue"
+              lightText
               label={resubmitting ? 'Resubmit for review' : 'Submit for review'}
               onPress={() => setConfirming(true)}
             />

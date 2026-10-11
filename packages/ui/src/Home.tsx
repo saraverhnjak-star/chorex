@@ -70,11 +70,13 @@ export function NavigationFrame({
   items,
   active,
   onNavigate,
+  accentColor = homeTokens.coral,
 }: {
   children: ReactNode;
   items: readonly NavigationItem[];
   active: string;
   onNavigate: (id: string) => void;
+  accentColor?: string;
 }) {
   const navigate = onNavigate;
   const { fontScale } = useWindowDimensions();
@@ -104,11 +106,11 @@ export function NavigationFrame({
                     width: 56,
                     height: 56,
                     borderRadius: homeTokens.radius.pill,
-                    backgroundColor: homeTokens.coral,
+                    backgroundColor: accentColor,
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginTop: -homeTokens.spacing.medium,
-                    shadowColor: homeTokens.coral,
+                    shadowColor: accentColor,
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
                     shadowOffset: { width: 0, height: 4 },
@@ -128,7 +130,7 @@ export function NavigationFrame({
                   name={item.icon}
                   size={24}
                   color={
-                    active === item.id ? homeTokens.coral : homeTokens.secondary
+                    active === item.id ? accentColor : homeTokens.secondary
                   }
                 />
               )}
@@ -143,9 +145,7 @@ export function NavigationFrame({
                       fontSize: labelSize,
                       lineHeight: labelSize * 1.35,
                       color:
-                        active === item.id
-                          ? homeTokens.coralText
-                          : homeTokens.secondary,
+                        active === item.id ? accentColor : homeTokens.secondary,
                     },
                   ]}
                 >

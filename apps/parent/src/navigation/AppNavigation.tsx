@@ -1,7 +1,11 @@
 import { ParentFamilyProvider } from './FamilyContext';
 import type { ReactNode } from 'react';
 import { usePathname, useRouter } from 'expo-router';
-import { NavigationFrame, type NavigationItem } from '@chorex/ui';
+import {
+  NavigationFrame,
+  amberAuroraPalette,
+  type NavigationItem,
+} from '@chorex/ui';
 const items: readonly NavigationItem[] = [
   { id: 'home', label: 'Home', icon: 'home-outline' },
   { id: 'contracts', label: 'Contracts', icon: 'checkbox-outline' },
@@ -27,6 +31,7 @@ export function AppNavigation({ children }: { children: ReactNode }) {
   return (
     <ParentFamilyProvider>
       <NavigationFrame
+        accentColor={amberAuroraPalette.deepBlue}
         items={items}
         active={active}
         onNavigate={(id) => {
