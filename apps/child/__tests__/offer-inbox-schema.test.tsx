@@ -1,4 +1,7 @@
-import { childOfferInboxItemSchema } from '@chorex/domain';
+import {
+  childOfferInboxItemSchema,
+  childOfferHistoryItemSchema,
+} from '@chorex/domain';
 
 const validItem = {
   offer: {
@@ -42,6 +45,36 @@ it('rejects malformed persisted Offer data', () => {
         ...validItem.revision,
         tasks: [{ title: 'Load the dishwasher', targetCount: 0 }],
       },
+    }).success,
+  ).toBe(false);
+});
+
+it('accepts published history statuses while rejecting drafts and mismatched revisions', () => {
+  for (const status of [
+    'AWAITING_CHILD',
+    'AWAITING_PARENT',
+    'ACCEPTED',
+    'REJECTED',
+    'CANCELLED',
+    'EXPIRED',
+  ]) {
+    expect(
+      childOfferHistoryItemSchema.safeParse({
+        ...validItem,
+        offer: { ...validItem.offer, status },
+      }).success,
+    ).toBe(true);
+  }
+  expect(
+    childOfferHistoryItemSchema.safeParse({
+      ...validItem,
+      offer: { ...validItem.offer, status: 'DRAFT' },
+    }).success,
+  ).toBe(false);
+  expect(
+    childOfferHistoryItemSchema.safeParse({
+      ...validItem,
+      revision: { ...validItem.revision, id: 'old' },
     }).success,
   ).toBe(false);
 });

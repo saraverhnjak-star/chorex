@@ -192,6 +192,11 @@ jest.mock('@chorex/firebase-client', () => ({
     contracts: [],
     fromCache: false,
   }),
+  useContractsInState: () => ({
+    status: 'ready',
+    contracts: [],
+    fromCache: false,
+  }),
   useActiveContracts: () => ({
     status: 'ready',
     contracts: [],
@@ -212,6 +217,11 @@ jest.mock('@chorex/firebase-client', () => ({
   signInWithChildCustomToken: (...args: unknown[]) =>
     mockSignInWithChildCustomToken(...args),
   signOutCurrentUser: jest.fn(),
+  subscribeToChildOfferHistory: (
+    familyId: string,
+    onItems: (items: typeof childOfferInboxItems) => void,
+    onError: (error: unknown) => void,
+  ) => mockSubscribeToCurrentChildOfferInbox(familyId, onItems, onError),
   subscribeToCurrentChildOfferInbox: (
     familyId: string,
     onItems: (items: typeof childOfferInboxItems) => void,

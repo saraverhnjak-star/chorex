@@ -155,6 +155,27 @@ export const childOfferInboxItemSchema = z
     }
   });
 
+export const childOfferHistoryItemSchema = z
+  .strictObject({
+    offer: offerSchema.extend({
+      status: offerStatusSchema.exclude(['DRAFT']),
+      currentRevisionId: boundedIdSchema,
+    }),
+    revision: offerRevisionSchema,
+  })
+  .superRefine(({ offer, revision }, context) => {
+    if (
+      revision.id !== offer.currentRevisionId ||
+      revision.offerId !== offer.id
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Revision must be the Offer current revision.',
+        path: ['revision', 'id'],
+      });
+    }
+  });
+
 const parentNegotiationOfferSchema = offerSchema.extend({
   status: z.literal('AWAITING_PARENT'),
   currentRevisionId: boundedIdSchema,
@@ -292,3 +313,7 @@ export type ParentNegotiationInboxItem = z.output<
 >;
 export type OfferCommandErrorCode =
   (typeof offerCommandErrorCodes)[keyof typeof offerCommandErrorCodes];
+
+export type ChildOfferHistoryItem = z.output<
+  typeof childOfferHistoryItemSchema
+>;

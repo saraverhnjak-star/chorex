@@ -87,3 +87,5 @@ export { RewardPicker } from './RewardPicker';
 export { WaitingState } from './WaitingState';
 
 export { default as Ionicons } from '@expo/vector-icons/Ionicons';
+export { TabCounter } from './TabCounter';
+export { StatusTabs } from './StatusTabs';

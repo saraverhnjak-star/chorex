@@ -1,3 +1,4 @@
+import { StatusTabs } from '../navigation/StatusTabs';
 import { useRouter } from 'expo-router';
 import { useLayoutEffect, useState } from 'react';
 import { HomeContractRow } from './HomeContractRow';
@@ -5,14 +6,13 @@ import { Text, View } from 'react-native';
 import {
   useActiveContracts,
   useReadyForReviewContracts,
+  useContractsInState,
   type ActiveContractsState,
 } from '@chorex/firebase-client';
 import {
   Button,
   HomeEmptyState,
   CollectionHeading,
-  SectionHeading,
-  CountBadge,
   OfferOutcome,
   FormMessage,
   useDynamicTypeStyles,
@@ -37,19 +37,29 @@ function ActiveContractsContent({
 }) {
   const active = useActiveContracts(familyId, authUid);
   const review = useReadyForReviewContracts(familyId, authUid);
-  const state: ActiveContractsState =
-    active.status === 'error' || review.status === 'error'
-      ? { status: 'error' }
-      : active.status === 'loading' || review.status === 'loading'
-        ? { status: 'loading' }
-        : {
-            status: 'ready',
-            contracts: [...review.contracts, ...active.contracts],
-            fromCache: active.fromCache || review.fromCache,
-          };
+  const changes = useContractsInState(familyId, authUid, 'CHANGES_REQUESTED');
+  const [selected, setSelected] = useState('Your turn');
+  const states = [active, review, changes];
+  const all = states.flatMap((s) => (s.status === 'ready' ? s.contracts : []));
+  const visible = preview
+    ? all
+    : all.filter((c) =>
+        selected === 'Your turn'
+          ? c.status === 'ACTIVE' || c.status === 'CHANGES_REQUESTED'
+          : c.status === 'READY_FOR_REVIEW',
+      );
+  const state: ActiveContractsState = states.some((s) => s.status === 'error')
+    ? { status: 'error' }
+    : states.some((s) => s.status === 'loading')
+      ? { status: 'loading' }
+      : {
+          status: 'ready',
+          contracts: visible,
+          fromCache: states.some((s) => s.status === 'ready' && s.fromCache),
+        };
   const router = useRouter();
   const styles = useDynamicTypeStyles();
-  const empty = state.status === 'ready' && state.contracts.length === 0;
+  const empty = state.status === 'ready' && all.length === 0;
   useLayoutEffect(() => {
     onEmptyChange?.(empty);
   }, [empty, onEmptyChange]);
@@ -60,18 +70,32 @@ function ActiveContractsContent({
   if (preview && empty) return null;
   if (!preview && empty)
     return (
-      <OfferOutcome
-        title="No active agreements"
-        centered
-        illustration="no-chores"
-      >
+      <OfferOutcome title="No agreements yet" centered illustration="no-chores">
         {state.status === 'ready' && state.fromCache
           ? 'No active Contracts are saved on this device yet.'
-          : 'No active Contracts yet.'}
+          : 'Your agreements will appear here.'}
       </OfferOutcome>
     );
   return (
-    <View className={preview ? 'gap-3' : 'gap-4'}>
+    <View
+      className={preview ? 'gap-3' : 'gap-4'}
+      style={!preview ? { flexGrow: 1 } : undefined}
+    >
+      {!preview && all.length > 0 ? (
+        <StatusTabs
+          labels={['Your turn', "Parent's turn"]}
+          tone="blue"
+          counts={{
+            'Your turn': all.filter(
+              (c) => c.status === 'ACTIVE' || c.status === 'CHANGES_REQUESTED',
+            ).length,
+            "Parent's turn": all.filter((c) => c.status === 'READY_FOR_REVIEW')
+              .length,
+          }}
+          selected={selected}
+          onSelect={setSelected}
+        />
+      ) : null}
       {preview ? (
         <CollectionHeading
           label="See all My chores"
@@ -79,17 +103,7 @@ function ActiveContractsContent({
         >
           My agreement
         </CollectionHeading>
-      ) : (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <SectionHeading>My agreements</SectionHeading>
-          </View>
-          {state.status === 'ready' ? (
-            <CountBadge count={state.contracts.length} />
-          ) : null}
-        </View>
-      )}
-
+      ) : null}
       {state.status === 'error' ? (
         <>
           <FormMessage message="Your Contracts could not be loaded. Try again." />
@@ -129,13 +143,17 @@ function ActiveContractsContent({
               </HomeEmptyState>
             ) : (
               <OfferOutcome
-                title="No active agreements"
+                title={
+                  selected === "Parent's turn"
+                    ? 'Nothing waiting for review'
+                    : 'No agreements to work on'
+                }
                 centered
                 illustration="no-chores"
               >
                 {state.fromCache
                   ? 'No active Contracts are saved on this device yet.'
-                  : 'No active Contracts yet.'}
+                  : 'Your agreements will appear here.'}
               </OfferOutcome>
             )
           ) : (

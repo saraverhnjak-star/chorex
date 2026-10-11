@@ -29,6 +29,11 @@ jest.mock('@chorex/firebase-client', () => ({
   isOfferInboxClientError: () => false,
   offerInboxClientErrorCodes: {},
   rejectOffer: jest.fn(),
+  subscribeToChildOfferHistory: (
+    familyId: string,
+    onItems: (items: readonly unknown[]) => void,
+    onError: (error: unknown) => void,
+  ) => mockSubscribe(familyId, onItems, onError),
   subscribeToCurrentChildOfferInbox: (
     familyId: string,
     onItems: (items: readonly unknown[]) => void,
@@ -222,4 +227,40 @@ it('shows only the requested offer and removes actions when it leaves the inbox'
   expect(screen.queryByRole('button', { name: 'Accept offer' })).toBeNull();
   fireEvent.press(screen.getByRole('link', { name: 'Back to Offers' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('/offers');
+});
+
+it('filters the two status tabs and keeps parent-turn details read-only', () => {
+  const view = render(<OfferInbox authUid="child-1" familyId="family-1" />);
+  const parentTurn = {
+    ...item,
+    offer: { ...item.offer, id: 'waiting', status: 'AWAITING_PARENT' },
+    revision: {
+      ...item.revision,
+      reward: { ...item.revision.reward, title: 'Waiting reward' },
+    },
+  };
+  const closed = {
+    ...item,
+    offer: { ...item.offer, id: 'closed', status: 'ACCEPTED' },
+    revision: {
+      ...item.revision,
+      reward: { ...item.revision.reward, title: 'Closed reward' },
+    },
+  };
+  act(() => emitItems?.([item, parentTurn, closed]));
+  expect(
+    screen.getAllByRole('tab').map((tab) => tab.props.accessibilityLabel),
+  ).toEqual(['Your turn', "Parent's turn"]);
+  expect(screen.queryByText('Reward: Waiting reward')).toBeNull();
+  fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
+  expect(screen.getByText('Reward: Waiting reward')).toBeOnTheScreen();
+  expect(screen.queryByText('Reward: Closed reward')).toBeNull();
+  expect(screen.queryByRole('tab', { name: 'Closed' })).toBeNull();
+  view.rerender(
+    <OfferInbox authUid="child-1" familyId="family-1" offerId="waiting" />,
+  );
+  act(() => emitItems?.([parentTurn]));
+  expect(screen.getByText("Parent's turn")).toBeOnTheScreen();
+  expect(screen.queryByRole('button', { name: 'Accept offer' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Counter reward' })).toBeNull();
 });

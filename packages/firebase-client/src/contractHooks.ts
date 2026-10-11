@@ -7,6 +7,7 @@ import {
   observeTasks,
   observeActiveContracts,
   observeReadyForReviewContracts,
+  observeContractsInState,
 } from './index';
 import { ContractReadError, type ReadSnapshot } from './contractReadModel';
 
@@ -127,10 +128,10 @@ export function useReadyForReviewContracts(
 ): ActiveContractsState {
   return useContractsInState(familyId, authUid, 'READY_FOR_REVIEW');
 }
-function useContractsInState(
+export function useContractsInState(
   familyId: string,
   authUid: string,
-  status: 'ACTIVE' | 'READY_FOR_REVIEW',
+  status: Contract['status'],
 ): ActiveContractsState {
   const key = JSON.stringify([familyId, authUid, status]);
   const [result, setResult] = useState<{
@@ -147,7 +148,13 @@ function useContractsInState(
       stop = (
         status === 'ACTIVE'
           ? observeActiveContracts
-          : observeReadyForReviewContracts
+          : status === 'READY_FOR_REVIEW'
+            ? observeReadyForReviewContracts
+            : (
+                family: string,
+                callback: (snapshot: ReadSnapshot<readonly Contract[]>) => void,
+                onError: (error: ContractReadError) => void,
+              ) => observeContractsInState(family, status, callback, onError)
       )(
         familyId,
         (snapshot) =>

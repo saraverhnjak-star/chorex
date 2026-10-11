@@ -1,7 +1,8 @@
+import { StatusTabs } from './StatusTabs';
 import { useState, type ReactNode } from 'react';
 import { HomeFeatureCard, HomeCardAction } from './HomeFeatureCard';
 import { Button } from './Button';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import type { EarnedReward, UserProfile } from '@chorex/domain';
 import { FormMessage } from './FormMessage';
 import {
@@ -19,7 +20,7 @@ export function RewardList({
   loading,
   error,
   fromCache,
-  rewards,
+  rewards: allRewards,
   onSelect,
   childNames = {},
   viewer = 'CHILD',
@@ -41,14 +42,16 @@ export function RewardList({
   viewer?: UserProfile['accountType'];
 }) {
   const [selectedStatus, setSelectedStatus] = useState<EarnedReward['status']>(
-    'PENDING_FULFILLMENT',
+    'AWAITING_CHILD_CONFIRMATION',
   );
-  const [tabsWidth, setTabsWidth] = useState(0);
   const statusTabs = [
-    { status: 'PENDING_FULFILLMENT', label: 'Waiting' },
-    { status: 'AWAITING_CHILD_CONFIRMATION', label: 'Delivered' },
-    { status: 'FULFILLED', label: 'Received' },
+    { status: 'AWAITING_CHILD_CONFIRMATION', label: 'Your turn' },
+    { status: 'PENDING_FULFILLMENT', label: "Parent's turn" },
   ] as const;
+  const rewards =
+    viewer === 'CHILD'
+      ? allRewards.filter((reward) => reward.status !== 'FULFILLED')
+      : allRewards;
   const visible = preview
     ? (viewer === 'CHILD'
         ? [
@@ -129,77 +132,29 @@ export function RewardList({
           )}
       </View>
     );
-  if (viewer === 'CHILD' && !loading && !error && rewards.length === 0)
-    return (
-      <OfferOutcome
-        title={fromCache ? 'No rewards are saved on this device yet.' : empty}
-        centered
-        illustration="no-rewards"
-      >
-        Your earned rewards will appear here.
-      </OfferOutcome>
-    );
   const Wrapper = viewer === 'CHILD' ? ChildRewardCollection : SurfaceCard;
   return (
     <Wrapper>
       {viewer === 'CHILD' ? (
-        <View
+        <StatusTabs
           testID="reward-status-tabs"
-          accessibilityRole="tablist"
-          onLayout={({ nativeEvent }) => setTabsWidth(nativeEvent.layout.width)}
-          style={{
-            flexDirection: 'row',
-            gap: homeTokens.spacing.small,
-          }}
-        >
-          {statusTabs.map((tab) => (
-            <Pressable
-              key={tab.status}
-              accessibilityRole="tab"
-              accessibilityLabel={tab.label}
-              accessibilityState={{ selected: selectedStatus === tab.status }}
-              onPress={() => setSelectedStatus(tab.status)}
-              style={{
-                flexGrow: 0,
-                flexShrink: 0,
-                width:
-                  tabsWidth > 0
-                    ? Math.max(
-                        0,
-                        (tabsWidth - homeTokens.spacing.small * 2) / 3,
-                      )
-                    : undefined,
-                minWidth: 0,
-                minHeight: 48,
-                paddingHorizontal: homeTokens.spacing.small,
-                paddingVertical: homeTokens.spacing.small,
-                justifyContent: 'center',
-                borderRadius: homeTokens.radius.card,
-                backgroundColor:
-                  selectedStatus === tab.status
-                    ? homeTokens.mint
-                    : homeTokens.surface,
-                borderWidth: 1,
-                borderColor:
-                  selectedStatus === tab.status
-                    ? homeTokens.success
-                    : homeTokens.border,
-              }}
-            >
-              <DesignText
-                numberOfLines={1}
-                style={{
-                  textAlign: 'center',
-                  fontSize: 14,
-                  fontWeight: '600',
-                  color: homeTokens.text,
-                }}
-              >
-                {tab.label}
-              </DesignText>
-            </Pressable>
-          ))}
-        </View>
+          tone="green"
+          labels={statusTabs.map((tab) => tab.label)}
+          selected={
+            statusTabs.find((tab) => tab.status === selectedStatus)!.label
+          }
+          onSelect={(label) =>
+            setSelectedStatus(
+              statusTabs.find((tab) => tab.label === label)!.status,
+            )
+          }
+          counts={Object.fromEntries(
+            statusTabs.map((tab) => [
+              tab.label,
+              rewards.filter((reward) => reward.status === tab.status).length,
+            ]),
+          )}
+        />
       ) : (
         <View
           style={{
@@ -262,33 +217,35 @@ export function RewardList({
           illustration="no-rewards"
         />
       ) : null}
-      {groups.map((group) => (
-        <View
-          key={group.label ?? 'rewards'}
-          style={{
-            gap: homeTokens.spacing.medium,
-            marginTop: viewer === 'CHILD' ? homeTokens.spacing.medium : 0,
-          }}
-        >
-          {group.rewards.map((reward) =>
-            viewer === 'CHILD' ? (
-              <ChildRewardCard
-                key={reward.id}
-                reward={reward}
-                onSelect={onSelect}
-              />
-            ) : (
-              <RewardCard
-                key={reward.id}
-                reward={reward}
-                viewer={viewer}
-                childName={childNames[reward.childUid]}
-                onPress={() => onSelect(reward.id)}
-              />
-            ),
-          )}
-        </View>
-      ))}
+      {groups
+        .filter((group) => group.rewards.length > 0)
+        .map((group) => (
+          <View
+            key={group.label ?? 'rewards'}
+            style={{
+              gap: homeTokens.spacing.medium,
+              marginTop: viewer === 'CHILD' ? homeTokens.spacing.medium : 0,
+            }}
+          >
+            {group.rewards.map((reward) =>
+              viewer === 'CHILD' ? (
+                <ChildRewardCard
+                  key={reward.id}
+                  reward={reward}
+                  onSelect={onSelect}
+                />
+              ) : (
+                <RewardCard
+                  key={reward.id}
+                  reward={reward}
+                  viewer={viewer}
+                  childName={childNames[reward.childUid]}
+                  onPress={() => onSelect(reward.id)}
+                />
+              ),
+            )}
+          </View>
+        ))}
     </Wrapper>
   );
 }

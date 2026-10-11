@@ -1,3 +1,4 @@
+import { StatusTabs } from '../navigation/StatusTabs';
 import { useRouter } from 'expo-router';
 import {
   DesignText,
@@ -24,11 +25,12 @@ import {
   counterOffer,
   rejectOffer,
   subscribeToCurrentChildOfferInbox,
-  type ChildOfferInboxItem,
+  subscribeToChildOfferHistory,
 } from '@chorex/firebase-client';
 import {
   rewardSelectionFor,
   rewardTermsForSelection,
+  type ChildOfferHistoryItem,
   type RewardType,
   type RewardSelection,
   type RewardIconKey,
@@ -45,7 +47,7 @@ type OfferInboxState =
   | {
       subscriptionKey: string;
       status: 'ready';
-      items: readonly ChildOfferInboxItem[];
+      items: readonly ChildOfferHistoryItem[];
     }
   | { subscriptionKey: string; status: 'error'; message: string };
 
@@ -87,6 +89,7 @@ export function OfferInbox({
 }) {
   const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
+  const [selectedStatus, setSelectedStatus] = useState('Your turn');
   const [subscriptionAttempt, setSubscriptionAttempt] = useState(0);
   const subscriptionKey = `${authUid}:${familyId}:${offerId ?? 'list'}:${subscriptionAttempt}`;
   const [state, setState] = useState<OfferInboxState>({
@@ -114,7 +117,11 @@ export function OfferInbox({
     let unsubscribe: (() => void) | undefined;
 
     try {
-      unsubscribe = subscribeToCurrentChildOfferInbox(
+      unsubscribe = (
+        preview
+          ? subscribeToCurrentChildOfferInbox
+          : subscribeToChildOfferHistory
+      )(
         familyId,
         (items) => {
           if (active) {
@@ -166,7 +173,7 @@ export function OfferInbox({
       active = false;
       unsubscribe?.();
     };
-  }, [familyId, subscriptionKey, initialCounterOfferId, offerId]);
+  }, [familyId, subscriptionKey, initialCounterOfferId, offerId, preview]);
 
   const displayedState: OfferInboxState =
     state.subscriptionKey === subscriptionKey
@@ -190,8 +197,8 @@ export function OfferInbox({
     setSubscriptionAttempt((attempt) => attempt + 1);
   };
 
-  const acceptCurrentOffer = async (item: ChildOfferInboxItem) => {
-    if (mutatingRef.current) return;
+  const acceptCurrentOffer = async (item: ChildOfferHistoryItem) => {
+    if (mutatingRef.current || item.offer.status !== 'AWAITING_CHILD') return;
     mutatingRef.current = true;
     const key =
       acceptIdempotencyKeys.current.get(item.offer.id) ??
@@ -229,8 +236,8 @@ export function OfferInbox({
     }
   };
 
-  const rejectCurrentOffer = async (item: ChildOfferInboxItem) => {
-    if (mutatingRef.current) return;
+  const rejectCurrentOffer = async (item: ChildOfferHistoryItem) => {
+    if (mutatingRef.current || item.offer.status !== 'AWAITING_CHILD') return;
     mutatingRef.current = true;
     const key =
       rejectIdempotencyKeys.current.get(item.offer.id) ??
@@ -269,7 +276,7 @@ export function OfferInbox({
     }
   };
 
-  const submitCounterOffer = async (item: ChildOfferInboxItem) => {
+  const submitCounterOffer = async (item: ChildOfferHistoryItem) => {
     if (
       mutatingRef.current ||
       !counterOfferForm ||
@@ -333,7 +340,7 @@ export function OfferInbox({
     }
   };
 
-  const openCounterOfferForm = (item: ChildOfferInboxItem) => {
+  const openCounterOfferForm = (item: ChildOfferHistoryItem) => {
     setActionError(undefined);
     setResultMessage(undefined);
     setCounterOfferTitleError(undefined);
@@ -356,7 +363,15 @@ export function OfferInbox({
     return (
       <HomeFeatureCard
         tone="coralSurface"
-        badge="NEW OFFER"
+        badge={
+          offer.status === 'AWAITING_CHILD'
+            ? preview
+              ? 'NEW OFFER'
+              : 'Your turn'
+            : offer.status === 'AWAITING_PARENT'
+              ? "Parent's turn"
+              : offer.status.charAt(0) + offer.status.slice(1).toLowerCase()
+        }
         title={revision.tasks[0]?.title ?? revision.reward.title}
         detail={`Reward: ${revision.reward.title}`}
         reward={revision.reward}
@@ -403,6 +418,17 @@ export function OfferInbox({
       </OfferOutcome>
     );
 
+  const visibleItems =
+    displayedState.status === 'ready'
+      ? displayedState.items.filter(
+          ({ offer }) =>
+            preview ||
+            offerId ||
+            (selectedStatus === 'Your turn'
+              ? offer.status === 'AWAITING_CHILD'
+              : offer.status === 'AWAITING_PARENT'),
+        )
+      : [];
   if (displayedState.status === 'loading') return null;
   return (
     <View className="gap-4" style={!preview ? { flexGrow: 1 } : undefined}>
@@ -424,6 +450,28 @@ export function OfferInbox({
         </Pressable>
       ) : null}
       {!offerId &&
+      !preview &&
+      displayedState.status === 'ready' &&
+      displayedState.items.some(({ offer }) =>
+        ['AWAITING_CHILD', 'AWAITING_PARENT'].includes(offer.status),
+      ) ? (
+        <StatusTabs
+          labels={['Your turn', "Parent's turn"]}
+          tone="orange"
+          counts={{
+            'Your turn': displayedState.items.filter(
+              ({ offer }) => offer.status === 'AWAITING_CHILD',
+            ).length,
+            "Parent's turn": displayedState.items.filter(
+              ({ offer }) => offer.status === 'AWAITING_PARENT',
+            ).length,
+          }}
+          selected={selectedStatus}
+          onSelect={setSelectedStatus}
+        />
+      ) : null}
+      {preview &&
+      !offerId &&
       !(
         displayedState.status === 'ready' && displayedState.items.length === 0
       ) ? (
@@ -462,27 +510,44 @@ export function OfferInbox({
       ) : null}
 
       {displayedState.status === 'ready' &&
-      displayedState.items.length === 0 &&
+      visibleItems.length === 0 &&
       !resultMessage ? (
         <OfferOutcome
-          title={offerId ? 'Offer unavailable' : 'No new offers'}
+          title={
+            offerId
+              ? 'Offer unavailable'
+              : selectedStatus === "Parent's turn"
+                ? 'No pending offers'
+                : 'No new offers'
+          }
           centered={!offerId}
           illustration={!offerId ? 'no-offers' : undefined}
         >
           {offerId
             ? 'This offer is no longer waiting for your response.'
-            : 'No offers are waiting for you.'}
+            : selectedStatus === "Parent's turn"
+              ? 'No proposals are waiting for your parent.'
+              : 'No offers are waiting for you.'}
         </OfferOutcome>
       ) : null}
 
-      {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
+      {displayedState.status === 'ready' && visibleItems.length > 0 ? (
         <View className="gap-4" style={!preview ? { flexGrow: 1 } : undefined}>
-          {displayedState.items.map(({ offer, revision }) =>
+          {visibleItems.map(({ offer, revision }) =>
             !offerId ? (
               <HomeFeatureCard
                 key={offer.id}
                 tone="coralSurface"
-                badge="NEW OFFER"
+                badge={
+                  offer.status === 'AWAITING_CHILD'
+                    ? preview
+                      ? 'NEW OFFER'
+                      : 'Your turn'
+                    : offer.status === 'AWAITING_PARENT'
+                      ? "Parent's turn"
+                      : offer.status.charAt(0) +
+                        offer.status.slice(1).toLowerCase()
+                }
                 title={revision.tasks[0]?.title ?? revision.reward.title}
                 detail={`Reward: ${revision.reward.title}`}
                 reward={revision.reward}
@@ -504,9 +569,26 @@ export function OfferInbox({
                 <ProposalTerms
                   layout="rewardFirst"
                   revision={revision}
-                  status="Your turn"
-                  author="Proposed by your Parent"
-                  support="Accept to create your agreement, counter the reward, or decline."
+                  status={
+                    offer.status === 'AWAITING_CHILD'
+                      ? 'Your turn'
+                      : offer.status === 'AWAITING_PARENT'
+                        ? "Parent's turn"
+                        : offer.status.charAt(0) +
+                          offer.status.slice(1).toLowerCase()
+                  }
+                  author={
+                    revision.proposedByRole === 'CHILD'
+                      ? 'Proposed by you'
+                      : 'Proposed by your Parent'
+                  }
+                  support={
+                    offer.status === 'AWAITING_CHILD'
+                      ? 'Accept to create your agreement, counter the reward, or decline.'
+                      : offer.status === 'AWAITING_PARENT'
+                        ? 'Your proposal is waiting for your parent.'
+                        : 'This offer is closed.'
+                  }
                 />
                 {rejectionConfirmationOfferId === offer.id ? (
                   <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
@@ -546,7 +628,9 @@ export function OfferInbox({
                       variant="outline"
                     />
                   </View>
-                ) : counterOfferForm?.offerId === offer.id ? (
+                ) : offer.status !==
+                  'AWAITING_CHILD' ? null : counterOfferForm?.offerId ===
+                  offer.id ? (
                   <View
                     className="gap-3"
                     style={{ marginTop: homeTokens.spacing.section }}

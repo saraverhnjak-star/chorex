@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ContractDetail } from '../src/contracts/ContractDetail';
 import { ActiveContracts } from '../src/contracts/ActiveContracts';
 
+let mockExtraContracts: readonly Contract[] = [];
 let mockReviewContracts: readonly Contract[] = [];
 const mockComplete = jest.fn();
 const mockSubmit = jest.fn();
@@ -46,6 +47,15 @@ jest.mock('@chorex/firebase-client', () => {
   );
   return {
     ...hooks,
+    useContractsInState: (
+      _family: string,
+      _uid: string,
+      status: Contract['status'],
+    ) => ({
+      status: 'ready',
+      contracts: mockExtraContracts.filter((c) => c.status === status),
+      fromCache: false,
+    }),
     useReadyForReviewContracts: () => ({
       status: 'ready',
       contracts: mockReviewContracts,
@@ -139,6 +149,7 @@ const task = {
 
 beforeEach(() => {
   mockReviewContracts = [];
+  mockExtraContracts = [];
   jest.clearAllMocks();
   mockComplete.mockReset();
   mockSubmit.mockReset();
@@ -256,7 +267,9 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
   expect(screen.queryByText('Loading Contracts…')).toBeNull();
   expect(screen.queryByText('No active Contracts yet.')).toBeNull();
   act(() => mockList({ data: [], fromCache: false }));
-  expect(screen.getByText('No active Contracts yet.')).toBeOnTheScreen();
+  expect(
+    screen.getByText('Your agreements will appear here.'),
+  ).toBeOnTheScreen();
   expect(
     screen.queryByRole('header', { name: 'Active agreements' }),
   ).toBeNull();
@@ -980,7 +993,8 @@ it('keeps submitted agreements visible with Parent’s turn and their details de
   ];
   render(<ActiveContracts familyId="family-1" authUid="child-1" />);
   act(() => mockList({ data: [], fromCache: false }));
-  expect(screen.getByText("Parent's turn")).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
+  expect(screen.getAllByText("Parent's turn").length).toBeGreaterThan(0);
   expect(screen.queryByText('No active Contracts yet.')).toBeNull();
   fireEvent.press(
     screen.getByRole('button', { name: 'Open Contract: Cinema' }),
@@ -989,4 +1003,30 @@ it('keeps submitted agreements visible with Parent’s turn and their details de
     pathname: '/contracts/[contractId]',
     params: { contractId: 'contract-1' },
   });
+});
+
+it('groups changes with active work and hides completed agreements', () => {
+  mockExtraContracts = [
+    {
+      ...contract,
+      id: 'changes',
+      status: 'CHANGES_REQUESTED',
+      rewardTerms: { ...contract.rewardTerms, title: 'Changes reward' },
+    } as Contract,
+    {
+      ...contract,
+      id: 'approved',
+      status: 'APPROVED',
+      rewardTerms: { ...contract.rewardTerms, title: 'Completed reward' },
+    } as Contract,
+  ];
+  render(<ActiveContracts familyId="family-1" authUid="child-1" />);
+  act(() => mockList({ data: [contract], fromCache: false }));
+  expect(screen.getByText('Changes reward')).toBeOnTheScreen();
+  expect(screen.getByText('Changes requested')).toBeOnTheScreen();
+  expect(screen.queryByText('Completed reward')).toBeNull();
+  expect(screen.queryByRole('tab', { name: 'Completed' })).toBeNull();
+  fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
+  expect(screen.queryByText('Completed reward')).toBeNull();
+  expect(screen.queryByText('Changes reward')).toBeNull();
 });

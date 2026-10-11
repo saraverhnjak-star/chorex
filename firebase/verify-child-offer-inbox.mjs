@@ -212,6 +212,115 @@ try {
     'Inbox did not load the exact current revision',
   );
 
+  await environment.withSecurityRulesDisabled(async (context) => {
+    for (const status of [
+      'ACTIVE',
+      'CHANGES_REQUESTED',
+      'READY_FOR_REVIEW',
+      'APPROVED',
+    ]) {
+      await setDoc(doc(context.firestore(), `contracts/status-${status}`), {
+        familyId,
+        parentUid,
+        childUid,
+        participantUids: [parentUid, childUid],
+        status,
+        createdAt: now,
+        updatedAt: now,
+        reviewCycle: 0,
+        source: {
+          type: 'OFFER',
+          offerId: publishedOfferId,
+          revisionId: currentRevisionId,
+        },
+        rewardTerms: { title: 'Cinema', type: 'EXPERIENCE', iconKey: 'cinema' },
+        deadlineAt: deadline,
+      });
+    }
+  });
+  for (const status of [
+    'ACTIVE',
+    'CHANGES_REQUESTED',
+    'READY_FOR_REVIEW',
+    'APPROVED',
+  ]) {
+    const result = await assertSucceeds(
+      getDocs(
+        query(
+          collection(childFirestore, 'contracts'),
+          where('familyId', '==', familyId),
+          where('participantUids', 'array-contains', childUid),
+          where('status', '==', status),
+          orderBy('createdAt', 'desc'),
+        ),
+      ),
+    );
+    assert(result.size === 1, `Missing contract status ${status}`);
+  }
+  await assertFails(getDoc(doc(siblingFirestore, 'contracts/status-APPROVED')));
+
+  const publishedStatuses = [
+    'AWAITING_CHILD',
+    'AWAITING_PARENT',
+    'ACCEPTED',
+    'REJECTED',
+    'CANCELLED',
+    'EXPIRED',
+  ];
+  const historyQuery = (db, uid) =>
+    query(
+      collection(db, 'offers'),
+      where('familyId', '==', familyId),
+      where('participantUids', 'array-contains', uid),
+      where('status', 'in', publishedStatuses),
+      orderBy('updatedAt', 'desc'),
+    );
+  for (const status of publishedStatuses) {
+    await environment.withSecurityRulesDisabled(async (context) =>
+      updateDoc(doc(context.firestore(), `offers/${publishedOfferId}`), {
+        status,
+      }),
+    );
+    const history = await assertSucceeds(
+      getDocs(historyQuery(childFirestore, childUid)),
+    );
+    assert(
+      history.size === 1 && history.docs[0].data().status === status,
+      `Missing history status ${status}`,
+    );
+    await assertSucceeds(
+      getDoc(
+        doc(
+          childFirestore,
+          `offers/${publishedOfferId}/revisions/${currentRevisionId}`,
+        ),
+      ),
+    );
+  }
+  await assertFails(
+    getDocs(
+      query(
+        collection(childFirestore, 'offers'),
+        where('familyId', '==', familyId),
+        where('status', 'in', publishedStatuses),
+      ),
+    ),
+  );
+  await assertFails(
+    getDocs(
+      query(
+        collection(childFirestore, 'offers'),
+        where('familyId', '==', familyId),
+        where('participantUids', 'array-contains', childUid),
+      ),
+    ),
+  );
+  await environment.withSecurityRulesDisabled(async (context) =>
+    updateDoc(doc(context.firestore(), `offers/${publishedOfferId}`), {
+      status: 'AWAITING_CHILD',
+    }),
+  );
+
   await assertSucceeds(getDoc(doc(parentFirestore, `offers/${draftOfferId}`)));
   await assertFails(getDoc(doc(childFirestore, `offers/${draftOfferId}`)));
   await assertFails(

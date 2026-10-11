@@ -74,3 +74,11 @@ Parent Offers now shows a list of counteroffer cards. View offer opens /offers/[
 Parent Offers has dark Counteroffers and Sent tabs, in that order, with Counteroffers initially selected. Sent subscribes to AWAITING_CHILD offers using the existing participant/family-scoped inbox query and opens a read-only rewardFirst detail with Child's turn. These reads retain Firestore membership/participant rules; no server mutation or lifecycle state was added.
 
 Child Home and My chores include ACTIVE and READY_FOR_REVIEW agreements. Submitted agreements remain visible with the Parent's turn status while the parent reviews them; the existing server lifecycle and detail route are unchanged.
+
+Child My chores status tabs: Your turn (ACTIVE and CHANGES_REQUESTED), Parent's turn (READY_FOR_REVIEW), Completed (APPROVED). Child Offers tabs: Your turn (AWAITING_CHILD), Parent's turn (AWAITING_PARENT), Closed (ACCEPTED, REJECTED, CANCELLED, EXPIRED). Other published offer states have read-only details. Home previews exclude completed agreements and offer history. Tabs remain hidden for fully empty collections and while loading.
+
+Child lists now expose two tabs: My chores uses light-blue Your turn / Parent's turn, excluding APPROVED agreements; Offers uses light-orange Your turn / Parent's turn, excluding closed offers. Rewards labels are Parent's turn (pending delivery), Your turn (awaiting child confirmation), Received. Underlying lifecycle states and reward fulfillment are unchanged.
+
+Child Rewards now shows Your turn first (awaiting confirmation), then Parent's turn (pending delivery). Received rewards are excluded from the list and Home preview; their detail state remains available. Both tabs have equal widths.
+
+Child Rewards retains its two status tabs even when the list is empty. Child My chores, Offers and Rewards tabs display nonzero item counts in circular badges matching each tab's border color; zero counts have no badge.

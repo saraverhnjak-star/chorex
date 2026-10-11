@@ -19,7 +19,9 @@ function EarnedRewardsContent({
 }) {
   const state = useEarnedRewards(familyId, authUid),
     router = useRouter();
-  const empty = state.status === 'ready' && state.rewards.length === 0;
+  const empty =
+    state.status === 'ready' &&
+    state.rewards.every((reward) => reward.status === 'FULFILLED');
   useLayoutEffect(() => {
     onEmptyChange?.(empty);
   }, [empty, onEmptyChange]);

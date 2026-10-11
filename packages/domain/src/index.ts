@@ -73,6 +73,8 @@ export {
   parentCounterOfferInputSchema,
   counterOfferOutputSchema,
   childOfferInboxItemSchema,
+  childOfferHistoryItemSchema,
+  type ChildOfferHistoryItem,
   offerCommandErrorCodes,
   offerRevisionSchema,
   offerSchema,

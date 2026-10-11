@@ -1,4 +1,3 @@
-import { homeTokens } from '@chorex/ui';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { EarnedRewards } from '../src/rewards/EarnedRewards';
 import { RewardDetail } from '../src/rewards/RewardDetail';
@@ -60,10 +59,14 @@ it('earned Rewards distinguish pending from delivered and update without Child m
       fromCache: true,
     }),
   );
+  expect(
+    screen.getByRole('tab', { name: 'Your turn', selected: true }),
+  ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
   expect(screen.getByText('Waiting for Parent delivery')).toBeOnTheScreen();
   expect(screen.queryByText('Earned rewards')).toBeNull();
   expect(
-    screen.getByRole('tab', { name: 'Waiting', selected: true }),
+    screen.getByRole('tab', { name: "Parent's turn", selected: true }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByRole('button', { name: 'Open reward: Park' }),
@@ -73,7 +76,7 @@ it('earned Rewards distinguish pending from delivered and update without Child m
       .getAllByRole('button')
       .map((button) => button.props.accessibilityLabel.split('. ')[0]),
   ).toEqual(['Open reward: Cinema']);
-  fireEvent.press(screen.getByRole('tab', { name: 'Delivered' }));
+  fireEvent.press(screen.getByRole('tab', { name: 'Your turn' }));
   expect(
     screen.queryByRole('button', { name: 'Open reward: Cinema' }),
   ).toBeNull();
@@ -82,7 +85,7 @@ it('earned Rewards distinguish pending from delivered and update without Child m
     pathname: '/rewards/[rewardId]',
     params: { rewardId: 'reward-2' },
   });
-  fireEvent.press(screen.getByRole('tab', { name: 'Waiting' }));
+  fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
   fireEvent.press(screen.getByRole('button', { name: 'Open reward: Cinema' }));
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/rewards/[rewardId]',
@@ -104,22 +107,27 @@ it('earned Rewards distinguish pending from delivered and update without Child m
       fromCache: false,
     }),
   );
-  expect(screen.getByText('No rewards in this status')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('tab', { name: 'Received' }));
-  expect(screen.getAllByText('Received').length).toBeGreaterThan(0);
+  expect(screen.getByText('No rewards yet')).toBeOnTheScreen();
+  expect(screen.queryByRole('tab', { name: 'Received' })).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: 'Open reward: Cinema' }),
+  ).toBeNull();
   expect(screen.queryByText('Earned — waiting for Parent')).toBeNull();
   expect(
     screen.queryByRole('button', { name: 'Mark as fulfilled' }),
   ).toBeNull();
   expect(
-    screen.getByRole('button', { name: 'Open reward: Cinema' }),
-  ).toBeOnTheScreen();
+    screen.queryByRole('button', { name: 'Open reward: Cinema' }),
+  ).toBeNull();
 });
 it('empty/error/cache state and scoped listener cleanup cannot retain another family Reward', () => {
   const view = render(<EarnedRewards familyId="family-1" authUid="child-1" />);
   act(() => mockList({ data: [], fromCache: false }));
   expect(screen.getByText('No rewards yet')).toBeOnTheScreen();
-  expect(screen.queryByTestId('reward-status-tabs')).toBeNull();
+  expect(screen.getByTestId('reward-status-tabs')).toBeOnTheScreen();
+  expect(
+    screen.getAllByRole('tab').map((tab) => tab.props.accessibilityLabel),
+  ).toEqual(['Your turn', "Parent's turn"]);
   const old = mockList;
   view.rerender(<EarnedRewards familyId="family-2" authUid="child-2" />);
   expect(mockStop).toHaveBeenCalled();
@@ -180,17 +188,16 @@ it('assigned Child explicitly confirms receipt, preserves retry key and waits fo
   expect(mockConfirm.mock.calls[0][0]).toEqual(mockConfirm.mock.calls[1][0]);
 });
 
-it('keeps all three status tabs equal after layout and selection changes', () => {
+it('keeps both status tabs equal after layout and selection changes', () => {
   render(<EarnedRewards familyId="family-1" authUid="child-1" />);
   expect(screen.queryByTestId('reward-status-tabs')).toBeNull();
   act(() => mockList({ data: [reward], fromCache: false }));
-  fireEvent(screen.getByTestId('reward-status-tabs'), 'layout', {
-    nativeEvent: { layout: { width: 360, height: 48, x: 0, y: 0 } },
-  });
-  const expectedWidth = (360 - homeTokens.spacing.small * 2) / 3;
   for (const tab of screen.getAllByRole('tab'))
-    expect(tab).toHaveStyle({ width: expectedWidth });
-  fireEvent.press(screen.getByRole('tab', { name: 'Received' }));
+    expect(tab).toHaveStyle({ flex: 1, minHeight: 44 });
+  expect(
+    screen.getAllByRole('tab').map((tab) => tab.props.accessibilityLabel),
+  ).toEqual(['Your turn', "Parent's turn"]);
+  fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
   for (const tab of screen.getAllByRole('tab'))
-    expect(tab).toHaveStyle({ width: expectedWidth });
+    expect(tab).toHaveStyle({ flex: 1, minHeight: 44 });
 });

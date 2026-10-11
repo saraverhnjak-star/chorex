@@ -100,6 +100,8 @@ import {
   acceptOfferOutputSchema,
   childFamilyMembershipSchema,
   childOfferInboxItemSchema,
+  childOfferHistoryItemSchema,
+  type ChildOfferHistoryItem,
   counterOfferInputSchema,
   counterOfferOutputSchema,
   createChildInputSchema,
@@ -961,6 +963,40 @@ export function subscribeToCurrentChildOfferInbox(
   );
 }
 
+export function subscribeToChildOfferHistory(
+  familyId: string,
+  onItems: (items: readonly ChildOfferHistoryItem[]) => void,
+  onError: (error: OfferInboxClientError) => void,
+  offerId?: string,
+): () => void {
+  const user = requireOfferSubscriptionContext(familyId);
+  const firestore = getInitializedFirestore();
+  const offersQuery = query(
+    collection(firestore, 'offers'),
+    where('familyId', '==', familyId),
+    where('participantUids', 'array-contains', user.uid),
+    where('status', 'in', [
+      'AWAITING_CHILD',
+      'AWAITING_PARENT',
+      'ACCEPTED',
+      'REJECTED',
+      'CANCELLED',
+      'EXPIRED',
+    ]),
+    ...(offerId
+      ? [where(documentId(), '==', offerId)]
+      : [orderBy('updatedAt', 'desc')]),
+  );
+
+  return subscribeToOfferInbox(
+    firestore,
+    offersQuery,
+    (input) => childOfferHistoryItemSchema.parse(input),
+    onItems,
+    onError,
+  );
+}
+
 export function subscribeToCurrentParentNegotiationInbox(
   familyId: string,
   onItems: (items: readonly ParentNegotiationInboxItem[]) => void,
@@ -1417,9 +1453,9 @@ export function observeReadyForReviewContracts(
     onError,
   );
 }
-function observeContractsInState(
+export function observeContractsInState(
   familyId: string,
-  status: 'ACTIVE' | 'READY_FOR_REVIEW',
+  status: Contract['status'],
   callback: (snapshot: ReadSnapshot<readonly Contract[]>) => void,
   onError: (error: ContractReadError) => void,
 ): () => void {
@@ -1470,6 +1506,7 @@ export {
   useContractDetail,
   useActiveContracts,
   useReadyForReviewContracts,
+  useContractsInState,
   useCurrentContractReview,
   type CurrentContractReviewState,
   type ContractDetailState,
