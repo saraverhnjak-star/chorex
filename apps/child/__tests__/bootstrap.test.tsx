@@ -187,6 +187,11 @@ jest.mock('@chorex/firebase-client', () => ({
     save: mockSaveReminder,
   }),
   useEarnedRewards: () => ({ status: 'ready', rewards: [], fromCache: false }),
+  useReadyForReviewContracts: () => ({
+    status: 'ready',
+    contracts: [],
+    fromCache: false,
+  }),
   useActiveContracts: () => ({
     status: 'ready',
     contracts: [],
@@ -278,7 +283,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(mockSignInWithChildCustomToken).not.toHaveBeenCalled();
   expect(mockAuthUser).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
-  await screen.findByRole('button', { name: 'Notification settings' });
+  await screen.findByRole('button', { name: 'Settings' });
   expect(screen.queryByText('Hi, Mia!')).toBeNull();
   await screen.findByRole('button', { name: 'View offer' });
   expect(
@@ -292,7 +297,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     ['My chores', '/contracts'],
     ['Offers', '/offers'],
     ['Rewards', '/rewards'],
-    ['Notification settings', '/more'],
+    ['Settings', '/more'],
     ['Home', '/'],
   ]) {
     fireEvent.press(
@@ -381,9 +386,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     </ChildSessionProvider>,
   );
   await waitFor(() =>
-    expect(
-      screen.getByRole('button', { name: 'Notification settings' }),
-    ).toBeOnTheScreen(),
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeOnTheScreen(),
   );
   expect(await screen.findByText('Load the dishwasher')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Reject offer' }));

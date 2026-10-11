@@ -1,8 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { HomeContractRow } from './HomeContractRow';
 import { Text, View } from 'react-native';
-import { useActiveContracts } from '@chorex/firebase-client';
+import {
+  useActiveContracts,
+  useReadyForReviewContracts,
+  type ActiveContractsState,
+} from '@chorex/firebase-client';
 import {
   Button,
   HomeEmptyState,
@@ -21,22 +25,39 @@ function ActiveContractsContent({
   preview = false,
   onRetry,
   onEmptyChange,
+  onLoadingChange,
 }: {
   onRetry?: () => void;
   onEmptyChange?: (empty: boolean) => void;
+  onLoadingChange?: (loading: boolean) => void;
   preview?: boolean;
   familyId: string;
   authUid: string;
   childNames?: Readonly<Record<string, string>>;
 }) {
-  const state = useActiveContracts(familyId, authUid);
+  const active = useActiveContracts(familyId, authUid);
+  const review = useReadyForReviewContracts(familyId, authUid);
+  const state: ActiveContractsState =
+    active.status === 'error' || review.status === 'error'
+      ? { status: 'error' }
+      : active.status === 'loading' || review.status === 'loading'
+        ? { status: 'loading' }
+        : {
+            status: 'ready',
+            contracts: [...review.contracts, ...active.contracts],
+            fromCache: active.fromCache || review.fromCache,
+          };
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   const empty = state.status === 'ready' && state.contracts.length === 0;
-  useEffect(() => {
+  useLayoutEffect(() => {
     onEmptyChange?.(empty);
-    return () => onEmptyChange?.(false);
   }, [empty, onEmptyChange]);
+  useLayoutEffect(() => {
+    onLoadingChange?.(state.status === 'loading');
+  }, [state.status, onLoadingChange]);
+  if (state.status === 'loading') return null;
+  if (preview && empty) return null;
   if (!preview && empty)
     return (
       <OfferOutcome
@@ -61,23 +82,14 @@ function ActiveContractsContent({
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ flex: 1 }}>
-            <SectionHeading>Active agreements</SectionHeading>
+            <SectionHeading>My agreements</SectionHeading>
           </View>
           {state.status === 'ready' ? (
             <CountBadge count={state.contracts.length} />
           ) : null}
         </View>
       )}
-      {state.status === 'loading' ? (
-        <Text
-          allowFontScaling={false}
-          accessibilityLiveRegion="polite"
-          className="text-home-muted"
-          style={styles.body}
-        >
-          Loading Contracts…
-        </Text>
-      ) : null}
+
       {state.status === 'error' ? (
         <>
           <FormMessage message="Your Contracts could not be loaded. Try again." />

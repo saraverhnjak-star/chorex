@@ -17,8 +17,8 @@ import {
   homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import {
   acceptOffer,
   counterOffer,
@@ -74,9 +74,11 @@ export function OfferInbox({
   offerId,
   showBackLink = true,
   onHasOffersChange,
+  onLoadingChange,
 }: {
   showBackLink?: boolean;
   onHasOffersChange?: (hasOffers: boolean) => void;
+  onLoadingChange?: (loading: boolean) => void;
   offerId?: string;
   preview?: boolean;
   initialCounterOfferId?: string;
@@ -173,10 +175,13 @@ export function OfferInbox({
 
   const hasOffers =
     displayedState.status === 'ready' && displayedState.items.length > 0;
-  useEffect(() => {
+  useLayoutEffect(() => {
     onHasOffersChange?.(hasOffers);
-    return () => onHasOffersChange?.(false);
   }, [hasOffers, onHasOffersChange]);
+
+  useLayoutEffect(() => {
+    onLoadingChange?.(displayedState.status === 'loading');
+  }, [displayedState.status, onLoadingChange]);
 
   const retrySubscription = () => {
     setActionError(undefined);
@@ -398,6 +403,7 @@ export function OfferInbox({
       </OfferOutcome>
     );
 
+  if (displayedState.status === 'loading') return null;
   return (
     <View className="gap-4" style={!preview ? { flexGrow: 1 } : undefined}>
       {offerId && showBackLink ? (
@@ -447,26 +453,6 @@ export function OfferInbox({
       ) : null}
 
       <FormMessage message={actionError} />
-
-      {displayedState.status === 'loading' ? (
-        <View
-          className={
-            preview ? 'flex-row items-center gap-2' : 'items-center py-6'
-          }
-        >
-          <ActivityIndicator
-            accessibilityLabel="Loading offers"
-            color={homeTokens.coral}
-          />
-          <Text
-            allowFontScaling={false}
-            className={preview ? 'text-home-muted' : 'mt-3 text-home-muted'}
-            style={dynamicType.body}
-          >
-            Loading offers…
-          </Text>
-        </View>
-      ) : null}
 
       {displayedState.status === 'error' ? (
         <View className="gap-3">

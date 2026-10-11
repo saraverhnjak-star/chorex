@@ -1,5 +1,9 @@
 import { ContractTabs } from '../src/contracts/ContractTabs';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+jest.mock('@chorex/firebase-client', () => ({
+  useActiveContracts: () => ({ status: 'ready', contracts: [] }),
+  useReadyForReviewContracts: () => ({ status: 'ready', contracts: [] }),
+}));
 jest.mock('../src/contracts/ActiveContracts', () => {
   const { Text } = jest.requireActual('react-native');
   return {

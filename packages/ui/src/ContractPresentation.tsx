@@ -13,7 +13,7 @@ export function contractStatusLabel(
     case 'ACTIVE':
       return 'In progress';
     case 'READY_FOR_REVIEW':
-      return viewer === 'CHILD' ? 'Waiting for review' : 'Ready for review';
+      return viewer === 'CHILD' ? "Parent's turn" : 'Ready for review';
     case 'CHANGES_REQUESTED':
       return viewer === 'CHILD'
         ? 'Changes requested'

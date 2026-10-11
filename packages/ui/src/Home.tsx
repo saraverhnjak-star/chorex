@@ -264,7 +264,6 @@ export function CollectionHeading({
 }
 export function HomeHeader({
   name,
-  child = false,
   leading,
   compact = false,
 }: {
@@ -277,22 +276,6 @@ export function HomeHeader({
   return (
     <View style={[s.header, compact ? { marginBottom: 0 } : undefined]}>
       <View style={{ flex: 1 }}>{leading}</View>
-      {child ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Notification settings"
-          onPress={() => navigate('more')}
-          className="active:opacity-60"
-          style={s.iconButton}
-        >
-          <Ionicons
-            accessible={false}
-            name="notifications-outline"
-            size={26}
-            color={homeTokens.secondary}
-          />
-        </Pressable>
-      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Settings"

@@ -11,9 +11,15 @@ export function OfferTabs(props: {
   childNames: Readonly<Record<string, string>>;
   activeChildren: readonly ChildFamilyMembership[];
 }) {
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<'sent' | 'counter'>('counter');
   return (
-    <View style={{ gap: homeTokens.spacing.section }}>
+    <View
+      style={{ gap: homeTokens.spacing.section, opacity: loading ? 0 : 1 }}
+      pointerEvents={loading ? 'none' : 'auto'}
+      accessibilityElementsHidden={loading}
+      importantForAccessibility={loading ? 'no-hide-descendants' : 'auto'}
+    >
       <View
         accessibilityRole="tablist"
         style={{ flexDirection: 'row', gap: homeTokens.spacing.small }}
@@ -29,7 +35,12 @@ export function OfferTabs(props: {
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
             accessibilityState={{ selected: selected === tab.id }}
-            onPress={() => setSelected(tab.id)}
+            onPress={() => {
+              if (selected !== tab.id) {
+                setLoading(true);
+                setSelected(tab.id);
+              }
+            }}
             style={{
               flex: 1,
               minWidth: 0,
@@ -62,9 +73,18 @@ export function OfferTabs(props: {
         ))}
       </View>
       {selected === 'counter' ? (
-        <ParentNegotiationInbox {...props} list showHeading={false} />
+        <ParentNegotiationInbox
+          onLoadingChange={setLoading}
+          {...props}
+          list
+          showHeading={false}
+        />
       ) : (
-        <SentOffers key={`${props.authUid}:${props.familyId}`} {...props} />
+        <SentOffers
+          onLoadingChange={setLoading}
+          key={`${props.authUid}:${props.familyId}`}
+          {...props}
+        />
       )}
     </View>
   );

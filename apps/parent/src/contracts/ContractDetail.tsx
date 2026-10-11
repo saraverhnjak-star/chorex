@@ -41,17 +41,7 @@ export function ContractDetail({
     state.status === 'ready' ? state.contract : undefined,
     authUid,
   );
-  if (state.status === 'loading')
-    return (
-      <Text
-        allowFontScaling={false}
-        accessibilityLiveRegion="polite"
-        className="text-home-muted"
-        style={styles.body}
-      >
-        Loading Contract…
-      </Text>
-    );
+  if (state.status === 'loading') return null;
   if (state.status === 'error')
     return (
       <FormMessage

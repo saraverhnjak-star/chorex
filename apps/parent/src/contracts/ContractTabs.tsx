@@ -1,3 +1,7 @@
+import {
+  useActiveContracts,
+  useReadyForReviewContracts,
+} from '@chorex/firebase-client';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { DesignText, homeTokens } from '@chorex/ui';
@@ -9,6 +13,9 @@ export function ContractTabs(props: {
   childNames: Readonly<Record<string, string>>;
 }) {
   const [selected, setSelected] = useState<'active' | 'review'>('review');
+  const active = useActiveContracts(props.familyId, props.authUid);
+  const review = useReadyForReviewContracts(props.familyId, props.authUid);
+  if (active.status === 'loading' || review.status === 'loading') return null;
   const List =
     selected === 'active' ? ActiveContracts : ReadyForReviewContracts;
   return (

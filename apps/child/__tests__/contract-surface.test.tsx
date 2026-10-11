@@ -1,8 +1,10 @@
+import type { Contract } from '@chorex/domain';
 import ContractScreen from '../app/contracts/[contractId]';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { ContractDetail } from '../src/contracts/ContractDetail';
 import { ActiveContracts } from '../src/contracts/ActiveContracts';
 
+let mockReviewContracts: readonly Contract[] = [];
 const mockComplete = jest.fn();
 const mockSubmit = jest.fn();
 const mockIsContractClientError = jest.fn((_error: unknown) => false);
@@ -44,6 +46,11 @@ jest.mock('@chorex/firebase-client', () => {
   );
   return {
     ...hooks,
+    useReadyForReviewContracts: () => ({
+      status: 'ready',
+      contracts: mockReviewContracts,
+      fromCache: false,
+    }),
     observeContractReviews: (
       _contract: unknown,
       callback: typeof mockHistory,
@@ -131,6 +138,7 @@ const task = {
 } as const;
 
 beforeEach(() => {
+  mockReviewContracts = [];
   jest.clearAllMocks();
   mockComplete.mockReset();
   mockSubmit.mockReset();
@@ -145,7 +153,8 @@ function emitReady(fromCache = false) {
 }
 it('renders frozen terms, persisted progress and locale deadline', () => {
   const view = render(<ContractDetail {...props} />);
-  expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
+  expect(screen.queryByText('Loading Contract…')).toBeNull();
+  expect(screen.queryByLabelText('Contract status: In progress')).toBeNull();
   emitReady();
   expect(
     screen.getByLabelText('Contract status: In progress'),
@@ -217,7 +226,8 @@ it('clears old reads on ID/auth changes and ignores callbacks after cleanup', ()
   const oldContract = mockContract;
   const oldTasks = mockTasks;
   view.rerender(<ContractDetail contractId="contract-2" authUid="new-user" />);
-  expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
+  expect(screen.queryByText('Loading Contract…')).toBeNull();
+  expect(screen.queryByLabelText('Contract status: In progress')).toBeNull();
   act(() => {
     oldContract({ data: contract, fromCache: false });
     oldTasks({ data: [task], fromCache: false });
@@ -243,7 +253,8 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
   const view = render(
     <ActiveContracts familyId="family-1" authUid="child-1" />,
   );
-  expect(screen.getByText('Loading Contracts…')).toBeOnTheScreen();
+  expect(screen.queryByText('Loading Contracts…')).toBeNull();
+  expect(screen.queryByText('No active Contracts yet.')).toBeNull();
   act(() => mockList({ data: [], fromCache: false }));
   expect(screen.getByText('No active Contracts yet.')).toBeOnTheScreen();
   expect(
@@ -525,7 +536,7 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: Waiting for review'),
+    screen.getByLabelText("Contract status: Parent's turn"),
   ).toBeOnTheScreen();
   expect(
     screen.getByText('Your Parent now needs to review this agreement.'),
@@ -733,7 +744,7 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: Waiting for review'),
+    screen.getByLabelText("Contract status: Parent's turn"),
   ).toBeOnTheScreen();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
   expect(screen.queryByText('Please check the result.')).toBeNull();
@@ -961,4 +972,21 @@ it('hides the aggregate progress for one repeated task and shows it for multiple
     }),
   );
   expect(screen.getByText('0 of 2 tasks complete')).toBeOnTheScreen();
+});
+
+it('keeps submitted agreements visible with Parent’s turn and their details destination', () => {
+  mockReviewContracts = [
+    { ...contract, status: 'READY_FOR_REVIEW' } as Contract,
+  ];
+  render(<ActiveContracts familyId="family-1" authUid="child-1" />);
+  act(() => mockList({ data: [], fromCache: false }));
+  expect(screen.getByText("Parent's turn")).toBeOnTheScreen();
+  expect(screen.queryByText('No active Contracts yet.')).toBeNull();
+  fireEvent.press(
+    screen.getByRole('button', { name: 'Open Contract: Cinema' }),
+  );
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/contracts/[contractId]',
+    params: { contractId: 'contract-1' },
+  });
 });

@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   body: { fontSize: 15, color: homeTokens.text },
   secondary: { fontSize: 14, color: homeTokens.secondary },
   caption: { fontSize: 12, color: homeTokens.secondary },
-  task: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  task: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   icon: {
     width: 30,
     height: 30,

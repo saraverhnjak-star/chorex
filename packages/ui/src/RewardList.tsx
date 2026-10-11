@@ -67,6 +67,7 @@ export function RewardList({
       ? visible.filter((reward) => reward.status === selectedStatus)
       : visible;
   const groups = [{ label: undefined, rewards: filteredRewards }];
+  if (loading) return null;
   if (preview)
     return (
       <View style={{ gap: homeTokens.spacing.medium }}>

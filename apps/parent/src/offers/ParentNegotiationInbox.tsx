@@ -12,8 +12,8 @@ import {
   homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { View } from 'react-native';
 import type { ChildFamilyMembership, CounterOfferInput } from '@chorex/domain';
 import {
   acceptOffer,
@@ -52,12 +52,14 @@ export function ParentNegotiationInbox({
   list = false,
   showHeading = true,
   offerId,
+  onLoadingChange,
 }: {
   activeChildren: readonly ChildFamilyMembership[];
   preview?: boolean;
   list?: boolean;
   showHeading?: boolean;
   offerId?: string;
+  onLoadingChange?: (loading: boolean) => void;
   authUid: string;
   familyId: string;
 }) {
@@ -213,6 +215,10 @@ export function ParentNegotiationInbox({
         : state
       : { subscriptionKey, status: 'loading' };
 
+  useLayoutEffect(() => {
+    onLoadingChange?.(displayedState.status === 'loading');
+  }, [displayedState.status, onLoadingChange]);
+  if (displayedState.status === 'loading') return null;
   return (
     <View style={{ gap: homeTokens.spacing.section, flexGrow: 1 }}>
       {list &&
@@ -240,21 +246,6 @@ export function ParentNegotiationInbox({
         </OfferOutcome>
       ) : null}
       {actionError ? <FormMessage message={actionError} /> : null}
-      {displayedState.status === 'loading' ? (
-        <View className="items-center py-6">
-          <ActivityIndicator
-            accessibilityLabel="Loading counteroffers"
-            color={homeTokens.coral}
-          />
-          <Text
-            allowFontScaling={false}
-            className="mt-3 text-home-muted"
-            style={dynamicType.body}
-          >
-            Loading counteroffers…
-          </Text>
-        </View>
-      ) : null}
 
       {displayedState.status === 'error' ? (
         <View className="gap-3">

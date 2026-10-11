@@ -70,8 +70,16 @@ function ChildSurfaceContent({
   const [contractsEmpty, setContractsEmpty] = useState(false);
   const [rewardsEmpty, setRewardsEmpty] = useState(false);
   const [hasOffers, setHasOffers] = useState(false);
+  const [offersLoading, setOffersLoading] = useState(true);
+  const [contractsLoading, setContractsLoading] = useState(true);
+  const [rewardsLoading, setRewardsLoading] = useState(true);
+  const homeLoaded = !offersLoading && !contractsLoading && !rewardsLoading;
   const noActivities =
-    area === 'home' && contractsEmpty && rewardsEmpty && !hasOffers;
+    area === 'home' &&
+    homeLoaded &&
+    contractsEmpty &&
+    rewardsEmpty &&
+    !hasOffers;
   const idempotencyKey = useRef<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
@@ -187,7 +195,18 @@ function ChildSurfaceContent({
           ) : null}
 
           {familyState.status === 'ready' ? (
-            <View className="gap-5" style={{ flexGrow: 1 }}>
+            <View
+              className="gap-5"
+              style={{
+                flexGrow: 1,
+                opacity: area === 'home' && !homeLoaded ? 0 : 1,
+              }}
+              pointerEvents={area === 'home' && !homeLoaded ? 'none' : 'auto'}
+              accessibilityElementsHidden={area === 'home' && !homeLoaded}
+              importantForAccessibility={
+                area === 'home' && !homeLoaded ? 'no-hide-descendants' : 'auto'
+              }
+            >
               {area === 'home' ||
               area === 'contracts' ||
               area === 'offers' ||
@@ -205,6 +224,9 @@ function ChildSurfaceContent({
               )}
               {area === 'offers' || area === 'home' ? (
                 <OfferInbox
+                  onLoadingChange={
+                    area === 'home' ? setOffersLoading : undefined
+                  }
                   onHasOffersChange={area === 'home' ? setHasOffers : undefined}
                   showBackLink={false}
                   offerId={offerId}
@@ -224,6 +246,9 @@ function ChildSurfaceContent({
                 >
                   <HomeSection fill={area !== 'home'}>
                     <ActiveContracts
+                      onLoadingChange={
+                        area === 'home' ? setContractsLoading : undefined
+                      }
                       preview={area === 'home'}
                       onEmptyChange={
                         area === 'home' ? setContractsEmpty : undefined
@@ -244,6 +269,9 @@ function ChildSurfaceContent({
                 >
                   <HomeSection fill={area !== 'home'}>
                     <EarnedRewards
+                      onLoadingChange={
+                        area === 'home' ? setRewardsLoading : undefined
+                      }
                       preview={area === 'home'}
                       onEmptyChange={
                         area === 'home' ? setRewardsEmpty : undefined
@@ -361,9 +389,10 @@ function ChildSurfaceContent({
 
   return (
     <Screen design entry>
-      <View className="flex-1 py-6">
+      <View className="py-6">
         <EntryHeading
           child
+          showIcon={false}
           title="Connect to your family"
           description="Ask your parent for the pairing code from their ChoreX app."
         />
@@ -385,6 +414,8 @@ function ChildSurfaceContent({
             value={token}
           />
           <Button
+            variant="blue"
+            lightText
             disabled={!token.trim()}
             label="Connect"
             loading={submitting}

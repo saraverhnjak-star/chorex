@@ -53,6 +53,12 @@ function PendingRewardsContent({
   ];
   const selected = tabs.find((tab) => tab.status === selectedStatus)!;
   const state = selected.state;
+  if (
+    pending.status === 'loading' ||
+    awaiting.status === 'loading' ||
+    received.status === 'loading'
+  )
+    return null;
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
       {!preview ? (
@@ -122,11 +128,7 @@ function PendingRewardsContent({
         viewer="PARENT"
         title="Rewards"
         empty={selected.empty}
-        loading={
-          preview
-            ? pending.status === 'loading' || awaiting.status === 'loading'
-            : state.status === 'loading'
-        }
+        loading={false}
         error={
           preview
             ? pending.status === 'error' || awaiting.status === 'error'

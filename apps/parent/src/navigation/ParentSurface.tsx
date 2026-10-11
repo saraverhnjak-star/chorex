@@ -122,12 +122,14 @@ function ParentSurfaceContent({
     area === 'home' &&
     familyState.status === 'ready' &&
     familyState.home.children.length === 0;
-  const fillPage = familyState.status === 'onboarding' || emptyHome;
+  const fillPage =
+    familyState.status === 'onboarding' || area === 'home' || area === 'create';
   const education = useNotificationEducation(
     familyState.status === 'ready' ? uid : undefined,
     notifications.state.permission,
   );
   const [signingOut, setSigningOut] = useState(false);
+  const [homeLoading, setHomeLoading] = useState(true);
   const [selectedChildUid, setSelectedChildUid] = useState<string>();
   const [signOutError, setSignOutError] = useState<string>();
   const [childIdempotencyKey, setChildIdempotencyKey] = useState<string>();
@@ -354,7 +356,21 @@ function ParentSurfaceContent({
         {familyState.status === 'ready' ? (
           <View
             className="gap-5"
-            style={emptyHome ? { flexGrow: 1 } : undefined}
+            pointerEvents={
+              area === 'home' && !emptyHome && homeLoading ? 'none' : 'auto'
+            }
+            accessibilityElementsHidden={
+              area === 'home' && !emptyHome && homeLoading
+            }
+            importantForAccessibility={
+              area === 'home' && !emptyHome && homeLoading
+                ? 'no-hide-descendants'
+                : 'auto'
+            }
+            style={{
+              flexGrow: area === 'home' || area === 'create' ? 1 : undefined,
+              opacity: area === 'home' && !emptyHome && homeLoading ? 0 : 1,
+            }}
           >
             {emptyHome ? (
               <View
@@ -423,7 +439,7 @@ function ParentSurfaceContent({
                 }
               </SectionHeading>
             ) : null}
-            {area === 'home' && !emptyHome ? (
+            {area === 'home' && familyState.home.children.length > 1 ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -473,6 +489,7 @@ function ParentSurfaceContent({
             ) : null}
             {area === 'home' && !emptyHome ? (
               <HomeAttention
+                onLoadingChange={setHomeLoading}
                 selectedChildUid={selectedChildUid}
                 familyId={familyState.home.family.id}
                 authUid={user.uid}
@@ -544,7 +561,7 @@ function ParentSurfaceContent({
               />
             ) : null}
             {area === 'create' ? (
-              <HomeSection>
+              <HomeSection fill>
                 <OfferDraftComposer
                   activeChildren={familyState.home.children}
                   familyId={familyState.home.family.id}

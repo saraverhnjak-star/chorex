@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import {
@@ -7,7 +7,6 @@ import {
 } from '@chorex/firebase-client';
 import {
   Button,
-  DesignText,
   FormMessage,
   OfferOutcome,
   ProposalTerms,
@@ -19,10 +18,12 @@ export function SentOffers({
   familyId,
   childNames,
   offerId,
+  onLoadingChange,
 }: {
   familyId: string;
   childNames: Readonly<Record<string, string>>;
   offerId?: string;
+  onLoadingChange?: (loading: boolean) => void;
 }) {
   const router = useRouter();
   const [attempt, setAttempt] = useState(0);
@@ -54,11 +55,12 @@ export function SentOffers({
       stop?.();
     };
   }, [familyId, offerId, attempt]);
+  useLayoutEffect(() => {
+    onLoadingChange?.(state.status === 'loading');
+  }, [state.status, onLoadingChange]);
+  if (state.status === 'loading') return null;
   return (
     <View style={{ gap: homeTokens.spacing.medium, flexGrow: 1 }}>
-      {state.status === 'loading' ? (
-        <DesignText>Loading offers…</DesignText>
-      ) : null}
       {state.status === 'error' ? (
         <>
           <FormMessage message="Your offers could not be loaded. Try again." />

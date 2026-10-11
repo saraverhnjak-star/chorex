@@ -11,9 +11,10 @@ export function RewardDetail({
   authUid: string | undefined;
 }) {
   const state = useRewardDetail(rewardId, authUid);
+  if (state.status === 'loading') return null;
   return (
     <RewardDetailBody
-      loading={state.status === 'loading'}
+      loading={false}
       error={state.status === 'error'}
       missing={state.status === 'missing'}
       fromCache={

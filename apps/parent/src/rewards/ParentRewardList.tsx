@@ -25,6 +25,7 @@ export function ParentRewardList({
   onSeeAll,
   showHeading = true,
 }: ComponentProps<typeof RewardList> & { showHeading?: boolean }) {
+  if (loading) return null;
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
       {showHeading ? (

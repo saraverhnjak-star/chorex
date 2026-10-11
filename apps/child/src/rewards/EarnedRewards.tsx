@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useEarnedRewards } from '@chorex/firebase-client';
 import { RewardList } from '@chorex/ui';
 function EarnedRewardsContent({
@@ -8,9 +8,11 @@ function EarnedRewardsContent({
   preview = false,
   onRetry,
   onEmptyChange,
+  onLoadingChange,
 }: {
   onRetry?: () => void;
   onEmptyChange?: (empty: boolean) => void;
+  onLoadingChange?: (loading: boolean) => void;
   preview?: boolean;
   familyId: string;
   authUid: string;
@@ -18,10 +20,13 @@ function EarnedRewardsContent({
   const state = useEarnedRewards(familyId, authUid),
     router = useRouter();
   const empty = state.status === 'ready' && state.rewards.length === 0;
-  useEffect(() => {
+  useLayoutEffect(() => {
     onEmptyChange?.(empty);
-    return () => onEmptyChange?.(false);
   }, [empty, onEmptyChange]);
+  useLayoutEffect(() => {
+    onLoadingChange?.(state.status === 'loading');
+  }, [state.status, onLoadingChange]);
+  if (preview && empty) return null;
   return (
     <RewardList
       onRetry={onRetry}

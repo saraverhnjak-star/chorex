@@ -106,6 +106,7 @@ function ContractList({
 }) {
   const router = useRouter();
   const styles = useDynamicTypeStyles();
+  if (state.status === 'loading') return null;
   if (preview && state.status === 'ready' && state.contracts.length === 0)
     return null;
   return (
@@ -127,16 +128,7 @@ function ContractList({
               : 'Active Contracts'}
         </CollectionHeading>
       ) : null}
-      {state.status === 'loading' ? (
-        <Text
-          allowFontScaling={false}
-          accessibilityLiveRegion="polite"
-          className="text-home-muted"
-          style={styles.body}
-        >
-          Loading Contracts…
-        </Text>
-      ) : null}
+
       {state.status === 'error' ? (
         <>
           <FormMessage message="Your Contracts could not be loaded. Try again." />

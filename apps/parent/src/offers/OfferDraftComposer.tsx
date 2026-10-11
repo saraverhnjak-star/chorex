@@ -326,7 +326,7 @@ export function OfferDraftComposer({
   };
 
   return (
-    <View style={{ gap: homeTokens.spacing.medium }}>
+    <View style={{ gap: homeTokens.spacing.medium, flexGrow: 1 }}>
       {savedDraft ? (
         <>
           <SavedDraft
@@ -338,22 +338,30 @@ export function OfferDraftComposer({
               )?.displayName
             }
           />
-          <FormMessage message={publishError} />
-          {!publishedOffer ? (
+          <View
+            style={{
+              marginTop: 'auto',
+              paddingTop: homeTokens.spacing.section,
+              gap: homeTokens.spacing.medium,
+            }}
+          >
+            <FormMessage message={publishError} />
+            {!publishedOffer ? (
+              <Button
+                label="Retry sending offer"
+                variant="blue"
+                lightText
+                loading={isPublishing}
+                onPress={() => void publishSavedDraft()}
+              />
+            ) : null}
             <Button
-              label="Retry sending offer"
-              variant="blue"
-              lightText
-              loading={isPublishing}
-              onPress={() => void publishSavedDraft()}
+              label="Create another offer"
+              disabled={isPublishing || isSubmitting}
+              onPress={startAnother}
+              variant="outline"
             />
-          ) : null}
-          <Button
-            label="Create another offer"
-            disabled={isPublishing || isSubmitting}
-            onPress={startAnother}
-            variant="outline"
-          />
+          </View>
         </>
       ) : activeChildren.length === 0 ? (
         <Text

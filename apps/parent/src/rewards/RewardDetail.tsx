@@ -11,10 +11,11 @@ export function RewardDetail({
   childNames?: Readonly<Record<string, string>>;
 }) {
   const state = useRewardDetail(rewardId, authUid);
+  if (state.status === 'loading') return null;
   return (
     <RewardDetailBody
       viewer="PARENT"
-      loading={state.status === 'loading'}
+      loading={false}
       error={state.status === 'error'}
       missing={state.status === 'missing'}
       fromCache={

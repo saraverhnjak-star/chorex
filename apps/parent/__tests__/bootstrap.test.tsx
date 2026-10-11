@@ -265,15 +265,16 @@ it('renders the parent screen through the public shared UI package', async () =>
     </AppNavigation>,
   );
   expect(screen.queryByRole('header', { name: 'ChoreX' })).toBeNull();
-  await screen.findByText('Mia');
+  await screen.findByText('Needs your attention');
   expect(screen.queryByText('Hello, Alex!')).toBeNull();
   expect(
     screen.queryByRole('button', { name: 'Notification settings' }),
   ).toBeNull();
   expect(screen.getByRole('button', { name: 'Settings' })).toBeOnTheScreen();
-  expect(screen.getByRole('tab', { name: 'All children' })).toBeOnTheScreen();
+  expect(screen.queryByRole('tab', { name: 'All children' })).toBeNull();
+  expect(screen.queryByRole('tab', { name: 'Mia' })).toBeNull();
   expect(screen.queryByRole('header', { name: 'Quick actions' })).toBeNull();
-  expect(screen.getByText('Mia')).toBeOnTheScreen();
+
   expect(screen.queryByText('Create an offer draft')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Create Offer' })).toBeNull();
   expect(
@@ -663,4 +664,23 @@ it('shows sent offers in a separate tab after counteroffers', async () => {
   expect(
     screen.getByRole('button', { name: 'View offer: One hour of games' }),
   ).toBeOnTheScreen();
+});
+
+it('shows a create-offer action when the parent dashboard has no items', async () => {
+  mockSubscribeToCurrentParentNegotiationInbox.mockImplementationOnce(
+    (_familyId, onItems) => {
+      onItems([]);
+      return jest.fn();
+    },
+  );
+  render(
+    <AppNavigation>
+      <HomeScreen />
+    </AppNavigation>,
+  );
+  const button = await screen.findByRole('button', { name: 'Create offer' });
+  expect(screen.getByText('Create your first offer')).toBeOnTheScreen();
+  expect(screen.queryByText('Needs your attention')).toBeNull();
+  fireEvent.press(button);
+  expect(mockNavigate).toHaveBeenCalledWith('/offers/create');
 });

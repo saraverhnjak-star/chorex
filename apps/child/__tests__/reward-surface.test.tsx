@@ -182,6 +182,8 @@ it('assigned Child explicitly confirms receipt, preserves retry key and waits fo
 
 it('keeps all three status tabs equal after layout and selection changes', () => {
   render(<EarnedRewards familyId="family-1" authUid="child-1" />);
+  expect(screen.queryByTestId('reward-status-tabs')).toBeNull();
+  act(() => mockList({ data: [reward], fromCache: false }));
   fireEvent(screen.getByTestId('reward-status-tabs'), 'layout', {
     nativeEvent: { layout: { width: 360, height: 48, x: 0, y: 0 } },
   });

@@ -154,7 +154,8 @@ it('renders frozen terms, persisted progress and locale deadline with no mutatio
   const view = render(
     <ContractDetail {...props} childNames={{ 'child-1': 'Mia' }} />,
   );
-  expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
+  expect(screen.queryByText('Loading Contract…')).toBeNull();
+  expect(screen.queryByLabelText('Contract status: In progress')).toBeNull();
   emitReady();
   expect(
     screen.getByLabelText('Contract status: In progress'),
@@ -219,7 +220,8 @@ it('clears old reads on ID/auth changes and ignores callbacks after cleanup', ()
   const oldContract = mockContract;
   const oldTasks = mockTasks;
   view.rerender(<ContractDetail contractId="contract-2" authUid="new-user" />);
-  expect(screen.getByText('Loading Contract…')).toBeOnTheScreen();
+  expect(screen.queryByText('Loading Contract…')).toBeNull();
+  expect(screen.queryByLabelText('Contract status: In progress')).toBeNull();
   act(() => {
     oldContract({ data: contract, fromCache: false });
     oldTasks({ data: [task], fromCache: false });
@@ -245,7 +247,8 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
   const view = render(
     <ActiveContracts familyId="family-1" authUid="parent-1" />,
   );
-  expect(screen.getByText('Loading Contracts…')).toBeOnTheScreen();
+  expect(screen.queryByText('Loading Contracts…')).toBeNull();
+  expect(screen.queryByText('No active Contracts yet.')).toBeNull();
   act(() => mockList({ data: [], fromCache: false }));
   expect(screen.getByText('No active Contracts yet.')).toBeOnTheScreen();
   act(() =>

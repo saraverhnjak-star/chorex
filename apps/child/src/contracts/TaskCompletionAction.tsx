@@ -54,7 +54,7 @@ export function TaskCompletionAction({ task }: { task: ContractTask }) {
     }
   };
   return (
-    <View className="gap-2">
+    <View className="gap-2 mt-3">
       <FormMessage message={error} />
       {waitingForRead ? (
         <Text

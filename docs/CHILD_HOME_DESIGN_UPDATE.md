@@ -72,3 +72,5 @@ Parent Create offer now uses one Send offer action: the existing server draft co
 Parent Offers now shows a list of counteroffer cards. View offer opens /offers/[offerId] with a fixed header and Back to Offers link. Details reuse rewardFirst terms, larger reward art, repeat pills and deadline artwork without outer wrappers. Parent accept/reject confirmations and server commands are preserved; counteroffer editing and preview use the same unboxed presentation.
 
 Parent Offers has dark Counteroffers and Sent tabs, in that order, with Counteroffers initially selected. Sent subscribes to AWAITING_CHILD offers using the existing participant/family-scoped inbox query and opens a read-only rewardFirst detail with Child's turn. These reads retain Firestore membership/participant rules; no server mutation or lifecycle state was added.
+
+Child Home and My chores include ACTIVE and READY_FOR_REVIEW agreements. Submitted agreements remain visible with the Parent's turn status while the parent reviews them; the existing server lifecycle and detail route are unchanged.

@@ -1,10 +1,11 @@
 import { ParentHomeCard, ParentHomeRow } from './ParentHomeRow';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import {
   subscribeToCurrentParentNegotiationInbox,
   useReadyForReviewContracts,
+  useActiveContracts,
   usePendingRewards,
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
@@ -18,6 +19,7 @@ import {
 } from '@chorex/ui';
 
 type Props = {
+  onLoadingChange?: (loading: boolean) => void;
   selectedChildUid?: string;
   familyId: string;
   authUid: string;
@@ -39,12 +41,14 @@ function AttentionContent({
   childNames,
   selectedChildUid,
   onRetry,
+  onLoadingChange,
 }: Props & { onRetry: () => void }) {
   const router = useRouter();
   const [offers, setOffers] = useState<{
     status: 'loading' | 'ready' | 'error';
     items: readonly ParentNegotiationInboxItem[];
   }>({ status: 'loading', items: [] });
+  const activeContracts = useActiveContracts(familyId, authUid);
   const reviews = useReadyForReviewContracts(familyId, authUid);
   const rewards = usePendingRewards(familyId, authUid);
   useEffect(() => {
@@ -107,11 +111,73 @@ function AttentionContent({
         }),
     })),
   ].filter((item) => !selectedChildUid || item.childUid === selectedChildUid);
+  const loading =
+    offers.status === 'loading' ||
+    reviews.status === 'loading' ||
+    rewards.status === 'loading' ||
+    activeContracts.status === 'loading';
+  useLayoutEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
+  if (loading) return null;
+  const emptyHome =
+    offers.status === 'ready' &&
+    reviews.status === 'ready' &&
+    rewards.status === 'ready' &&
+    activeContracts.status === 'ready' &&
+    items.length === 0 &&
+    !activeContracts.contracts.some(
+      (contract) => !selectedChildUid || contract.childUid === selectedChildUid,
+    );
+  if (emptyHome)
+    return (
+      <View
+        style={{
+          flexGrow: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: homeTokens.spacing.card,
+        }}
+      >
+        <Image
+          accessible={false}
+          source={require('../../../../packages/ui/assets/icons/no_activities.png')}
+          resizeMode="contain"
+          style={{ width: 120, height: 120 }}
+        />
+        <DesignText
+          accessibilityRole="header"
+          style={{
+            fontSize: 24,
+            fontWeight: '700',
+            color: homeTokens.text,
+            textAlign: 'center',
+          }}
+        >
+          Create your first offer
+        </DesignText>
+        <DesignText
+          style={{
+            fontSize: 16,
+            color: homeTokens.secondary,
+            textAlign: 'center',
+          }}
+        >
+          Start an agreement with your child by choosing tasks and a reward.
+        </DesignText>
+        <Button
+          label="Create offer"
+          variant="blue"
+          lightText
+          onPress={() => router.push('/offers/create')}
+        />
+      </View>
+    );
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
       <HomeAttentionList
         items={items.filter((item) => !item.id.startsWith('reward:'))}
-        loading={offers.status === 'loading' || reviews.status === 'loading'}
+        loading={false}
         error={offers.status === 'error' || reviews.status === 'error'}
         cached={reviews.status === 'ready' && reviews.fromCache}
         onRetry={onRetry}
@@ -121,7 +187,7 @@ function AttentionContent({
         heading="Rewards to fulfill"
         empty="No rewards waiting for delivery"
         items={items.filter((item) => item.id.startsWith('reward:'))}
-        loading={rewards.status === 'loading'}
+        loading={false}
         error={rewards.status === 'error'}
         cached={rewards.status === 'ready' && rewards.fromCache}
         onRetry={onRetry}
