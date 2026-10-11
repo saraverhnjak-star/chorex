@@ -1,8 +1,14 @@
+import {
+  t,
+  useAppLanguage,
+  homeTokens,
+  CollectionHeading,
+  DesignText as Text,
+} from '@chorex/ui';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { ParentFamilyHome } from '@chorex/firebase-client';
-import { homeTokens, CollectionHeading, DesignText as Text } from '@chorex/ui';
 type ChildProfile = { uid: string; displayName: string };
 
 export function HomeFamilyOverview({
@@ -17,15 +23,17 @@ export function HomeFamilyOverview({
   home: ParentFamilyHome;
   authUid: string;
 }) {
+  useAppLanguage();
+
   const router = useRouter();
   return (
     <View style={{ gap: 12 }}>
       <CollectionHeading
         count={home.children.length}
-        label="See all Family"
+        label={t('See all Family')}
         onSeeAll={preview ? () => router.navigate('/family') : undefined}
       >
-        Children
+        {t('Children')}
       </CollectionHeading>
       <FamilyOverviewRows
         preview={preview}
@@ -47,6 +55,8 @@ export function FamilyOverviewRows({
   renderChildDetails?: (child: ChildProfile) => ReactNode;
   members: readonly { uid: string; displayName: string }[];
 }) {
+  useAppLanguage();
+
   return (
     <View
       style={{
@@ -55,7 +65,7 @@ export function FamilyOverviewRows({
     >
       {members.length === 0 ? (
         <Text style={{ color: homeTokens.secondary }}>
-          No child profiles yet.
+          {t('No child profiles yet.')}
         </Text>
       ) : (
         members.map((child) => (

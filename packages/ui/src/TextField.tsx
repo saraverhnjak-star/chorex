@@ -1,3 +1,4 @@
+import { t, useAppLanguage, translateMessage } from './localization';
 import { useErrorAnnouncement } from './accessibility';
 import { homeTokens, useHomeTheme } from './Home';
 import { useId, useState } from 'react';
@@ -34,6 +35,9 @@ export function TextField({
   onFocus,
   ...inputProps
 }: TextFieldProps) {
+  useAppLanguage();
+
+  error = translateMessage(error);
   useErrorAnnouncement(error);
   const home = useHomeTheme();
   const id = useId();
@@ -81,7 +85,7 @@ export function TextField({
           allowFontScaling={false}
           accessibilityHint={
             [
-              required ? 'Required' : undefined,
+              required ? t('Required') : undefined,
               error,
               inputProps.accessibilityHint,
             ]

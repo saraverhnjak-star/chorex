@@ -1,3 +1,15 @@
+import {
+  t,
+  useAppLanguage,
+  RewardPicker,
+  homeTokens,
+  ProposalTerms,
+  TermsHeading,
+  Button,
+  FormMessage,
+  TextField,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { DeadlinePicker } from './DeadlinePicker';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
@@ -10,16 +22,6 @@ import {
   type OfferRevision,
   type RewardType,
 } from '@chorex/domain';
-import {
-  RewardPicker,
-  homeTokens,
-  ProposalTerms,
-  TermsHeading,
-  Button,
-  FormMessage,
-  TextField,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 
 type ParentProposal = Extract<CounterOfferInput, { tasks: unknown }>;
 type TaskEditor = { title: string; description: string; targetCount: string };
@@ -63,6 +65,8 @@ export function ParentCounterofferForm({
   onCancel: () => void;
   onSubmit: (proposal: ParentProposal) => Promise<void>;
 }) {
+  useAppLanguage();
+
   const dynamicType = useDynamicTypeStyles();
   const initialDeadline = localDeadline(revision.deadlineAt);
   const [tasks, setTasks] = useState<TaskEditor[]>(() =>
@@ -106,11 +110,11 @@ export function ParentCounterofferForm({
         ? revision.deadlineAt
         : parseLocalDeadline(date, time);
     if (!deadlineAt || Date.parse(deadlineAt) <= Date.now()) {
-      setError('Enter a valid future local deadline.');
+      setError(t('Enter a valid future local deadline.'));
       return;
     }
     if (tasks.some((task) => !/^\d+$/.test(task.targetCount))) {
-      setError('Task target counts must be whole numbers.');
+      setError(t('Task target counts must be whole numbers.'));
       return;
     }
     const result = parentCounterOfferInputSchema.safeParse({
@@ -138,7 +142,9 @@ export function ParentCounterofferForm({
     });
     if (!result.success) {
       setError(
-        'Check task and reward titles, descriptions and target counts before reviewing.',
+        t(
+          'Check task and reward titles, descriptions and target counts before reviewing.',
+        ),
       );
       return;
     }
@@ -158,14 +164,16 @@ export function ParentCounterofferForm({
         className="font-bold text-home-text"
         style={dynamicType.body}
       >
-        {proposal ? 'Review your counteroffer' : 'Edit counteroffer terms'}
+        {proposal
+          ? t('Review your counteroffer')
+          : t('Edit counteroffer terms')}
       </Text>
       <Text
         allowFontScaling={false}
         className="text-home-muted"
         style={dynamicType.small}
       >
-        Your changes become a new proposal for the Child to review.
+        {t('Your changes become a new proposal for the Child to review.')}
       </Text>
       <FormMessage message={error} />
       {proposal ? (
@@ -173,24 +181,24 @@ export function ParentCounterofferForm({
           <ProposalTerms
             layout="rewardFirst"
             revision={proposal}
-            author="Your new proposal"
+            author={t('Your new proposal')}
           />
           <Text
             allowFontScaling={false}
             className="text-home-muted"
             style={dynamicType.body}
           >
-            The child will need to agree to this new proposal.
+            {t('The child will need to agree to this new proposal.')}
           </Text>
           <Button
-            label="Send counteroffer"
+            label={t('Send counteroffer')}
             variant="blue"
             lightText
             loading={busy}
             onPress={() => void onSubmit(proposal)}
           />
           <Button
-            label="Edit proposal"
+            label={t('Edit proposal')}
             variant="outline"
             disabled={busy}
             onPress={() => setProposal(undefined)}
@@ -198,11 +206,11 @@ export function ParentCounterofferForm({
         </>
       ) : (
         <>
-          <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
+          <TermsHeading icon="checkbox-outline">{t('Tasks')}</TermsHeading>
           {tasks.map((task, index) => (
             <View key={index} className="gap-3">
               <TextField
-                label={`Task ${index + 1} title`}
+                label={t('Task {0} title', { '0': index + 1 })}
                 value={task.title}
                 editable={!busy}
                 maxLength={offerValidationBounds.titleMaxLength}
@@ -210,7 +218,7 @@ export function ParentCounterofferForm({
               />
               <TextField
                 required={false}
-                label={`Task ${index + 1} description (optional)`}
+                label={t('Task {0} description (optional)', { '0': index + 1 })}
                 value={task.description}
                 editable={!busy}
                 multiline
@@ -220,7 +228,7 @@ export function ParentCounterofferForm({
                 }
               />
               <TextField
-                label={`Task ${index + 1} target count`}
+                label={t('Task {0} target count', { '0': index + 1 })}
                 value={task.targetCount}
                 editable={!busy}
                 keyboardType="number-pad"
@@ -230,7 +238,7 @@ export function ParentCounterofferForm({
               />
               {tasks.length > 1 ? (
                 <Button
-                  label={`Remove task ${index + 1}`}
+                  label={t('Remove task {0}', { '0': index + 1 })}
                   variant="outline"
                   disabled={busy}
                   onPress={() =>
@@ -242,7 +250,7 @@ export function ParentCounterofferForm({
           ))}
           {tasks.length < offerValidationBounds.taskCountMax ? (
             <Button
-              label="Add task"
+              label={t('Add task')}
               variant="outline"
               disabled={busy}
               onPress={() =>
@@ -253,7 +261,7 @@ export function ParentCounterofferForm({
               }
             />
           ) : null}
-          <TermsHeading icon="gift-outline">Choose reward</TermsHeading>
+          <TermsHeading icon="gift-outline">{t('Choose reward')}</TermsHeading>
           <RewardPicker
             prominent
             value={rewardSelection}
@@ -262,14 +270,14 @@ export function ParentCounterofferForm({
               if (selection === rewardSelection) return;
               setRewardSelection(selection);
               const reward = rewardTermsForSelection(selection);
-              setRewardTitle(reward.title);
+              setRewardTitle(t(reward.title));
               setRewardType(reward.type);
               setRewardIconKey(reward.iconKey);
             }}
           />
           {rewardSelection === 'custom' ? (
             <TextField
-              label="Reward title"
+              label={t('Reward title')}
               value={rewardTitle}
               editable={!busy}
               maxLength={offerValidationBounds.titleMaxLength}
@@ -278,14 +286,14 @@ export function ParentCounterofferForm({
           ) : null}
           <TextField
             required={false}
-            label="Reward description (optional)"
+            label={t('Reward description (optional)')}
             value={rewardDescription}
             editable={!busy}
             multiline
             maxLength={offerValidationBounds.descriptionMaxLength}
             onChangeText={setRewardDescription}
           />
-          <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
+          <TermsHeading icon="calendar-outline">{t('Deadline')}</TermsHeading>
           <DeadlinePicker
             date={date}
             time={time}
@@ -295,10 +303,12 @@ export function ParentCounterofferForm({
               setTime(time);
             }}
           />
-          <TermsHeading icon="chatbox-outline">Optional note</TermsHeading>
+          <TermsHeading icon="chatbox-outline">
+            {t('Optional note')}
+          </TermsHeading>
           <TextField
             required={false}
-            label="Proposal note (optional)"
+            label={t('Proposal note (optional)')}
             value={note}
             editable={!busy}
             multiline
@@ -306,14 +316,14 @@ export function ParentCounterofferForm({
             onChangeText={setNote}
           />
           <Button
-            label="Review counteroffer"
+            label={t('Review counteroffer')}
             disabled={busy}
             onPress={review}
           />
         </>
       )}
       <Button
-        label="Cancel counteroffer"
+        label={t('Cancel counteroffer')}
         variant="outline"
         disabled={busy}
         onPress={onCancel}

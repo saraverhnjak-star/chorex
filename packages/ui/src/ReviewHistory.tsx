@@ -1,3 +1,4 @@
+import { t, useAppLanguage, dateLocale } from './localization';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -18,6 +19,8 @@ export function ReviewHistory({
   fromCache?: boolean;
   collapsible?: boolean;
 }) {
+  useAppLanguage();
+
   const [expanded, setExpanded] = useState(false);
   const accordion = collapsible && !loading && !error && reviews.length > 0;
   const styles = {
@@ -29,7 +32,7 @@ export function ReviewHistory({
       {accordion ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Review history"
+          accessibilityLabel={t('Review history')}
           accessibilityState={{ expanded }}
           onPress={() => setExpanded((value) => !value)}
           style={{
@@ -40,7 +43,7 @@ export function ReviewHistory({
           }}
         >
           <Text accessibilityRole="header" style={styles.body}>
-            Review history
+            {t('Review history')}
           </Text>
           <Ionicons
             accessible={false}
@@ -56,7 +59,7 @@ export function ReviewHistory({
           className="font-semibold text-home-text"
           style={styles.body}
         >
-          Review history
+          {t('Review history')}
         </Text>
       )}
       {!accordion || expanded ? (
@@ -68,10 +71,14 @@ export function ReviewHistory({
               className="text-home-muted"
               style={styles.body}
             >
-              Loading review history…
+              {t('Loading review history…')}
             </Text>
           ) : error ? (
-            <FormMessage message="Review history could not be loaded. Reopen this Contract to try again." />
+            <FormMessage
+              message={t(
+                'Review history could not be loaded. Reopen this Contract to try again.',
+              )}
+            />
           ) : (
             <>
               {reviews.length === 0 ? (
@@ -82,16 +89,20 @@ export function ReviewHistory({
                   style={styles.body}
                 >
                   {fromCache
-                    ? 'No saved reviews are available yet. Connect to the internet to load them.'
-                    : 'No reviews yet'}
+                    ? t(
+                        'No saved reviews are available yet. Connect to the internet to load them.',
+                      )
+                    : t('No reviews yet')}
                 </Text>
               ) : (
                 reviews.map((review) => {
                   const decision =
                     review.decision === 'APPROVE'
-                      ? 'Approved'
-                      : 'Changes requested';
-                  const date = new Date(review.createdAt).toLocaleString();
+                      ? t('Approved')
+                      : t('Changes requested');
+                  const date = new Date(review.createdAt).toLocaleString(
+                    dateLocale(),
+                  );
                   return (
                     <View
                       key={review.id}
@@ -123,18 +134,25 @@ export function ReviewHistory({
                       <Text
                         allowFontScaling={false}
                         accessibilityRole="header"
-                        accessibilityLabel={`Review ${review.cycle + 1}: ${decision}. ${date}`}
+                        accessibilityLabel={t('Review {0}: {1}. {2}', {
+                          '0': review.cycle + 1,
+                          '1': decision,
+                          '2': date,
+                        })}
                         className="font-semibold text-home-text"
                         style={styles.body}
                       >
-                        Review {review.cycle + 1}: {decision}
+                        {t('Review {0}: {1}', {
+                          '0': review.cycle + 1,
+                          '1': decision,
+                        })}
                       </Text>
                       <Text
                         allowFontScaling={false}
                         className="text-home-muted"
                         style={styles.small}
                       >
-                        Parent · {date}
+                        {t('Parent · {0}', { '0': date })}
                       </Text>
                       {review.note ? (
                         <Text
@@ -156,7 +174,7 @@ export function ReviewHistory({
                   className="text-home-muted"
                   style={styles.small}
                 >
-                  Showing saved review history. Updates may be pending.
+                  {t('Showing saved review history. Updates may be pending.')}
                 </Text>
               ) : null}
             </>

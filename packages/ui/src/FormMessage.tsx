@@ -1,8 +1,11 @@
+import { translateMessage, useAppLanguage } from './localization';
 import { Text, View } from 'react-native';
 import { useErrorAnnouncement } from './accessibility';
 import { useDynamicTypeStyles } from './typography';
 
 export function FormMessage({ message }: { message?: string }) {
+  useAppLanguage();
+  message = translateMessage(message);
   useErrorAnnouncement(message);
   const dynamicType = useDynamicTypeStyles();
 

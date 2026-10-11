@@ -1,3 +1,4 @@
+import { t, useAppLanguage, DesignText, homeTokens } from '@chorex/ui';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -7,7 +8,6 @@ import {
   usePendingRewards,
   useReceivedRewards,
 } from '@chorex/firebase-client';
-import { DesignText, homeTokens } from '@chorex/ui';
 import { ParentRewardList } from './ParentRewardList';
 
 function PendingRewardsContent({
@@ -23,6 +23,8 @@ function PendingRewardsContent({
   authUid: string;
   childNames?: Readonly<Record<string, string>>;
 }) {
+  useAppLanguage();
+
   const pending = usePendingRewards(familyId, authUid);
   const awaiting = useAwaitingRewards(familyId, authUid);
   const received = useReceivedRewards(familyId, authUid);
@@ -72,7 +74,7 @@ function PendingRewardsContent({
             <Pressable
               key={tab.status}
               accessibilityRole="tab"
-              accessibilityLabel={tab.label}
+              accessibilityLabel={t(tab.label)}
               accessibilityState={{ selected: selectedStatus === tab.status }}
               onPress={() => setSelectedStatus(tab.status)}
               style={{
@@ -114,7 +116,7 @@ function PendingRewardsContent({
                       : homeTokens.secondary,
                 }}
               >
-                {tab.label}
+                {t(tab.label)}
               </DesignText>
             </Pressable>
           ))}
@@ -126,8 +128,8 @@ function PendingRewardsContent({
         preview={preview}
         onSeeAll={preview ? () => router.navigate('/rewards') : undefined}
         viewer="PARENT"
-        title="Rewards"
-        empty={selected.empty}
+        title={t('Rewards')}
+        empty={t(selected.empty)}
         loading={false}
         error={
           preview

@@ -635,8 +635,12 @@ it('renders all immutable rounds with one-based labels, notes and realtime final
   const headings = screen
     .getAllByRole('header')
     .map((h) => h.props.children)
-    .filter((c) => Array.isArray(c) && c[0] === 'Review ');
-  expect(headings.map((c) => c[1])).toEqual([1, 2, 3]);
+    .filter((c) => typeof c === 'string' && /^Review \d+:/.test(c));
+  expect(headings).toEqual([
+    'Review 1: Changes requested',
+    'Review 2: Changes requested',
+    'Review 3: Approved',
+  ]);
   expect(screen.getByText('Review 3: Approved')).toBeOnTheScreen();
   expect(historicalReviews.map((r) => r.cycle)).toEqual([0, 1, 2]);
   expect(

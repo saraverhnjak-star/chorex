@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { Switch } from 'react-native';
 import { FormMessage } from './FormMessage';
 import { DesignText, homeTokens } from './Home';
@@ -11,6 +12,8 @@ export function ReminderPreferenceCard(props: {
   error?: string;
   onChange: (enabled: boolean) => void;
 }) {
+  useAppLanguage();
+
   const loaded = props.enabled !== undefined;
   return (
     <SettingsRow
@@ -25,7 +28,9 @@ export function ReminderPreferenceCard(props: {
             hitSlop={8}
             accessibilityRole="switch"
             accessibilityLabel={props.label}
-            accessibilityHint="Controls optional reminders for your account. Does not change device notification permission."
+            accessibilityHint={t(
+              'Controls optional reminders for your account. Does not change device notification permission.',
+            )}
             accessibilityState={{
               disabled: props.busy,
               checked: props.enabled,
@@ -39,17 +44,18 @@ export function ReminderPreferenceCard(props: {
       }
     >
       <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
-        Optional reminders only. Device permission is separate; agreement
-        updates stay enabled.
+        {t(
+          'Optional reminders only. Device permission is separate; agreement updates stay enabled.',
+        )}
       </DesignText>
       {!loaded && !props.error ? (
         <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-          Loading reminder setting…
+          {t('Loading reminder setting…')}
         </DesignText>
       ) : null}
       {props.fromCache ? (
         <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
-          Showing saved settings. Connect to confirm changes.
+          {t('Showing saved settings. Connect to confirm changes.')}
         </DesignText>
       ) : null}
       {props.busy ? (
@@ -57,7 +63,7 @@ export function ReminderPreferenceCard(props: {
           accessibilityLiveRegion="polite"
           style={{ fontSize: 14, color: homeTokens.secondary }}
         >
-          Saving reminder setting…
+          {t('Saving reminder setting…')}
         </DesignText>
       ) : null}
       <FormMessage message={props.error} />

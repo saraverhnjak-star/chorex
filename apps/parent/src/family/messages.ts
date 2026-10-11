@@ -1,3 +1,4 @@
+import { t } from '@chorex/ui';
 import {
   familyClientErrorCodes,
   isFamilyClientError,
@@ -45,7 +46,9 @@ const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
 };
 
 export function getFamilyErrorMessage(error: unknown): string {
-  return familyErrorMessages[
-    isFamilyClientError(error) ? error.code : familyClientErrorCodes.unknown
-  ];
+  return t(
+    familyErrorMessages[
+      isFamilyClientError(error) ? error.code : familyClientErrorCodes.unknown
+    ],
+  );
 }

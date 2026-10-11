@@ -56,11 +56,7 @@ export function Button({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: unavailable }}
-      className={`active:opacity-80 min-h-12 items-center justify-center rounded-2xl border-2 px-5 py-3 ${
-        containerClasses[variant]
-      } ${focused ? 'border-focus' : variant === 'danger' ? 'border-danger' : variant === 'outline' ? 'border-home-border' : 'border-transparent'} ${
-        unavailable ? 'opacity-50' : ''
-      }`}
+      className={`active:opacity-80 min-h-12 items-center justify-center rounded-2xl border-2 px-5 py-3 ${containerClasses[variant]} ${focused ? 'border-focus' : variant === 'danger' ? 'border-danger' : variant === 'outline' ? 'border-home-border' : 'border-transparent'} ${unavailable ? 'opacity-50' : ''}`}
       disabled={unavailable}
       onBlur={() => setFocused(false)}
       onFocus={() => setFocused(true)}

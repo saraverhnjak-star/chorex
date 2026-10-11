@@ -1,16 +1,20 @@
-import { Pressable } from 'react-native';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  t,
+  useAppLanguage,
   HomeScreenFrame,
   HomeHeader,
   DesignText,
   homeTokens,
 } from '@chorex/ui';
+import { Pressable } from 'react-native';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useParentSession } from '../../../src/auth/session';
 import { useParentFamily } from '../../../src/navigation/FamilyContext';
 import { ContractDetail } from '../../../src/contracts/ContractDetail';
 
 export default function ContractScreen() {
+  useAppLanguage();
+
   const { contractId } = useLocalSearchParams<{
     contractId: string | string[];
   }>();
@@ -27,11 +31,11 @@ export default function ContractScreen() {
       header={
         <HomeHeader
           compact
-          name={home?.profile.displayName ?? 'Parent'}
+          name={home?.profile.displayName ?? t('Parent')}
           leading={
             <Pressable
               accessibilityRole="link"
-              accessibilityLabel="Back to Contracts"
+              accessibilityLabel={t('Back to Contracts')}
               onPress={() =>
                 router.canGoBack()
                   ? router.back()
@@ -40,7 +44,7 @@ export default function ContractScreen() {
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
               <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                ← Contracts
+                {t('← Contracts')}
               </DesignText>
             </Pressable>
           }

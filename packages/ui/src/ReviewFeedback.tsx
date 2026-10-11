@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DesignText as Text, homeTokens } from './Home';
@@ -14,6 +15,8 @@ export function ReviewFeedback({
   error: boolean;
   fromCache?: boolean;
 }) {
+  useAppLanguage();
+
   const styles = {
     body: { fontSize: 16, color: homeTokens.text },
     small: { fontSize: 14, color: homeTokens.secondary },
@@ -39,7 +42,7 @@ export function ReviewFeedback({
         className="text-home-text"
         style={styles.body}
       >
-        Changes were requested. The reward has not been earned.
+        {t('Changes were requested. The reward has not been earned.')}
       </Text>
       <Text
         allowFontScaling={false}
@@ -47,7 +50,7 @@ export function ReviewFeedback({
         className="font-semibold text-home-text"
         style={styles.body}
       >
-        Parent feedback
+        {t('Parent feedback')}
       </Text>
       {loading ? (
         <Text
@@ -56,10 +59,14 @@ export function ReviewFeedback({
           className="text-home-muted"
           style={styles.body}
         >
-          Loading feedback…
+          {t('Loading feedback…')}
         </Text>
       ) : error ? (
-        <FormMessage message="Feedback could not be loaded. Reopen this Contract to try again." />
+        <FormMessage
+          message={t(
+            'Feedback could not be loaded. Reopen this Contract to try again.',
+          )}
+        />
       ) : note ? (
         <>
           <Text
@@ -75,7 +82,7 @@ export function ReviewFeedback({
               className="text-home-muted"
               style={styles.small}
             >
-              Showing saved feedback. Updates may be pending.
+              {t('Showing saved feedback. Updates may be pending.')}
             </Text>
           ) : null}
         </>
@@ -86,8 +93,10 @@ export function ReviewFeedback({
           style={styles.body}
         >
           {fromCache
-            ? 'No saved feedback is available yet. Connect to the internet to load it.'
-            : 'Feedback is not available yet.'}
+            ? t(
+                'No saved feedback is available yet. Connect to the internet to load it.',
+              )
+            : t('Feedback is not available yet.')}
         </Text>
       )}
     </View>

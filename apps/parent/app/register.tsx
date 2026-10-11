@@ -1,3 +1,14 @@
+import {
+  t,
+  useAppLanguage,
+  Button,
+  EntryHeading,
+  amberAuroraPalette,
+  FormMessage,
+  Screen,
+  TextField,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'expo-router';
@@ -8,20 +19,13 @@ import {
   type RegistrationCredentials,
   type RegistrationCredentialsInput,
 } from '@chorex/domain';
-import {
-  Button,
-  EntryHeading,
-  amberAuroraPalette,
-  FormMessage,
-  Screen,
-  TextField,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 import { PasswordField } from '../src/auth/PasswordField';
 import { getAuthErrorMessage } from '../src/auth/messages';
 import { useParentSession } from '../src/auth/session';
 
 export default function RegisterScreen() {
+  useAppLanguage();
+
   const { register } = useParentSession();
   const dynamicType = useDynamicTypeStyles();
   const {
@@ -50,8 +54,8 @@ export default function RegisterScreen() {
       <View className="py-6">
         <EntryHeading
           showIcon={false}
-          title="Create your account"
-          description="Start with your account. Your family comes next."
+          title={t('Create your account')}
+          description={t('Start with your account. Your family comes next.')}
         />
 
         <View className="mt-6 gap-5">
@@ -67,7 +71,7 @@ export default function RegisterScreen() {
                 editable={!isSubmitting}
                 error={errors.email?.message}
                 keyboardType="email-address"
-                label="Email"
+                label={t('Email')}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
                 returnKeyType="next"
@@ -85,7 +89,7 @@ export default function RegisterScreen() {
                 autoComplete="new-password"
                 editable={!isSubmitting}
                 error={errors.password?.message}
-                label="Password"
+                label={t('Password')}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
                 returnKeyType="next"
@@ -99,7 +103,9 @@ export default function RegisterScreen() {
             className="-mt-3 text-home-muted"
             style={dynamicType.small}
           >
-            Use at least {parentPasswordMinimumLength} characters.
+            {t('Use at least {0} characters.', {
+              '0': parentPasswordMinimumLength,
+            })}
           </Text>
           <Controller
             control={control}
@@ -110,7 +116,7 @@ export default function RegisterScreen() {
                 autoComplete="new-password"
                 editable={!isSubmitting}
                 error={errors.confirmPassword?.message}
-                label="Confirm password"
+                label={t('Confirm password')}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
                 onSubmitEditing={handleSubmit(onSubmit)}
@@ -123,7 +129,7 @@ export default function RegisterScreen() {
           <Button
             variant="blue"
             lightText
-            label="Create account"
+            label={t('Create account')}
             loading={isSubmitting}
             onPress={handleSubmit(onSubmit)}
           />
@@ -135,7 +141,7 @@ export default function RegisterScreen() {
             className="text-home-muted"
             style={dynamicType.body}
           >
-            Already registered?
+            {t('Already registered?')}
           </Text>
           <Link href="/sign-in" asChild>
             <Pressable
@@ -150,7 +156,7 @@ export default function RegisterScreen() {
                   { color: amberAuroraPalette.auroraBlue },
                 ]}
               >
-                Return to sign in
+                {t('Return to sign in')}
               </Text>
             </Pressable>
           </Link>

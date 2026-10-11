@@ -1,3 +1,13 @@
+import {
+  t,
+  useAppLanguage,
+  Button,
+  CollectionHeading,
+  DesignText,
+  HomeListRow,
+  HomeEmptyState,
+  homeTokens,
+} from '@chorex/ui';
 import { ParentHomeCard, ParentHomeRow } from './ParentHomeRow';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -9,14 +19,6 @@ import {
   usePendingRewards,
   type ParentNegotiationInboxItem,
 } from '@chorex/firebase-client';
-import {
-  Button,
-  CollectionHeading,
-  DesignText,
-  HomeListRow,
-  HomeEmptyState,
-  homeTokens,
-} from '@chorex/ui';
 
 type Props = {
   onLoadingChange?: (loading: boolean) => void;
@@ -43,6 +45,8 @@ function AttentionContent({
   onRetry,
   onLoadingChange,
 }: Props & { onRetry: () => void }) {
+  useAppLanguage();
+
   const router = useRouter();
   const [offers, setOffers] = useState<{
     status: 'loading' | 'ready' | 'error';
@@ -78,7 +82,9 @@ function AttentionContent({
     ...offers.items.map(({ offer, revision }) => ({
       id: `offer:${offer.id}`,
       childUid: offer.childUid,
-      title: `${childNames[offer.childUid] ?? 'Child'} countered your offer`,
+      title: t('{0} countered your offer', {
+        '0': childNames[offer.childUid] ?? t('Child'),
+      }),
       detail: revision.reward.title,
       reward: revision.reward,
       icon: 'chatbox-outline' as const,
@@ -87,7 +93,9 @@ function AttentionContent({
     ...(reviews.status === 'ready' ? reviews.contracts : []).map((c) => ({
       id: `review:${c.id}`,
       childUid: c.childUid,
-      title: `${childNames[c.childUid] ?? 'Child'} submitted for review`,
+      title: t('{0} submitted for review', {
+        '0': childNames[c.childUid] ?? t('Child'),
+      }),
       detail: c.rewardTerms.title,
       reward: c.rewardTerms,
       icon: 'document-text-outline' as const,
@@ -100,8 +108,8 @@ function AttentionContent({
     ...(rewards.status === 'ready' ? rewards.rewards : []).map((r) => ({
       id: `reward:${r.id}`,
       childUid: r.childUid,
-      title: 'Reward waiting for delivery',
-      detail: `${r.terms.title} · ${childNames[r.childUid] ?? 'Child'}`,
+      title: t('Reward waiting for delivery'),
+      detail: `${r.terms.title} · ${childNames[r.childUid] ?? t('Child')}`,
       icon: 'gift-outline' as const,
       reward: r.terms,
       onPress: () =>
@@ -154,7 +162,7 @@ function AttentionContent({
             textAlign: 'center',
           }}
         >
-          Create your first offer
+          {t('Create your first offer')}
         </DesignText>
         <DesignText
           style={{
@@ -163,10 +171,12 @@ function AttentionContent({
             textAlign: 'center',
           }}
         >
-          Start an agreement with your child by choosing tasks and a reward.
+          {t(
+            'Start an agreement with your child by choosing tasks and a reward.',
+          )}
         </DesignText>
         <Button
-          label="Create offer"
+          label={t('Create offer')}
           variant="blue"
           lightText
           onPress={() => router.push('/offers/create')}
@@ -184,8 +194,8 @@ function AttentionContent({
       />
       <HomeAttentionList
         hideWhenEmpty
-        heading="Rewards to fulfill"
-        empty="No rewards waiting for delivery"
+        heading={t('Rewards to fulfill')}
+        empty={t('No rewards waiting for delivery')}
         items={items.filter((item) => item.id.startsWith('reward:'))}
         loading={false}
         error={rewards.status === 'error'}
@@ -204,8 +214,8 @@ export function HomeAttentionList({
   cached = false,
   onRetry,
   hideWhenEmpty = false,
-  heading = 'Needs your attention',
-  empty = 'Nothing needs your attention',
+  heading = t('Needs your attention'),
+  empty = t('Nothing needs your attention'),
 }: {
   hideWhenEmpty?: boolean;
   heading?: string;
@@ -223,13 +233,15 @@ export function HomeAttentionList({
   cached?: boolean;
   onRetry: () => void;
 }) {
+  useAppLanguage();
+
   if (hideWhenEmpty && !loading && !error && items.length === 0) return null;
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
       <CollectionHeading count={items.length}>{heading}</CollectionHeading>
       {cached ? (
         <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
-          Showing saved data. Updates may be pending.
+          {t('Showing saved data. Updates may be pending.')}
         </DesignText>
       ) : null}
       {items.length ? (
@@ -246,14 +258,18 @@ export function HomeAttentionList({
                 detail={item.title}
                 reward={item.reward ?? { type: 'CUSTOM', iconKey: 'gift' }}
                 badge={
-                  offer ? undefined : reward ? 'Waiting for you' : 'For review'
+                  offer
+                    ? undefined
+                    : reward
+                      ? t('Waiting for you')
+                      : t('For review')
                 }
                 action={
                   offer
-                    ? 'View proposal'
+                    ? t('View proposal')
                     : reward
-                      ? 'Fulfill reward'
-                      : 'Review work'
+                      ? t('Fulfill reward')
+                      : t('Review work')
                 }
                 label={`${item.title}: ${item.detail}`}
                 button={reward}
@@ -273,17 +289,17 @@ export function HomeAttentionList({
           }
         >
           {loading
-            ? 'Loading attention items…'
+            ? t('Loading attention items…')
             : error
-              ? 'Attention items could not be loaded.'
+              ? t('Attention items could not be loaded.')
               : cached
-                ? 'No attention items saved on this device.'
+                ? t('No attention items saved on this device.')
                 : empty}
         </HomeEmptyState>
       )}
       {items.length > 3 ? (
         <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
-          More items in Offers, Contracts and Rewards.
+          {t('More items in Offers, Contracts and Rewards.')}
         </DesignText>
       ) : null}
       {error ? (
@@ -292,17 +308,17 @@ export function HomeAttentionList({
             accessibilityRole="alert"
             style={{ fontSize: 12, color: homeTokens.secondary }}
           >
-            Some attention items could not be loaded.
+            {t('Some attention items could not be loaded.')}
           </DesignText>
           <Button
-            label="Try attention again"
+            label={t('Try attention again')}
             variant="outline"
             onPress={onRetry}
           />
         </>
       ) : loading && items.length ? (
         <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
-          Loading more attention items…
+          {t('Loading more attention items…')}
         </DesignText>
       ) : null}
     </View>

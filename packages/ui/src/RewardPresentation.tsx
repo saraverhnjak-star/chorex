@@ -1,3 +1,4 @@
+import { t, useAppLanguage, dateLocale } from './localization';
 import { RewardIcon } from './RewardIcon';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -10,9 +11,9 @@ export function rewardStatusLabel(
   viewer: Viewer,
 ) {
   if (status === 'FULFILLED')
-    return viewer === 'PARENT' ? 'Confirmed received' : 'Received';
-  if (status === 'AWAITING_CHILD_CONFIRMATION') return 'Delivered';
-  return viewer === 'PARENT' ? 'Ready to deliver' : 'Earned';
+    return viewer === 'PARENT' ? t('Confirmed received') : t('Received');
+  if (status === 'AWAITING_CHILD_CONFIRMATION') return t('Delivered');
+  return viewer === 'PARENT' ? t('Ready to deliver') : t('Earned');
 }
 export function rewardResponsibility(
   reward: EarnedReward,
@@ -21,16 +22,24 @@ export function rewardResponsibility(
 ) {
   if (viewer === 'PARENT') {
     if (reward.status === 'PENDING_FULFILLMENT')
-      return `${childName ?? 'Your Child'} earned this reward. Your turn to deliver it.`;
+      return t('{0} earned this reward. Your turn to deliver it.', {
+        '0': childName ?? t('Your Child'),
+      });
     if (reward.status === 'AWAITING_CHILD_CONFIRMATION')
-      return `Waiting for ${childName ?? 'your Child'} to confirm receipt.`;
-    return `${childName ?? 'Your Child'} confirmed receiving this reward.`;
+      return t('Waiting for {0} to confirm receipt.', {
+        '0': childName ?? t('your Child'),
+      });
+    return t('{0} confirmed receiving this reward.', {
+      '0': childName ?? t('Your Child'),
+    });
   }
   if (reward.status === 'PENDING_FULFILLMENT')
-    return 'You earned this reward. Waiting for your Parent to deliver it.';
+    return t('You earned this reward. Waiting for your Parent to deliver it.');
   if (reward.status === 'AWAITING_CHILD_CONFIRMATION')
-    return 'Your Parent marked this reward as delivered. Confirm when you have received it.';
-  return 'You confirmed receiving this reward.';
+    return t(
+      'Your Parent marked this reward as delivered. Confirm when you have received it.',
+    );
+  return t('You confirmed receiving this reward.');
 }
 export function rewardTone(status: EarnedReward['status'], viewer: Viewer) {
   return status === 'FULFILLED'
@@ -54,6 +63,8 @@ export function RewardCard({
   childName?: string;
   onPress: () => void;
 }) {
+  useAppLanguage();
+
   const date =
     reward.status === 'FULFILLED'
       ? reward.confirmedAt
@@ -64,7 +75,13 @@ export function RewardCard({
     <Pressable
       accessible
       accessibilityRole="button"
-      accessibilityLabel={`Open reward: ${childName ? `${childName} · ` : ''}${reward.terms.title}. ${rewardStatusLabel(reward.status, viewer)}. ${rewardResponsibility(reward, viewer, childName)} ${new Date(date).toLocaleDateString()}`}
+      accessibilityLabel={t('Open reward: {0}{1}. {2}. {3} {4}', {
+        '0': childName ? `${childName} · ` : '',
+        '1': reward.terms.title,
+        '2': rewardStatusLabel(reward.status, viewer),
+        '3': rewardResponsibility(reward, viewer, childName),
+        '4': new Date(date).toLocaleDateString(dateLocale()),
+      })}
       onPress={onPress}
       className="active:opacity-70"
       style={s.card}
@@ -81,23 +98,23 @@ export function RewardCard({
         <DesignText style={s.caption}>
           {reward.status === 'PENDING_FULFILLMENT'
             ? viewer === 'PARENT'
-              ? 'Your turn to deliver'
-              : 'Waiting for Parent delivery'
+              ? t('Your turn to deliver')
+              : t('Waiting for Parent delivery')
             : reward.status === 'AWAITING_CHILD_CONFIRMATION'
               ? viewer === 'PARENT'
-                ? 'Waiting for Child confirmation'
-                : 'Confirm when received'
+                ? t('Waiting for Child confirmation')
+                : t('Confirm when received')
               : viewer === 'PARENT'
-                ? 'Receipt confirmed by Child'
-                : 'Receipt confirmed by you'}
+                ? t('Receipt confirmed by Child')
+                : t('Receipt confirmed by you')}
         </DesignText>
         <DesignText style={s.caption}>
           {reward.status === 'FULFILLED'
-            ? 'Received'
+            ? t('Received')
             : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-              ? 'Delivered'
-              : 'Earned'}{' '}
-          {new Date(date).toLocaleDateString()}
+              ? t('Delivered')
+              : t('Earned')}{' '}
+          {new Date(date).toLocaleDateString(dateLocale())}
         </DesignText>
       </View>
       <Ionicons
@@ -114,27 +131,33 @@ export function RewardFulfillmentProgress({
 }: {
   reward: EarnedReward;
 }) {
+  useAppLanguage();
+
   const steps = [
-    { label: 'Earned', detail: 'Contract approved', date: reward.earnedAt },
     {
-      label: 'Delivered',
+      label: t('Earned'),
+      detail: t('Contract approved'),
+      date: reward.earnedAt,
+    },
+    {
+      label: t('Delivered'),
       detail:
         reward.status === 'PENDING_FULFILLMENT'
-          ? 'Waiting for Parent delivery'
-          : 'Reported by Parent',
+          ? t('Waiting for Parent delivery')
+          : t('Reported by Parent'),
       date:
         reward.status === 'PENDING_FULFILLMENT'
           ? undefined
           : reward.deliveredAt,
     },
     {
-      label: 'Received',
+      label: t('Received'),
       detail:
         reward.status === 'FULFILLED'
-          ? 'Confirmed by Child'
+          ? t('Confirmed by Child')
           : reward.status === 'PENDING_FULFILLMENT'
-            ? 'Child confirmation follows delivery'
-            : 'Waiting for Child confirmation',
+            ? t('Child confirmation follows delivery')
+            : t('Waiting for Child confirmation'),
       date: reward.status === 'FULFILLED' ? reward.confirmedAt : undefined,
     },
   ];
@@ -144,7 +167,7 @@ export function RewardFulfillmentProgress({
         <View
           key={step.label}
           accessible
-          accessibilityLabel={`${step.label}. ${step.detail}${step.date ? `. ${new Date(step.date).toLocaleString()}` : '. Not yet completed.'}`}
+          accessibilityLabel={`${step.label}. ${step.detail}${step.date ? `. ${new Date(step.date).toLocaleString(dateLocale())}` : t('. Not yet completed.')}`}
           style={s.step}
         >
           <Ionicons
@@ -158,7 +181,7 @@ export function RewardFulfillmentProgress({
             <DesignText style={s.caption}>{step.detail}</DesignText>
             {step.date ? (
               <DesignText style={s.caption}>
-                {new Date(step.date).toLocaleString()}
+                {new Date(step.date).toLocaleString(dateLocale())}
               </DesignText>
             ) : null}
           </View>

@@ -1,3 +1,12 @@
+import {
+  t,
+  useAppLanguage,
+  Button,
+  FormMessage,
+  OfferOutcome,
+  ProposalTerms,
+  homeTokens,
+} from '@chorex/ui';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
@@ -5,13 +14,6 @@ import {
   subscribeToCurrentChildOfferInbox,
   type ChildOfferInboxItem,
 } from '@chorex/firebase-client';
-import {
-  Button,
-  FormMessage,
-  OfferOutcome,
-  ProposalTerms,
-  homeTokens,
-} from '@chorex/ui';
 import { ParentHomeCard, ParentHomeRow } from '../navigation/ParentHomeRow';
 
 export function SentOffers({
@@ -25,6 +27,8 @@ export function SentOffers({
   offerId?: string;
   onLoadingChange?: (loading: boolean) => void;
 }) {
+  useAppLanguage();
+
   const router = useRouter();
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{
@@ -63,9 +67,11 @@ export function SentOffers({
     <View style={{ gap: homeTokens.spacing.medium, flexGrow: 1 }}>
       {state.status === 'error' ? (
         <>
-          <FormMessage message="Your offers could not be loaded. Try again." />
+          <FormMessage
+            message={t('Your offers could not be loaded. Try again.')}
+          />
           <Button
-            label="Try offers again"
+            label={t('Try offers again')}
             onPress={() => {
               setState({ items: [], status: 'loading' });
               setAttempt((v) => v + 1);
@@ -77,9 +83,9 @@ export function SentOffers({
         <OfferOutcome
           centered
           illustration="no-offers"
-          title={offerId ? 'Offer unavailable' : 'No sent offers'}
+          title={offerId ? t('Offer unavailable') : t('No sent offers')}
         >
-          Offers waiting for your child&apos;s response will appear here.
+          {t("Offers waiting for your child's response will appear here.")}
         </OfferOutcome>
       ) : null}
       {state.items.map(({ offer, revision }) =>
@@ -88,9 +94,13 @@ export function SentOffers({
             key={offer.id}
             layout="rewardFirst"
             revision={revision}
-            status="Child's turn"
-            author={`For ${childNames[offer.childUid] ?? 'Child'}`}
-            support="Waiting for your child to accept, decline or suggest a change."
+            status={t("Child's turn")}
+            author={t('For {0}', {
+              '0': childNames[offer.childUid] ?? t('Child'),
+            })}
+            support={t(
+              'Waiting for your child to accept, decline or suggest a change.',
+            )}
           />
         ) : (
           <ParentHomeCard key={offer.id}>
@@ -98,10 +108,12 @@ export function SentOffers({
               dense
               reward={revision.reward}
               title={revision.reward.title}
-              detail={`${childNames[offer.childUid] ?? 'Child'} · Waiting for a response`}
-              badge="Child's turn"
-              action="View offer"
-              label={`View offer: ${revision.reward.title}`}
+              detail={t('{0} · Waiting for a response', {
+                '0': childNames[offer.childUid] ?? t('Child'),
+              })}
+              badge={t("Child's turn")}
+              action={t('View offer')}
+              label={t('View offer: {0}', { '0': revision.reward.title })}
               onPress={() =>
                 router.push({
                   pathname: '/offers/[offerId]',

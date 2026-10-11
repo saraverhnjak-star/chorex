@@ -1,6 +1,6 @@
+import { t, useAppLanguage, DesignText, homeTokens } from '@chorex/ui';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { DesignText, homeTokens } from '@chorex/ui';
 import { ParentNegotiationInbox } from './ParentNegotiationInbox';
 import { SentOffers } from './SentOffers';
 import type { ChildFamilyMembership } from '@chorex/domain';
@@ -11,6 +11,7 @@ export function OfferTabs(props: {
   childNames: Readonly<Record<string, string>>;
   activeChildren: readonly ChildFamilyMembership[];
 }) {
+  useAppLanguage();
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<'sent' | 'counter'>('counter');
   return (
@@ -33,7 +34,7 @@ export function OfferTabs(props: {
           <Pressable
             key={tab.id}
             accessibilityRole="tab"
-            accessibilityLabel={tab.label}
+            accessibilityLabel={t(tab.label)}
             accessibilityState={{ selected: selected === tab.id }}
             onPress={() => {
               if (selected !== tab.id) {
@@ -67,7 +68,7 @@ export function OfferTabs(props: {
                     : homeTokens.secondary,
               }}
             >
-              {tab.label}
+              {t(tab.label)}
             </DesignText>
           </Pressable>
         ))}

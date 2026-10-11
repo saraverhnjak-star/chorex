@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from '@chorex/ui';
 import type { ComponentProps } from 'react';
 import { View } from 'react-native';
 import {
@@ -25,6 +26,8 @@ export function ParentRewardList({
   onSeeAll,
   showHeading = true,
 }: ComponentProps<typeof RewardList> & { showHeading?: boolean }) {
+  useAppLanguage();
+
   if (loading) return null;
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
@@ -32,27 +35,29 @@ export function ParentRewardList({
         <CollectionHeading
           count={rewards.length}
           onSeeAll={preview ? onSeeAll : undefined}
-          label="See all Rewards"
+          label={t('See all Rewards')}
         >
           {title}
         </CollectionHeading>
       ) : null}
       {fromCache ? (
         <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
-          Showing saved rewards. Updates may be pending.
+          {t('Showing saved rewards. Updates may be pending.')}
         </DesignText>
       ) : null}
       {loading ? (
         <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-          Loading rewards…
+          {t('Loading rewards…')}
         </DesignText>
       ) : null}
       {error ? (
         <>
-          <FormMessage message="Your rewards could not be loaded. Try again." />
+          <FormMessage
+            message={t('Your rewards could not be loaded. Try again.')}
+          />
           {onRetry ? (
             <Button
-              label="Try Rewards again"
+              label={t('Try Rewards again')}
               variant="outline"
               onPress={onRetry}
             />
@@ -62,11 +67,15 @@ export function ParentRewardList({
       {!loading && !error && !rewards.length ? (
         preview ? (
           <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-            {fromCache ? 'No rewards saved yet.' : empty}
+            {fromCache ? t('No rewards saved yet.') : empty}
           </DesignText>
         ) : (
-          <OfferOutcome centered illustration="no-rewards" title="No rewards">
-            {fromCache ? 'No rewards saved yet.' : empty}
+          <OfferOutcome
+            centered
+            illustration="no-rewards"
+            title={t('No rewards')}
+          >
+            {fromCache ? t('No rewards saved yet.') : empty}
           </OfferOutcome>
         )
       ) : null}
@@ -79,17 +88,25 @@ export function ParentRewardList({
               dense
               title={reward.terms.title}
               reward={reward.terms}
-              detail={`${childName ? `${childName} · ` : ''}${pending ? 'Earned' : reward.status === 'AWAITING_CHILD_CONFIRMATION' ? 'Delivered' : 'Received'}`}
+              detail={`${childName ? `${childName} · ` : ''}${pending ? t('Earned') : reward.status === 'AWAITING_CHILD_CONFIRMATION' ? t('Delivered') : t('Received')}`}
               badge={
                 pending
-                  ? 'Your turn to deliver'
+                  ? t('Your turn to deliver')
                   : reward.status === 'FULFILLED'
-                    ? 'Received'
-                    : "Child's turn"
+                    ? t('Received')
+                    : t("Child's turn")
               }
-              action={pending ? 'Fulfill reward' : 'Open reward'}
+              action={pending ? t('Fulfill reward') : t('Open reward')}
               button={pending}
-              label={`Open reward: ${childName ? `${childName} · ` : ''}${reward.terms.title}. ${pending ? 'Your turn to deliver' : reward.status === 'FULFILLED' ? 'Received' : "Child's turn"}`}
+              label={t('Open reward: {0}{1}. {2}', {
+                '0': childName ? `${childName} · ` : '',
+                '1': reward.terms.title,
+                '2': pending
+                  ? t('Your turn to deliver')
+                  : reward.status === 'FULFILLED'
+                    ? t('Received')
+                    : t("Child's turn"),
+              })}
               onPress={() => onSelect(reward.id)}
             />
           </ParentHomeCard>

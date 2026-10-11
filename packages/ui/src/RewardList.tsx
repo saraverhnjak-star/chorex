@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { StatusTabs } from './StatusTabs';
 import { useState, type ReactNode } from 'react';
 import { HomeFeatureCard, HomeCardAction } from './HomeFeatureCard';
@@ -41,6 +42,8 @@ export function RewardList({
   childNames?: Readonly<Record<string, string>>;
   viewer?: UserProfile['accountType'];
 }) {
+  useAppLanguage();
+
   const [selectedStatus, setSelectedStatus] = useState<EarnedReward['status']>(
     'AWAITING_CHILD_CONFIRMATION',
   );
@@ -74,26 +77,28 @@ export function RewardList({
   if (preview)
     return (
       <View style={{ gap: homeTokens.spacing.medium }}>
-        <CollectionHeading label="See all Rewards" onSeeAll={onSeeAll}>
+        <CollectionHeading label={t('See all Rewards')} onSeeAll={onSeeAll}>
           {title}
         </CollectionHeading>
         {fromCache ? (
           <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
-            Showing saved rewards. Updates may be pending.
+            {t('Showing saved rewards. Updates may be pending.')}
           </DesignText>
         ) : null}
         {loading ? (
           <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-            Loading rewards…
+            {t('Loading rewards…')}
           </DesignText>
         ) : null}
         {error ? (
           <>
-            <FormMessage message="Your rewards could not be loaded. Try again." />
+            <FormMessage
+              message={t('Your rewards could not be loaded. Try again.')}
+            />
             {onRetry ? (
               <Button
                 variant="outline"
-                label="Try Rewards again"
+                label={t('Try Rewards again')}
                 onPress={onRetry}
               />
             ) : null}
@@ -101,35 +106,38 @@ export function RewardList({
         ) : null}
         {!loading && !error && rewards.length === 0 ? (
           <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-            {fromCache ? 'No rewards saved yet.' : empty}
+            {fromCache ? t('No rewards saved yet.') : empty}
           </DesignText>
         ) : null}
-        {visible
-          .slice(0, 1)
-          .map((reward) =>
-            viewer === 'CHILD' ? (
-              <ChildRewardCard
-                key={reward.id}
-                reward={reward}
-                onSelect={onSelect}
-              />
-            ) : (
-              <HomeListRow
-                key={reward.id}
-                title={reward.terms.title}
-                detail={
-                  reward.status === 'PENDING_FULFILLMENT'
-                    ? 'Earned · Waiting for Parent delivery'
-                    : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-                      ? 'Delivered · Confirm when received'
-                      : 'Received · Receipt confirmed'
-                }
-                reward={reward.terms}
-                label={`Open reward: ${childNames[reward.childUid] ? `${childNames[reward.childUid]} · ` : ''}${reward.terms.title}`}
-                onPress={() => onSelect(reward.id)}
-              />
-            ),
-          )}
+        {visible.slice(0, 1).map((reward) =>
+          viewer === 'CHILD' ? (
+            <ChildRewardCard
+              key={reward.id}
+              reward={reward}
+              onSelect={onSelect}
+            />
+          ) : (
+            <HomeListRow
+              key={reward.id}
+              title={reward.terms.title}
+              detail={
+                reward.status === 'PENDING_FULFILLMENT'
+                  ? t('Earned · Waiting for Parent delivery')
+                  : reward.status === 'AWAITING_CHILD_CONFIRMATION'
+                    ? t('Delivered · Confirm when received')
+                    : t('Received · Receipt confirmed')
+              }
+              reward={reward.terms}
+              label={t('Open reward: {0}{1}', {
+                '0': childNames[reward.childUid]
+                  ? `${childNames[reward.childUid]} · `
+                  : '',
+                '1': reward.terms.title,
+              })}
+              onPress={() => onSelect(reward.id)}
+            />
+          ),
+        )}
       </View>
     );
   const Wrapper = viewer === 'CHILD' ? ChildRewardCollection : SurfaceCard;
@@ -164,7 +172,7 @@ export function RewardList({
           }}
         >
           <View style={{ flex: 1 }}>
-            <CollectionHeading label="See all Rewards" onSeeAll={onSeeAll}>
+            <CollectionHeading label={t('See all Rewards')} onSeeAll={onSeeAll}>
               {title}
             </CollectionHeading>
           </View>
@@ -176,16 +184,18 @@ export function RewardList({
           accessibilityLiveRegion="polite"
           style={{ fontSize: 16, color: homeTokens.secondary }}
         >
-          Loading rewards…
+          {t('Loading rewards…')}
         </DesignText>
       ) : null}
       {error ? (
         <>
-          <FormMessage message="Your rewards could not be loaded. Try again." />
+          <FormMessage
+            message={t('Your rewards could not be loaded. Try again.')}
+          />
           {onRetry ? (
             <Button
               variant="outline"
-              label="Try Rewards again"
+              label={t('Try Rewards again')}
               onPress={onRetry}
             />
           ) : null}
@@ -193,17 +203,19 @@ export function RewardList({
       ) : null}
       {fromCache ? (
         <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-          Showing saved rewards. Updates may be pending.
+          {t('Showing saved rewards. Updates may be pending.')}
         </DesignText>
       ) : null}
       {!loading && !error && rewards.length === 0 ? (
         <OfferOutcome
-          title={fromCache ? 'No rewards are saved on this device yet.' : empty}
+          title={
+            fromCache ? t('No rewards are saved on this device yet.') : empty
+          }
           centered={viewer === 'CHILD'}
           illustration={viewer === 'CHILD' ? 'no-rewards' : undefined}
         >
           {viewer === 'CHILD'
-            ? 'Your earned rewards will appear here.'
+            ? t('Your earned rewards will appear here.')
             : undefined}
         </OfferOutcome>
       ) : null}
@@ -212,7 +224,7 @@ export function RewardList({
       rewards.length > 0 &&
       filteredRewards.length === 0 ? (
         <OfferOutcome
-          title="No rewards in this status"
+          title={t('No rewards in this status')}
           centered
           illustration="no-rewards"
         />
@@ -257,6 +269,8 @@ function ChildRewardCard({
   reward: EarnedReward;
   onSelect: (id: string) => void;
 }) {
+  useAppLanguage();
+
   return (
     <HomeFeatureCard
       key={reward.id}
@@ -265,21 +279,21 @@ function ChildRewardCard({
       tone="mint"
       badge={
         reward.status === 'PENDING_FULFILLMENT'
-          ? 'Earned'
+          ? t('Earned')
           : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-            ? 'Delivered'
-            : 'Received'
+            ? t('Delivered')
+            : t('Received')
       }
       detail={
         reward.status === 'PENDING_FULFILLMENT'
-          ? 'Waiting for Parent delivery'
+          ? t('Waiting for Parent delivery')
           : reward.status === 'AWAITING_CHILD_CONFIRMATION'
-            ? 'Confirm when received'
-            : 'Receipt confirmed'
+            ? t('Confirm when received')
+            : t('Receipt confirmed')
       }
     >
       <HomeCardAction
-        label={`Open reward: ${reward.terms.title}`}
+        label={t('Open reward: {0}', { '0': reward.terms.title })}
         tone="green"
         onPress={() => onSelect(reward.id)}
       />

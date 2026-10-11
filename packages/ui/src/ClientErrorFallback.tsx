@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { useEffect } from 'react';
 import { Button } from './Button';
 import { DesignText } from './Home';
@@ -12,6 +13,8 @@ export function ClientErrorFallback({
   retry: () => void;
   report: (error: Error) => void;
 }) {
+  useAppLanguage();
+
   useEffect(() => report(error), [error, report]);
   return (
     <Screen design entry>
@@ -19,12 +22,12 @@ export function ClientErrorFallback({
         accessibilityRole="header"
         style={{ fontSize: 24, fontWeight: '700' }}
       >
-        Something went wrong
+        {t('Something went wrong')}
       </DesignText>
       <DesignText style={{ fontSize: 16 }}>
-        Please try again. If this continues, restart the app.
+        {t('Please try again. If this continues, restart the app.')}
       </DesignText>
-      <Button onPress={retry} label="Try again" />
+      <Button onPress={retry} label={t('Try again')} />
     </Screen>
   );
 }

@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { Pressable, View } from 'react-native';
 import { DesignText, homeTokens } from './Home';
 import { amberAuroraPalette } from './theme';
@@ -17,6 +18,7 @@ export function StatusTabs({
   selected: string;
   onSelect: (label: string) => void;
 }) {
+  useAppLanguage();
   return (
     <View
       testID={testID}
@@ -27,7 +29,7 @@ export function StatusTabs({
         <Pressable
           key={label}
           accessibilityRole="tab"
-          accessibilityLabel={label}
+          accessibilityLabel={t(label)}
           accessibilityState={{ selected: selected === label }}
           onPress={() => onSelect(label)}
           style={{
@@ -71,7 +73,7 @@ export function StatusTabs({
               color: homeTokens.text,
             }}
           >
-            {label}
+            {t(label)}
           </DesignText>
           <TabCounter
             count={counts[label] ?? 0}

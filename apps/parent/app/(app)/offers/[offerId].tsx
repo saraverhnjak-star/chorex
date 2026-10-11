@@ -1,17 +1,21 @@
-import { SentOffers } from '../../../src/offers/SentOffers';
-import { Pressable } from 'react-native';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  t,
+  useAppLanguage,
   HomeScreenFrame,
   HomeHeader,
   DesignText,
   homeTokens,
 } from '@chorex/ui';
+import { SentOffers } from '../../../src/offers/SentOffers';
+import { Pressable } from 'react-native';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useParentSession } from '../../../src/auth/session';
 import { useParentFamily } from '../../../src/navigation/FamilyContext';
 import { ParentNegotiationInbox } from '../../../src/offers/ParentNegotiationInbox';
 
 export default function OfferScreen() {
+  useAppLanguage();
+
   const { offerId, sent } = useLocalSearchParams<{
     offerId: string | string[];
     sent?: string;
@@ -29,18 +33,18 @@ export default function OfferScreen() {
       header={
         <HomeHeader
           compact
-          name={home?.profile.displayName ?? 'Parent'}
+          name={home?.profile.displayName ?? t('Parent')}
           leading={
             <Pressable
               accessibilityRole="link"
-              accessibilityLabel="Back to Offers"
+              accessibilityLabel={t('Back to Offers')}
               onPress={() =>
                 router.canGoBack() ? router.back() : router.replace('/offers')
               }
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
               <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                ← Offers
+                {t('← Offers')}
               </DesignText>
             </Pressable>
           }

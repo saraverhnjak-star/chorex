@@ -1,10 +1,8 @@
-import { ParentSettingsSection } from './ParentSettingsSection';
-import { ContractTabs } from '../contracts/ContractTabs';
-import { HomeAttention } from './HomeAttention';
-import { ParentFamilyProvider, useParentFamily } from './FamilyContext';
-import { useRouter } from 'expo-router';
-import { HomeFamilyOverview } from '../family/HomeFamilyOverview';
+import { LanguagePicker } from '../localization/LanguagePicker';
 import {
+  t,
+  useAppLanguage,
+  dateLocale,
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
@@ -20,6 +18,12 @@ import {
   TextField,
   useDynamicTypeStyles,
 } from '@chorex/ui';
+import { ParentSettingsSection } from './ParentSettingsSection';
+import { ContractTabs } from '../contracts/ContractTabs';
+import { HomeAttention } from './HomeAttention';
+import { ParentFamilyProvider, useParentFamily } from './FamilyContext';
+import { useRouter } from 'expo-router';
+import { HomeFamilyOverview } from '../family/HomeFamilyOverview';
 import { PendingRewards } from '../rewards/PendingRewards';
 import { ActiveContracts } from '../contracts/ActiveContracts';
 import { useState } from 'react';
@@ -108,6 +112,8 @@ function ParentSurfaceContent({
     | 'family'
     | 'add-child';
 }) {
+  useAppLanguage();
+
   const router = useRouter();
   const { user, signOut, notifications } = useParentSession();
   const reminder = useReminderPreference(user?.uid, 'PARENT');
@@ -257,12 +263,12 @@ function ParentSurfaceContent({
             area === 'add-child' ? (
               <Pressable
                 accessibilityRole="link"
-                accessibilityLabel="Back to Family"
+                accessibilityLabel={t('Back to Family')}
                 onPress={() => router.replace('/family')}
                 style={{ minHeight: 44, justifyContent: 'center' }}
               >
                 <DesignText style={{ color: homeTokens.secondary }}>
-                  ← Family
+                  {t('← Family')}
                 </DesignText>
               </Pressable>
             ) : undefined
@@ -270,7 +276,7 @@ function ParentSurfaceContent({
           name={
             familyState.status === 'ready'
               ? familyState.home.profile.displayName
-              : 'Parent'
+              : t('Parent')
           }
         />
       }
@@ -280,7 +286,7 @@ function ParentSurfaceContent({
         {familyState.status === 'loading' ? (
           <View className="items-center py-6">
             <ActivityIndicator
-              accessibilityLabel="Loading your Parent profile"
+              accessibilityLabel={t('Loading your Parent profile')}
               color={homeTokens.coral}
               size="large"
             />
@@ -289,7 +295,7 @@ function ParentSurfaceContent({
               className="mt-4 text-home-muted"
               style={dynamicType.body}
             >
-              Loading your family…
+              {t('Loading your family…')}
             </Text>
           </View>
         ) : null}
@@ -297,15 +303,17 @@ function ParentSurfaceContent({
         {familyState.status === 'error' ? (
           <View className="mt-8 gap-4">
             <FormMessage message={familyState.message} />
-            <Button label="Try again" onPress={loadProfile} />
+            <Button label={t('Try again')} onPress={loadProfile} />
           </View>
         ) : null}
 
         {familyState.status === 'onboarding' ? (
           <SetupSection
             showIcon={false}
-            title="Create your family"
-            description="This is the shared space for your agreements and rewards."
+            title={t('Create your family')}
+            description={t(
+              'This is the shared space for your agreements and rewards.',
+            )}
           >
             <FormMessage message={errors.root?.family?.message} />
             <Controller
@@ -317,7 +325,7 @@ function ParentSurfaceContent({
                   autoComplete="name"
                   editable={!isSubmitting}
                   error={errors.displayName?.message}
-                  label="Your name"
+                  label={t('Your name')}
                   onBlur={field.onBlur}
                   onChangeText={field.onChange}
                   returnKeyType="next"
@@ -334,7 +342,7 @@ function ParentSurfaceContent({
                   autoCapitalize="words"
                   editable={!isSubmitting}
                   error={errors.familyName?.message}
-                  label="Family name"
+                  label={t('Family name')}
                   onBlur={field.onBlur}
                   onChangeText={field.onChange}
                   onSubmitEditing={handleSubmit(onCreateFamily)}
@@ -346,7 +354,7 @@ function ParentSurfaceContent({
             <Button
               variant="blue"
               lightText
-              label="Create family"
+              label={t('Create family')}
               loading={isSubmitting}
               onPress={handleSubmit(onCreateFamily)}
             />
@@ -396,7 +404,7 @@ function ParentSurfaceContent({
                     textAlign: 'center',
                   }}
                 >
-                  Add your first child
+                  {t('Add your first child')}
                 </DesignText>
                 <DesignText
                   style={{
@@ -405,11 +413,12 @@ function ParentSurfaceContent({
                     textAlign: 'center',
                   }}
                 >
-                  Create a child profile to start making agreements and sharing
-                  rewards together.
+                  {t(
+                    'Create a child profile to start making agreements and sharing rewards together.',
+                  )}
                 </DesignText>
                 <Button
-                  label="Add child"
+                  label={t('Add child')}
                   variant="blue"
                   lightText
                   onPress={() => router.push('/family/add-child')}
@@ -425,7 +434,7 @@ function ParentSurfaceContent({
             area !== 'offers' &&
             area !== 'add-child' ? (
               <SectionHeading>
-                {
+                {t(
                   (
                     {
                       offers: 'Offers',
@@ -435,8 +444,8 @@ function ParentSurfaceContent({
                       create: 'Create Offer',
                       family: 'Family',
                     } as const
-                  )[area]
-                }
+                  )[area],
+                )}
               </SectionHeading>
             ) : null}
             {area === 'home' && familyState.home.children.length > 1 ? (
@@ -446,7 +455,7 @@ function ParentSurfaceContent({
                 contentContainerStyle={{ gap: homeTokens.spacing.small }}
               >
                 {[
-                  { uid: undefined, displayName: 'All children' },
+                  { uid: undefined, displayName: t('All children') },
                   ...familyState.home.children,
                 ].map((child) => {
                   const selected = child.uid === selectedChildUid;
@@ -567,7 +576,7 @@ function ParentSurfaceContent({
                   familyId={familyState.home.family.id}
                 />
                 <Button
-                  label="Back"
+                  label={t('Back')}
                   variant="outline"
                   onPress={() =>
                     router.canGoBack()
@@ -599,8 +608,8 @@ function ParentSurfaceContent({
                       label={
                         pairingState.status === 'ready' &&
                         pairingState.childUid === child.uid
-                          ? 'Create new code'
-                          : 'Pair device'
+                          ? t('Create new code')
+                          : t('Pair device')
                       }
                       loading={
                         pairingState.status === 'loading' &&
@@ -627,9 +636,10 @@ function ParentSurfaceContent({
                           className="text-home-text"
                           style={dynamicType.body}
                         >
-                          Use this temporary code in the Child app to connect{' '}
-                          {child.displayName}&apos;s device. It can only be used
-                          once.
+                          {t(
+                            "Use this temporary code in the Child app to connect {0}'s device. It can only be used once.",
+                            { '0': child.displayName },
+                          )}
                         </Text>
                         {pairingState.token ? (
                           <Text
@@ -646,8 +656,9 @@ function ParentSurfaceContent({
                             className="text-home-muted"
                             style={dynamicType.body}
                           >
-                            This code was already shown. Create a new code to
-                            connect a device.
+                            {t(
+                              'This code was already shown. Create a new code to connect a device.',
+                            )}
                           </Text>
                         )}
                         <Text
@@ -655,8 +666,10 @@ function ParentSurfaceContent({
                           className="text-home-muted"
                           style={dynamicType.small}
                         >
-                          Expires:{' '}
-                          {new Date(pairingState.expiresAt).toLocaleString()}
+                          {t('Expires:')}{' '}
+                          {new Date(pairingState.expiresAt).toLocaleString(
+                            dateLocale(),
+                          )}
                         </Text>
                       </View>
                     ) : null}
@@ -670,14 +683,14 @@ function ParentSurfaceContent({
             ) : null}
             {area === 'family' ? (
               <Button
-                label="Add a child"
+                label={t('Add a child')}
                 variant="blue"
                 lightText
                 onPress={() => router.push('/family/add-child')}
               />
             ) : null}
             {area === 'add-child' ? (
-              <ParentSettingsSection title="Add a child">
+              <ParentSettingsSection title={t('Add a child')}>
                 <View
                   style={{
                     padding: homeTokens.spacing.card,
@@ -687,8 +700,9 @@ function ParentSurfaceContent({
                   <DesignText
                     style={{ fontSize: 16, color: homeTokens.secondary }}
                   >
-                    Create their profile, then connect their Child app. No child
-                    email is needed.
+                    {t(
+                      'Create their profile, then connect their Child app. No child email is needed.',
+                    )}
                   </DesignText>
                   <FormMessage message={childErrors.root?.child?.message} />
                   <Controller
@@ -699,7 +713,7 @@ function ParentSurfaceContent({
                         autoCapitalize="words"
                         editable={!isCreatingChild}
                         error={childErrors.displayName?.message}
-                        label="Child's name"
+                        label={t("Child's name")}
                         onBlur={field.onBlur}
                         onChangeText={(value) => {
                           setChildIdempotencyKey(undefined);
@@ -712,7 +726,7 @@ function ParentSurfaceContent({
                     )}
                   />
                   <Button
-                    label="Create child profile"
+                    label={t('Create child profile')}
                     variant="blue"
                     lightText
                     loading={isCreatingChild}
@@ -773,23 +787,28 @@ function ParentSurfaceContent({
                         <DesignText
                           style={{ fontSize: 16, color: homeTokens.secondary }}
                         >
-                          Parent account
+                          {t('Parent account')}
                         </DesignText>
                       </View>
                     </View>
-                    <ParentSettingsSection title="Family">
+                    <ParentSettingsSection title={t('Family')}>
                       <SettingsRow
                         last
-                        title="Family"
-                        subtitle="View your family and existing child profiles."
+                        title={t('Family')}
+                        subtitle={t(
+                          'View your family and existing child profiles.',
+                        )}
                         icon="people-outline"
                         tone="mint"
                         onPress={() => router.navigate('/family')}
                       />
                     </ParentSettingsSection>
-                    <ParentSettingsSection title="Notifications">
+                    <LanguagePicker />
+                    <ParentSettingsSection title={t('Notifications')}>
                       <NotificationPermissionCard
-                        benefit="Stay updated when your child responds, submits an agreement or needs your attention."
+                        benefit={t(
+                          'Stay updated when your child responds, submits an agreement or needs your attention.',
+                        )}
                         education={education.showEducation}
                         busy={
                           notifications.state.status === 'loading' ||
@@ -818,8 +837,10 @@ function ParentSurfaceContent({
                         }}
                       />
                       <ReminderPreferenceCard
-                        label="Pending reward reminders"
-                        description="Get a reminder when an earned reward is still waiting for delivery."
+                        label={t('Pending reward reminders')}
+                        description={t(
+                          'Get a reminder when an earned reward is still waiting for delivery.',
+                        )}
                         enabled={reminder.state.enabled}
                         busy={reminder.state.busy}
                         fromCache={reminder.state.fromCache}
@@ -848,17 +869,17 @@ function ParentSurfaceContent({
           >
             <FormMessage message={signOutError} />
             {area === 'more' ? (
-              <ParentSettingsSection title="Privacy & account">
+              <ParentSettingsSection title={t('Privacy & account')}>
                 <SettingsRow
-                  title="Privacy & Data"
+                  title={t('Privacy & Data')}
                   icon="shield-checkmark-outline"
                   onPress={() => router.push('/privacy')}
                 />
                 <SettingsRow
                   last
-                  title="Sign out"
+                  title={t('Sign out')}
                   showChevron={false}
-                  subtitle={signingOut ? 'Signing out…' : undefined}
+                  subtitle={signingOut ? t('Signing out…') : undefined}
                   icon="log-out-outline"
                   tone="coralSurface"
                   destructive
@@ -869,12 +890,12 @@ function ParentSurfaceContent({
             ) : (
               <View className="gap-3">
                 <Button
-                  label="Privacy & Data"
+                  label={t('Privacy & Data')}
                   variant="outlineBlue"
                   onPress={() => router.push('/privacy')}
                 />
                 <Button
-                  label="Sign out"
+                  label={t('Sign out')}
                   loading={signingOut}
                   onPress={handleSignOut}
                   variant="danger"

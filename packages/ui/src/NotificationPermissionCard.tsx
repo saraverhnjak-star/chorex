@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { View } from 'react-native';
 import { Button } from './Button';
 import { FormMessage } from './FormMessage';
@@ -20,26 +21,28 @@ export interface NotificationPermissionCardProps {
 export function NotificationPermissionCard(
   props: NotificationPermissionCardProps,
 ) {
+  useAppLanguage();
+
   const title = props.busy
-    ? 'Checking notifications…'
+    ? t('Checking notifications…')
     : props.registered
-      ? 'Notifications on'
+      ? t('Notifications on')
       : props.error && props.permissionGranted !== false
-        ? 'Notifications unavailable'
-        : 'Notifications off';
+        ? t('Notifications unavailable')
+        : t('Notifications off');
   const subtitle = props.busy
-    ? 'Checking permission and connection on this device.'
+    ? t('Checking permission and connection on this device.')
     : props.registered
       ? props.quiet
-        ? 'ChoreX can send quiet notifications to this device.'
-        : 'ChoreX can send notifications to this device.'
+        ? t('ChoreX can send quiet notifications to this device.')
+        : t('ChoreX can send notifications to this device.')
       : props.settingsRequired
-        ? 'Notifications are disabled in system settings.'
+        ? t('Notifications are disabled in system settings.')
         : props.permissionGranted
-          ? 'Permission is allowed, but notification setup is not complete.'
+          ? t('Permission is allowed, but notification setup is not complete.')
           : props.error && props.permissionGranted === undefined
-            ? 'Notification status could not be checked. Try again.'
-            : 'Notifications are currently disabled on this device.';
+            ? t('Notification status could not be checked. Try again.')
+            : t('Notifications are currently disabled on this device.');
   return (
     <SettingsRow
       title={title}
@@ -57,15 +60,17 @@ export function NotificationPermissionCard(
             {props.benefit}
           </DesignText>
           <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-            Notifications are optional. You can keep using ChoreX without them.
+            {t(
+              'Notifications are optional. You can keep using ChoreX without them.',
+            )}
           </DesignText>
           <Button
-            label="Enable notifications"
+            label={t('Enable notifications')}
             loading={props.busy}
             onPress={props.onEnable}
           />
           <Button
-            label="Not now"
+            label={t('Not now')}
             disabled={props.busy}
             onPress={props.onSkip}
             variant="secondary"
@@ -74,10 +79,12 @@ export function NotificationPermissionCard(
       ) : props.settingsRequired ? (
         <View style={{ gap: homeTokens.spacing.medium }}>
           <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-            Allow notifications in your system Settings, then return to ChoreX.
+            {t(
+              'Allow notifications in your system Settings, then return to ChoreX.',
+            )}
           </DesignText>
           <Button
-            label="Open notification settings"
+            label={t('Open notification settings')}
             disabled={props.busy}
             onPress={props.onSettings}
             variant="secondary"
@@ -85,7 +92,9 @@ export function NotificationPermissionCard(
         </View>
       ) : !props.registered && !props.busy ? (
         <Button
-          label={props.error ? 'Retry notifications' : 'Enable notifications'}
+          label={
+            props.error ? t('Retry notifications') : t('Enable notifications')
+          }
           onPress={props.onEnable}
           variant="secondary"
         />

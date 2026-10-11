@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -24,6 +25,8 @@ export function RewardIconPicker({
   onChange: (key: RewardIconKey) => void;
   disabled?: boolean;
 }) {
+  useAppLanguage();
+
   const trigger = useRef<NativeView>(null);
   const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -34,11 +37,11 @@ export function RewardIconPicker({
         <RewardIcon terms={{ iconKey: value }} />
         <View style={{ flex: 1, gap: 4 }}>
           <DesignText style={s.label}>
-            Reward icon: {rewardIconLabels[value]}
+            {t('Reward icon: {0}', { '0': t(rewardIconLabels[value]) })}
           </DesignText>
           <Button
             ref={trigger}
-            label="Change icon"
+            label={t('Change icon')}
             variant="outline"
             disabled={disabled}
             onPress={() => setOpen(true)}
@@ -63,11 +66,11 @@ export function RewardIconPicker({
         >
           <View style={s.header}>
             <FocusHeading key={open ? 'open' : 'closed'} style={s.title}>
-              Choose reward icon
+              {t('Choose reward icon')}
             </FocusHeading>
             <Button
-              label="Done"
-              accessibilityLabel="Close reward icon picker"
+              label={t('Done')}
+              accessibilityLabel={t('Close reward icon picker')}
               variant="outline"
               onPress={() => setOpen(false)}
             />
@@ -78,7 +81,9 @@ export function RewardIconPicker({
                 key={key}
                 accessible
                 accessibilityRole="button"
-                accessibilityLabel={`Choose ${rewardIconLabels[key]} icon`}
+                accessibilityLabel={t('Choose {0} icon', {
+                  '0': t(rewardIconLabels[key]),
+                })}
                 accessibilityState={{ selected: key === value, disabled }}
                 disabled={disabled}
                 onPress={() => {
@@ -88,9 +93,11 @@ export function RewardIconPicker({
                 style={[s.option, key === value && s.selected]}
               >
                 <RewardIcon terms={{ iconKey: key }} size={52} />
-                <DesignText style={s.label}>{rewardIconLabels[key]}</DesignText>
+                <DesignText style={s.label}>
+                  {t(rewardIconLabels[key])}
+                </DesignText>
                 {key === value ? (
-                  <DesignText style={s.selection}>✓ Selected</DesignText>
+                  <DesignText style={s.selection}>{t('✓ Selected')}</DesignText>
                 ) : null}
               </Pressable>
             ))}

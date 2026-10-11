@@ -1,4 +1,6 @@
 import {
+  t,
+  useAppLanguage,
   FocusHeading,
   announceAction,
   Button,
@@ -26,44 +28,56 @@ function errorMessage(error: unknown, requestingChanges = false): string {
     if (isContractClientError(error)) {
       switch (error.code) {
         case 'AUTH_REQUIRED':
-          return 'Sign in again before requesting changes.';
+          return t('Sign in again before requesting changes.');
         case 'FORBIDDEN':
         case 'FAMILY_MEMBERSHIP_REQUIRED':
         case 'WRONG_ACTOR_ROLE':
-          return 'Your account cannot request changes on this Contract.';
+          return t('Your account cannot request changes on this Contract.');
         case 'INVALID_STATE':
-          return 'This Contract is no longer waiting for review.';
+          return t('This Contract is no longer waiting for review.');
         case 'INVALID_INPUT':
-          return 'Enter valid feedback before requesting changes.';
+          return t('Enter valid feedback before requesting changes.');
         case 'CONTRACT_NOT_FOUND':
-          return 'This Contract is no longer available.';
+          return t('This Contract is no longer available.');
         case 'IDEMPOTENCY_CONFLICT':
-          return 'This request could not be confirmed. Reopen the Contract before trying again.';
+          return t(
+            'This request could not be confirmed. Reopen the Contract before trying again.',
+          );
         case 'NETWORK_UNAVAILABLE':
-          return 'Connect to the internet and try again to confirm the same request.';
+          return t(
+            'Connect to the internet and try again to confirm the same request.',
+          );
       }
     }
-    return 'We could not confirm the request. Try again to confirm the same action.';
+    return t(
+      'We could not confirm the request. Try again to confirm the same action.',
+    );
   }
   if (isContractClientError(error)) {
     switch (error.code) {
       case 'AUTH_REQUIRED':
-        return 'Sign in again before approving this Contract.';
+        return t('Sign in again before approving this Contract.');
       case 'FORBIDDEN':
       case 'FAMILY_MEMBERSHIP_REQUIRED':
       case 'WRONG_ACTOR_ROLE':
-        return 'Your account cannot approve this Contract.';
+        return t('Your account cannot approve this Contract.');
       case 'INVALID_STATE':
-        return 'This Contract is no longer waiting for approval.';
+        return t('This Contract is no longer waiting for approval.');
       case 'CONTRACT_NOT_FOUND':
-        return 'This Contract is no longer available.';
+        return t('This Contract is no longer available.');
       case 'IDEMPOTENCY_CONFLICT':
-        return 'This approval could not be confirmed. Reopen the Contract before trying again.';
+        return t(
+          'This approval could not be confirmed. Reopen the Contract before trying again.',
+        );
       case 'NETWORK_UNAVAILABLE':
-        return 'Connect to the internet and try again to confirm the same approval.';
+        return t(
+          'Connect to the internet and try again to confirm the same approval.',
+        );
     }
   }
-  return 'We could not confirm approval. Try again to confirm the same action.';
+  return t(
+    'We could not confirm approval. Try again to confirm the same action.',
+  );
 }
 export function ApproveContractAction({
   contract,
@@ -72,6 +86,8 @@ export function ApproveContractAction({
   contract: Contract;
   authUid: string | undefined;
 }) {
+  useAppLanguage();
+
   const type = useDynamicTypeStyles();
   const styles = {
     body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
@@ -128,7 +144,7 @@ export function ApproveContractAction({
       });
       if (active.current) {
         setConfirmed('REQUEST_CHANGES');
-        announceAction('Changes requested. Feedback sent.');
+        announceAction(t('Changes requested. Feedback sent.'));
         setConfirming(undefined);
       }
     } catch (failure) {
@@ -163,7 +179,7 @@ export function ApproveContractAction({
       });
       if (active.current) {
         setConfirmed('APPROVE');
-        announceAction('Approved. Reward earned.');
+        announceAction(t('Approved. Reward earned.'));
         setConfirming(undefined);
       }
     } catch (failure) {
@@ -190,8 +206,8 @@ export function ApproveContractAction({
           style={styles.body}
         >
           {confirmed === 'APPROVE'
-            ? 'Approved — reward earned'
-            : 'Changes requested'}
+            ? t('Approved — reward earned')
+            : t('Changes requested')}
         </Text>
       ) : null}
       {contract.status === 'CHANGES_REQUESTED' ? null : contract.status ===
@@ -202,8 +218,9 @@ export function ApproveContractAction({
           className="text-home-muted"
           style={styles.body}
         >
-          You approved this agreement. The reward is earned. Check Rewards for
-          delivery and receipt details.
+          {t(
+            'You approved this agreement. The reward is earned. Check Rewards for delivery and receipt details.',
+          )}
         </Text>
       ) : confirmed ? (
         <Text
@@ -212,7 +229,7 @@ export function ApproveContractAction({
           className="text-home-muted"
           style={styles.small}
         >
-          Waiting for updated Contract status…
+          {t('Waiting for updated Contract status…')}
         </Text>
       ) : (
         <>
@@ -225,22 +242,23 @@ export function ApproveContractAction({
                 className="font-semibold text-home-text"
                 style={styles.body}
               >
-                Request changes to this agreement?
+                {t('Request changes to this agreement?')}
               </FocusHeading>
               <Text
                 allowFontScaling={false}
                 className="text-home-muted"
                 style={styles.body}
               >
-                Explain what needs attention. Your feedback will be saved and
-                shared with your Child. This does not earn the reward.
+                {t(
+                  'Explain what needs attention. Your feedback will be saved and shared with your Child. This does not earn the reward.',
+                )}
               </Text>
               <Controller
                 control={control}
                 name="note"
                 render={({ field }) => (
                   <TextField
-                    label="Feedback"
+                    label={t('Feedback')}
                     multiline
                     editable={!pending}
                     value={field.value}
@@ -251,7 +269,7 @@ export function ApproveContractAction({
                 )}
               />
               <Button
-                label="Send feedback"
+                label={t('Send feedback')}
                 variant="blue"
                 lightText
                 loading={pending}
@@ -259,7 +277,7 @@ export function ApproveContractAction({
                 onPress={() => void handleSubmit(requestChanges)()}
               />
               <Button
-                label="Keep reviewing"
+                label={t('Keep reviewing')}
                 variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(undefined)}
@@ -273,26 +291,26 @@ export function ApproveContractAction({
                 className="font-semibold text-home-text"
                 style={styles.body}
               >
-                Approve this completed agreement?
+                {t('Approve this completed agreement?')}
               </FocusHeading>
               <Text
                 allowFontScaling={false}
                 className="text-home-text"
                 style={styles.body}
               >
-                Approval accepts the completed agreement and earns the promised
-                reward for your Child. You will still need to fulfill the
-                reward.
+                {t(
+                  'Approval accepts the completed agreement and earns the promised reward for your Child. You will still need to fulfill the reward.',
+                )}
               </Text>
               <Button
-                label="Confirm approval"
+                label={t('Confirm approval')}
                 variant="blue"
                 lightText
                 loading={pending}
                 onPress={() => void approve()}
               />
               <Button
-                label="Keep reviewing"
+                label={t('Keep reviewing')}
                 variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(undefined)}
@@ -301,13 +319,13 @@ export function ApproveContractAction({
           ) : (
             <View className="gap-2">
               <Button
-                label="Approve"
+                label={t('Approve')}
                 variant="blue"
                 lightText
                 onPress={() => setConfirming('APPROVE')}
               />
               <Button
-                label="Request changes"
+                label={t('Request changes')}
                 variant="outline"
                 onPress={() => {
                   setError(undefined);

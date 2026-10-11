@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { DesignText as Text, homeTokens } from './Home';
@@ -23,13 +24,19 @@ export function RewardDetailBody({
   viewer?: UserProfile['accountType'];
   children?: ReactNode;
 }) {
+  useAppLanguage();
+
   const styles = {
     body: { fontSize: 16, color: homeTokens.text },
     small: { fontSize: 14, color: homeTokens.secondary },
   };
   if (error)
     return (
-      <FormMessage message="This reward could not be loaded or is unavailable to your account." />
+      <FormMessage
+        message={t(
+          'This reward could not be loaded or is unavailable to your account.',
+        )}
+      />
     );
   if (loading)
     return (
@@ -39,7 +46,7 @@ export function RewardDetailBody({
         style={styles.body}
         className="text-home-muted"
       >
-        Loading reward…
+        {t('Loading reward…')}
       </Text>
     );
   if (missing)
@@ -50,8 +57,10 @@ export function RewardDetailBody({
         className="text-home-muted"
       >
         {fromCache
-          ? 'No cached reward is available yet. Connect to the internet to load it.'
-          : 'Reward not found.'}
+          ? t(
+              'No cached reward is available yet. Connect to the internet to load it.',
+            )
+          : t('Reward not found.')}
       </Text>
     );
   return (
@@ -62,7 +71,7 @@ export function RewardDetailBody({
           style={styles.small}
           className="text-home-muted"
         >
-          Showing saved rewards. Updates may be pending.
+          {t('Showing saved rewards. Updates may be pending.')}
         </Text>
       ) : null}
       {reward ? (

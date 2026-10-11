@@ -1,10 +1,10 @@
+import { t, useAppLanguage, DesignText, homeTokens } from '@chorex/ui';
 import {
   useActiveContracts,
   useReadyForReviewContracts,
 } from '@chorex/firebase-client';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { DesignText, homeTokens } from '@chorex/ui';
 import { ActiveContracts, ReadyForReviewContracts } from './ActiveContracts';
 
 export function ContractTabs(props: {
@@ -12,6 +12,7 @@ export function ContractTabs(props: {
   authUid: string;
   childNames: Readonly<Record<string, string>>;
 }) {
+  useAppLanguage();
   const [selected, setSelected] = useState<'active' | 'review'>('review');
   const active = useActiveContracts(props.familyId, props.authUid);
   const review = useReadyForReviewContracts(props.familyId, props.authUid);
@@ -33,7 +34,7 @@ export function ContractTabs(props: {
           <Pressable
             key={tab.id}
             accessibilityRole="tab"
-            accessibilityLabel={tab.label}
+            accessibilityLabel={t(tab.label)}
             accessibilityState={{ selected: selected === tab.id }}
             onPress={() => setSelected(tab.id)}
             style={{
@@ -62,7 +63,7 @@ export function ContractTabs(props: {
                     : homeTokens.secondary,
               }}
             >
-              {tab.label}
+              {t(tab.label)}
             </DesignText>
           </Pressable>
         ))}

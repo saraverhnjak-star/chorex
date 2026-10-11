@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { WaitingState } from './WaitingState';
 import { RewardIcon } from './RewardIcon';
 import { View } from 'react-native';
@@ -19,6 +20,8 @@ export function RewardSummary({
   childName?: string;
   viewer?: UserProfile['accountType'];
 }) {
+  useAppLanguage();
+
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
       <View
@@ -51,7 +54,9 @@ export function RewardSummary({
           >
             <DesignText
               accessibilityLiveRegion="polite"
-              accessibilityLabel={`Reward status: ${rewardStatusLabel(reward.status, viewer)}`}
+              accessibilityLabel={t('Reward status: {0}', {
+                '0': rewardStatusLabel(reward.status, viewer),
+              })}
               style={{
                 fontSize: 14,
                 fontWeight: '600',
@@ -65,7 +70,7 @@ export function RewardSummary({
       </View>
       {viewer === 'PARENT' && childName ? (
         <DesignText style={{ fontSize: 16, color: homeTokens.secondary }}>
-          Reward for {childName}
+          {t('Reward for {0}', { '0': childName })}
         </DesignText>
       ) : null}
       {reward.terms.description ? (
@@ -84,7 +89,7 @@ export function RewardSummary({
       )}
       <View style={{ gap: homeTokens.spacing.medium }}>
         <TermsHeading icon="checkmark-done-outline">
-          Reward journey
+          {t('Reward journey')}
         </TermsHeading>
         <RewardFulfillmentProgress reward={reward} />
       </View>

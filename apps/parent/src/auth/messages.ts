@@ -1,3 +1,4 @@
+import { t } from '@chorex/ui';
 import {
   authErrorCodes,
   isAuthClientError,
@@ -20,7 +21,9 @@ const authErrorMessages: Record<AuthErrorCode, string> = {
 };
 
 export function getAuthErrorMessage(error: unknown): string {
-  return authErrorMessages[
-    isAuthClientError(error) ? error.code : authErrorCodes.unknown
-  ];
+  return t(
+    authErrorMessages[
+      isAuthClientError(error) ? error.code : authErrorCodes.unknown
+    ],
+  );
 }

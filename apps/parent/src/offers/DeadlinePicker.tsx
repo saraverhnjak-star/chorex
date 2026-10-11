@@ -1,7 +1,16 @@
+import {
+  t,
+  useAppLanguage,
+  dateLocale,
+  Button,
+  FormMessage,
+  SurfaceCard,
+  amberAuroraPalette,
+  homeTokens,
+} from '@chorex/ui';
 import { useState } from 'react';
 import { Modal, Platform, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Button, FormMessage, SurfaceCard, homeTokens } from '@chorex/ui';
 
 type Deadline = { date: string; time: string };
 export function deadlineParts(value: Date): Deadline {
@@ -24,6 +33,8 @@ export function DeadlinePicker({
   error?: string;
   compact?: boolean;
 }) {
+  useAppLanguage();
+
   const [mode, setMode] = useState<'date' | 'time'>();
   const [pending, setPending] = useState<Date>();
   const value = new Date(`${date}T${time}:00`);
@@ -40,7 +51,18 @@ export function DeadlinePicker({
   };
   const picker = mode ? (
     <DateTimePicker
-      accessibilityLabel={mode === 'date' ? 'Deadline date' : 'Deadline time'}
+      accessibilityLabel={
+        mode === 'date' ? t('Deadline date') : t('Deadline time')
+      }
+      locale={dateLocale()}
+      positiveButton={{
+        label: t('Done'),
+        textColor: amberAuroraPalette.auroraBlue,
+      }}
+      negativeButton={{
+        label: t('Cancel'),
+        textColor: amberAuroraPalette.auroraBlue,
+      }}
       value={pending ?? value}
       mode={mode}
       display={Platform.OS === 'ios' ? 'spinner' : 'default'}
@@ -64,10 +86,14 @@ export function DeadlinePicker({
           <Button
             label={
               compact
-                ? value.toLocaleDateString()
-                : `Choose deadline date: ${value.toLocaleDateString()}`
+                ? value.toLocaleDateString(dateLocale())
+                : t('Choose deadline date: {0}', {
+                    '0': value.toLocaleDateString(dateLocale()),
+                  })
             }
-            accessibilityLabel={`Choose deadline date: ${value.toLocaleDateString()}`}
+            accessibilityLabel={t('Choose deadline date: {0}', {
+              '0': value.toLocaleDateString(dateLocale()),
+            })}
             variant="outline"
             disabled={disabled}
             onPress={() => open('date')}
@@ -77,13 +103,23 @@ export function DeadlinePicker({
           <Button
             label={
               compact
-                ? value.toLocaleTimeString([], {
+                ? value.toLocaleTimeString(dateLocale(), {
                     hour: '2-digit',
                     minute: '2-digit',
                   })
-                : `Choose deadline time: ${value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                : t('Choose deadline time: {0}', {
+                    '0': value.toLocaleTimeString(dateLocale(), {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                  })
             }
-            accessibilityLabel={`Choose deadline time: ${value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            accessibilityLabel={t('Choose deadline time: {0}', {
+              '0': value.toLocaleTimeString(dateLocale(), {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+            })}
             variant="outline"
             disabled={disabled}
             onPress={() => open('time')}
@@ -102,7 +138,7 @@ export function DeadlinePicker({
             <SurfaceCard>
               {picker}
               <Button
-                label="Done"
+                label={t('Done')}
                 variant="blue"
                 lightText
                 onPress={() => {
@@ -110,7 +146,7 @@ export function DeadlinePicker({
                 }}
               />
               <Button
-                label="Cancel"
+                label={t('Cancel')}
                 variant="outlineBlue"
                 onPress={() => setMode(undefined)}
               />

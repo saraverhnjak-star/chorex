@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { FocusHeading, announceAction } from './accessibility';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
@@ -29,6 +30,8 @@ export function RewardTransitionAction({
   success: string;
   blue?: boolean;
 }) {
+  useAppLanguage();
+
   const styles = {
       body: { fontSize: 16, color: homeTokens.text },
       small: { fontSize: 14, color: homeTokens.secondary },
@@ -63,7 +66,9 @@ export function RewardTransitionAction({
     } catch {
       if (active.current)
         setError(
-          'We could not confirm this action. Check your connection and try again to confirm the same action.',
+          t(
+            'We could not confirm this action. Check your connection and try again to confirm the same action.',
+          ),
         );
     } finally {
       inFlight.current = false;
@@ -95,7 +100,7 @@ export function RewardTransitionAction({
           style={styles.small}
           className="text-home-muted"
         >
-          Waiting for updated reward status…
+          {t('Waiting for updated reward status…')}
         </Text>
       ) : null}
       {!confirmed && reward.status === expectedStatus ? (
@@ -126,7 +131,7 @@ export function RewardTransitionAction({
                 onPress={() => void fulfill()}
               />
               <Button
-                label="Keep checking"
+                label={t('Keep checking')}
                 variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(false)}

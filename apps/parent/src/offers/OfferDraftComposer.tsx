@@ -1,3 +1,18 @@
+import {
+  t,
+  useAppLanguage,
+  RewardPicker,
+  Ionicons,
+  ProposalTerms,
+  DesignText,
+  homeTokens,
+  amberAuroraPalette,
+  amberAuroraColors,
+  Button,
+  FormMessage,
+  TextField,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { DeadlinePicker } from './DeadlinePicker';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -20,19 +35,6 @@ import {
   type CreateOfferDraftOutput,
   type PublishOfferOutput,
 } from '@chorex/domain';
-import {
-  RewardPicker,
-  Ionicons,
-  ProposalTerms,
-  DesignText,
-  homeTokens,
-  amberAuroraPalette,
-  amberAuroraColors,
-  Button,
-  FormMessage,
-  TextField,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 import { getFamilyErrorMessage } from '../family/messages';
 
 function DraftSectionHeading({
@@ -149,6 +151,8 @@ function SavedDraft({
   published?: PublishOfferOutput;
   childName?: string;
 }) {
+  useAppLanguage();
+
   const dynamicType = useDynamicTypeStyles();
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
@@ -162,19 +166,23 @@ function SavedDraft({
           color: homeTokens.secondary,
         }}
       >
-        {published ? 'Offer published' : 'Offer not sent yet'}
+        {published ? t('Offer published') : t('Offer not sent yet')}
       </Text>
       <ProposalTerms
         layout="rewardFirst"
         revision={draft.revision}
-        author={childName ? `For ${childName}` : undefined}
+        author={childName ? t('For {0}', { '0': childName }) : undefined}
         status={
-          published ? `Waiting for ${childName ?? 'the child'}` : 'Not sent'
+          published
+            ? t('Waiting for {0}', { '0': childName ?? t('the child') })
+            : t('Not sent')
         }
         support={
           published
-            ? `${childName ?? 'The child'} can accept, decline or counter the reward.`
-            : 'Retry sending this offer to your child.'
+            ? t('{0} can accept, decline or counter the reward.', {
+                '0': childName ?? t('The child'),
+              })
+            : t('Retry sending this offer to your child.')
         }
       />
       {published ? (
@@ -183,7 +191,7 @@ function SavedDraft({
           className="font-semibold text-home-text"
           style={dynamicType.body}
         >
-          Waiting for the child response.
+          {t('Waiting for the child response.')}
         </Text>
       ) : null}
     </View>
@@ -197,6 +205,8 @@ export function OfferDraftComposer({
   familyId: string;
   activeChildren: readonly ActiveChild[];
 }) {
+  const language = useAppLanguage();
+
   const dynamicType = useDynamicTypeStyles();
   const deadline = defaultDeadline();
   const [pendingRequest, setPendingRequest] = useState<{
@@ -220,7 +230,7 @@ export function OfferDraftComposer({
     defaultValues: {
       childUid: activeChildren[0]?.uid ?? '',
       tasks: [{ title: '', targetCount: '1' }],
-      rewardTitle: rewardPresets.cinema.title,
+      rewardTitle: t(rewardPresets.cinema.title),
       rewardType: 'EXPERIENCE',
       rewardIconKey: rewardTypeDefaultIcons.EXPERIENCE,
       rewardDescription: '',
@@ -231,6 +241,15 @@ export function OfferDraftComposer({
   const selectedChildUid = useWatch({ control, name: 'childUid' });
   const [rewardSelection, setRewardSelection] =
     useState<RewardSelection>('cinema');
+
+  useEffect(() => {
+    if (rewardSelection !== 'custom' && !savedDraft) {
+      setValue('rewardTitle', t(rewardPresets[rewardSelection].title), {
+        shouldValidate: false,
+      });
+    }
+  }, [language, rewardSelection, savedDraft, setValue]);
+
   const deadlineDate = useWatch({ control, name: 'deadlineDate' });
   const deadlineTime = useWatch({ control, name: 'deadlineTime' });
 
@@ -312,7 +331,7 @@ export function OfferDraftComposer({
     reset({
       childUid: activeChildren[0]?.uid ?? '',
       tasks: [{ title: '', targetCount: '1' }],
-      rewardTitle: rewardPresets.cinema.title,
+      rewardTitle: t(rewardPresets.cinema.title),
       rewardType: 'EXPERIENCE',
       rewardIconKey: rewardTypeDefaultIcons.EXPERIENCE,
       rewardDescription: '',
@@ -348,7 +367,7 @@ export function OfferDraftComposer({
             <FormMessage message={publishError} />
             {!publishedOffer ? (
               <Button
-                label="Retry sending offer"
+                label={t('Retry sending offer')}
                 variant="blue"
                 lightText
                 loading={isPublishing}
@@ -356,7 +375,7 @@ export function OfferDraftComposer({
               />
             ) : null}
             <Button
-              label="Create another offer"
+              label={t('Create another offer')}
               disabled={isPublishing || isSubmitting}
               onPress={startAnother}
               variant="outline"
@@ -369,20 +388,20 @@ export function OfferDraftComposer({
           className="text-home-muted"
           style={dynamicType.body}
         >
-          Add a child before creating an offer draft.
+          {t('Add a child before creating an offer draft.')}
         </Text>
       ) : (
         <>
           <FormMessage message={errors.root?.offer?.message} />
           <DraftSectionHeading tone="blue">
-            Who is this for?
+            {t('Who is this for?')}
           </DraftSectionHeading>
           <View className="flex-row flex-wrap gap-2">
             {activeChildren.map((child) => (
               <Pressable
                 key={child.uid}
                 accessibilityRole="button"
-                accessibilityLabel={`${selectedChildUid === child.uid ? 'Selected' : 'Select'} ${child.displayName}`}
+                accessibilityLabel={`${selectedChildUid === child.uid ? t('Selected') : t('Select')} ${child.displayName}`}
                 accessibilityState={{
                   selected: selectedChildUid === child.uid,
                   disabled: isSubmitting,
@@ -428,7 +447,9 @@ export function OfferDraftComposer({
           ) : null}
 
           <View style={{ marginTop: homeTokens.spacing.section }}>
-            <DraftSectionHeading tone="lavender">Tasks</DraftSectionHeading>
+            <DraftSectionHeading tone="lavender">
+              {t('Tasks')}
+            </DraftSectionHeading>
           </View>
           {fields.map((field, index) => (
             <View
@@ -456,8 +477,8 @@ export function OfferDraftComposer({
                         editable={!isSubmitting}
                         error={errors.tasks?.[index]?.title?.message}
                         hideLabel
-                        placeholder="Task"
-                        label={`Task ${index + 1}`}
+                        placeholder={t('Task')}
+                        label={t('Task {0}', { '0': index + 1 })}
                         onBlur={taskField.onBlur}
                         onChangeText={taskField.onChange}
                         value={taskField.value}
@@ -490,7 +511,7 @@ export function OfferDraftComposer({
                         error={errors.tasks?.[index]?.targetCount?.message}
                         keyboardType="number-pad"
                         hideLabel
-                        label="Target count"
+                        label={t('Target count')}
                         onBlur={countField.onBlur}
                         onChangeText={countField.onChange}
                         value={countField.value}
@@ -501,7 +522,9 @@ export function OfferDraftComposer({
                 {fields.length > 1 ? (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Remove task ${index + 1}`}
+                    accessibilityLabel={t('Remove task {0}', {
+                      '0': index + 1,
+                    })}
                     accessibilityState={{ disabled: isSubmitting }}
                     disabled={isSubmitting}
                     onPress={() => remove(index)}
@@ -527,7 +550,7 @@ export function OfferDraftComposer({
           ))}
           {fields.length < offerValidationBounds.taskCountMax ? (
             <Button
-              label="Add another task"
+              label={t('Add another task')}
               onPress={() => append({ title: '', targetCount: '1' })}
               variant="outline"
             />
@@ -535,7 +558,7 @@ export function OfferDraftComposer({
 
           <View style={{ marginTop: homeTokens.spacing.section }}>
             <DraftSectionHeading tone="coralSurface">
-              Choose reward
+              {t('Choose reward')}
             </DraftSectionHeading>
           </View>
           <RewardPicker
@@ -546,7 +569,9 @@ export function OfferDraftComposer({
               if (selection === rewardSelection) return;
               setRewardSelection(selection);
               const reward = rewardTermsForSelection(selection);
-              setValue('rewardTitle', reward.title, { shouldValidate: true });
+              setValue('rewardTitle', t(reward.title), {
+                shouldValidate: true,
+              });
               setValue('rewardType', reward.type, { shouldValidate: true });
               setValue('rewardIconKey', reward.iconKey, {
                 shouldValidate: true,
@@ -563,7 +588,7 @@ export function OfferDraftComposer({
                   <TextField
                     editable={!isSubmitting}
                     error={errors.rewardTitle?.message}
-                    label="Reward title"
+                    label={t('Reward title')}
                     onBlur={field.onBlur}
                     onChangeText={field.onChange}
                     value={field.value}
@@ -581,7 +606,7 @@ export function OfferDraftComposer({
                   required={false}
                   editable={!isSubmitting}
                   error={errors.rewardDescription?.message}
-                  label="Reward description (optional)"
+                  label={t('Reward description (optional)')}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -593,7 +618,9 @@ export function OfferDraftComposer({
             />
           </View>
           <View style={{ marginTop: homeTokens.spacing.section }}>
-            <DraftSectionHeading tone="mint">Deadline</DraftSectionHeading>
+            <DraftSectionHeading tone="mint">
+              {t('Deadline')}
+            </DraftSectionHeading>
           </View>
           <DeadlinePicker
             compact
@@ -613,7 +640,7 @@ export function OfferDraftComposer({
             }}
           >
             <Button
-              label="Send offer"
+              label={t('Send offer')}
               variant="blue"
               lightText
               loading={isSubmitting}
@@ -626,7 +653,7 @@ export function OfferDraftComposer({
                 textAlign: 'center',
               }}
             >
-              Your child can accept the offer or suggest a change.
+              {t('Your child can accept the offer or suggest a change.')}
             </DesignText>
           </View>
         </>

@@ -1,3 +1,13 @@
+import {
+  t,
+  useAppLanguage,
+  Button,
+  HomeEmptyState,
+  CollectionHeading,
+  OfferOutcome,
+  FormMessage,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { useState } from 'react';
 import { HomeContractRow } from './HomeContractRow';
 import { Text, View } from 'react-native';
@@ -7,14 +17,6 @@ import {
   useReadyForReviewContracts,
   type ActiveContractsState,
 } from '@chorex/firebase-client';
-import {
-  Button,
-  HomeEmptyState,
-  CollectionHeading,
-  OfferOutcome,
-  FormMessage,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 
 type ContractListProps = {
   showHeading?: boolean;
@@ -104,6 +106,8 @@ function ContractList({
   preview: boolean;
   showHeading: boolean;
 }) {
+  useAppLanguage();
+
   const router = useRouter();
   const styles = useDynamicTypeStyles();
   if (state.status === 'loading') return null;
@@ -118,22 +122,24 @@ function ContractList({
               ? state.contracts.length
               : undefined
           }
-          label={readyForReview ? 'See all Reviews' : 'See all Contracts'}
+          label={readyForReview ? t('See all Reviews') : t('See all Contracts')}
           onSeeAll={preview ? () => router.navigate('/contracts') : undefined}
         >
           {readyForReview
-            ? 'Ready for Review'
+            ? t('Ready for Review')
             : preview
-              ? 'Active agreements'
-              : 'Active Contracts'}
+              ? t('Active agreements')
+              : t('Active Contracts')}
         </CollectionHeading>
       ) : null}
 
       {state.status === 'error' ? (
         <>
-          <FormMessage message="Your Contracts could not be loaded. Try again." />
+          <FormMessage
+            message={t('Your Contracts could not be loaded. Try again.')}
+          />
           {onRetry ? (
-            <Button label="Try Contracts again" onPress={onRetry} />
+            <Button label={t('Try Contracts again')} onPress={onRetry} />
           ) : null}
         </>
       ) : null}
@@ -152,15 +158,15 @@ function ContractList({
                   : styles.small
               }
             >
-              Showing saved data. Updates may be pending.
+              {t('Showing saved data. Updates may be pending.')}
             </Text>
           ) : null}
           {state.contracts.length === 0 ? (
             preview ? (
               <HomeEmptyState>
                 {state.fromCache
-                  ? 'No active agreements saved yet.'
-                  : 'No active agreements'}
+                  ? t('No active agreements saved yet.')
+                  : t('No active agreements')}
               </HomeEmptyState>
             ) : (
               <OfferOutcome
@@ -168,17 +174,19 @@ function ContractList({
                 illustration="no-chores"
                 title={
                   readyForReview
-                    ? 'Nothing waiting for review'
-                    : 'No active agreements'
+                    ? t('Nothing waiting for review')
+                    : t('No active agreements')
                 }
               >
                 {state.fromCache
                   ? readyForReview
-                    ? 'No Contracts awaiting review are saved on this device yet.'
-                    : 'No active Contracts are saved on this device yet.'
+                    ? t(
+                        'No Contracts awaiting review are saved on this device yet.',
+                      )
+                    : t('No active Contracts are saved on this device yet.')
                   : readyForReview
-                    ? 'No Contracts awaiting review.'
-                    : 'No active Contracts yet.'}
+                    ? t('No Contracts awaiting review.')
+                    : t('No active Contracts yet.')}
               </OfferOutcome>
             )
           ) : (

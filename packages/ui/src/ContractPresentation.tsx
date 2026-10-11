@@ -1,3 +1,4 @@
+import { t, useAppLanguage, dateLocale } from './localization';
 import { amberAuroraPalette } from './theme';
 import { RewardIcon } from './RewardIcon';
 import { View, StyleSheet } from 'react-native';
@@ -11,19 +12,19 @@ export function contractStatusLabel(
 ) {
   switch (status) {
     case 'ACTIVE':
-      return 'In progress';
+      return t('In progress');
     case 'READY_FOR_REVIEW':
-      return viewer === 'CHILD' ? "Parent's turn" : 'Ready for review';
+      return viewer === 'CHILD' ? t("Parent's turn") : t('Ready for review');
     case 'CHANGES_REQUESTED':
       return viewer === 'CHILD'
-        ? 'Changes requested'
-        : 'Waiting for resubmission';
+        ? t('Changes requested')
+        : t('Waiting for resubmission');
     case 'APPROVED':
-      return 'Approved';
+      return t('Approved');
     case 'CANCELLED':
-      return 'Cancelled';
+      return t('Cancelled');
     case 'EXPIRED':
-      return 'Expired';
+      return t('Expired');
   }
 }
 /** Factual presentation only. Submission eligibility stays in the existing action. */
@@ -40,6 +41,8 @@ export function ContractSummary({
   participantName?: string;
   isParticipant?: boolean;
 }) {
+  useAppLanguage();
+
   const status = contract.status;
   const tone =
     status === 'APPROVED'
@@ -52,20 +55,34 @@ export function ContractSummary({
   const responsibility =
     viewer === 'CHILD'
       ? status === 'ACTIVE'
-        ? 'Your turn · Complete the agreed tasks, then submit for Parent review.'
+        ? t(
+            'Your turn · Complete the agreed tasks, then submit for Parent review.',
+          )
         : status === 'READY_FOR_REVIEW'
-          ? 'Waiting for parent review. Your submitted tasks remain visible below.'
+          ? t(
+              'Waiting for parent review. Your submitted tasks remain visible below.',
+            )
           : status === 'CHANGES_REQUESTED'
-            ? 'Your turn · Address the feedback, then resubmit. Your recorded progress is preserved.'
+            ? t(
+                'Your turn · Address the feedback, then resubmit. Your recorded progress is preserved.',
+              )
             : status === 'APPROVED'
-              ? 'Your Parent approved this agreement. Your reward is earned. Check Rewards for delivery and receipt details.'
+              ? t(
+                  'Your Parent approved this agreement. Your reward is earned. Check Rewards for delivery and receipt details.',
+                )
               : undefined
       : status === 'ACTIVE'
-        ? `${participantName ?? 'Your Child'} is working on this agreement.`
+        ? t('{0} is working on this agreement.', {
+            '0': participantName ?? t('Your Child'),
+          })
         : status === 'READY_FOR_REVIEW'
-          ? 'Your review · Check the agreed work, then approve or request changes.'
+          ? t(
+              'Your review · Check the agreed work, then approve or request changes.',
+            )
           : status === 'CHANGES_REQUESTED'
-            ? `Waiting for ${participantName ?? 'your Child'} to address feedback and resubmit.`
+            ? t('Waiting for {0} to address feedback and resubmit.', {
+                '0': participantName ?? t('your Child'),
+              })
             : undefined;
   const completeTasks = tasks.filter(
     (task) => task.completedCount === task.targetCount,
@@ -85,7 +102,10 @@ export function ContractSummary({
         <View style={{ flex: 1, gap: homeTokens.spacing.small }}>
           <DesignText
             accessibilityRole="header"
-            accessibilityLabel={`Promised reward: ${contract.rewardTerms.title}, ${contract.rewardTerms.type}`}
+            accessibilityLabel={t('Promised reward: {0}, {1}', {
+              '0': contract.rewardTerms.title,
+              '1': t(contract.rewardTerms.type),
+            })}
             style={{
               fontSize: 26,
               fontWeight: '700',
@@ -104,7 +124,9 @@ export function ContractSummary({
             }}
           >
             <DesignText
-              accessibilityLabel={`Contract status: ${contractStatusLabel(status, viewer)}`}
+              accessibilityLabel={t('Contract status: {0}', {
+                '0': contractStatusLabel(status, viewer),
+              })}
               style={s.title}
             >
               {contractStatusLabel(status, viewer)}
@@ -113,7 +135,9 @@ export function ContractSummary({
         </View>
       </View>
       {viewer === 'PARENT' && participantName ? (
-        <DesignText style={s.body}>Agreement with {participantName}</DesignText>
+        <DesignText style={s.body}>
+          {t('Agreement with {0}', { '0': participantName })}
+        </DesignText>
       ) : null}
       {contract.rewardTerms.description ? (
         <DesignText style={s.body}>
@@ -148,21 +172,28 @@ export function ContractSummary({
           />
         </View>
         <DesignText
-          accessibilityLabel={`Deadline: ${new Date(contract.deadlineAt).toLocaleString()}`}
+          accessibilityLabel={t('Deadline: {0}', {
+            '0': new Date(contract.deadlineAt).toLocaleString(dateLocale()),
+          })}
           style={[s.body, { flex: 1 }]}
         >
-          {new Date(contract.deadlineAt).toLocaleString()}
+          {new Date(contract.deadlineAt).toLocaleString(dateLocale())}
         </DesignText>
       </View>
       {contract.approvedAt ? (
         <DesignText style={s.caption}>
-          Approved: {new Date(contract.approvedAt).toLocaleString()}
+          {t('Approved: {0}', {
+            '0': new Date(contract.approvedAt).toLocaleString(dateLocale()),
+          })}
         </DesignText>
       ) : null}
       {tasks.length > 1 ? (
         <View style={{ gap: homeTokens.spacing.small }}>
           <DesignText style={s.title}>
-            {completeTasks} of {tasks.length} tasks complete
+            {t('{0} of {1} tasks complete', {
+              '0': completeTasks,
+              '1': tasks.length,
+            })}
           </DesignText>
           <CompletionBar
             completed={completed}
@@ -171,7 +202,7 @@ export function ContractSummary({
             tone="blue"
           />
           <DesignText style={s.caption}>
-            {completed} / {required} completions recorded
+            {completed} / {required} {t('completions recorded')}
           </DesignText>
         </View>
       ) : null}
@@ -190,18 +221,23 @@ export function CompletionBar({
   decorative?: boolean;
   tone?: 'green' | 'blue';
 }) {
+  useAppLanguage();
+
   return (
     <View
       accessible={!decorative}
       accessibilityElementsHidden={decorative}
       importantForAccessibility={decorative ? 'no-hide-descendants' : 'auto'}
       accessibilityRole="progressbar"
-      accessibilityLabel="Recorded completions"
+      accessibilityLabel={t('Recorded completions')}
       accessibilityValue={{
         min: 0,
         max: required,
         now: completed,
-        text: `${completed} of ${required} completions recorded`,
+        text: t('{0} of {1} completions recorded', {
+          '0': completed,
+          '1': required,
+        }),
       }}
       style={s.track}
     >

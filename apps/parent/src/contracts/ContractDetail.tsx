@@ -1,11 +1,6 @@
-import { ApproveContractAction } from './ApproveContractAction';
-import { Text, View } from 'react-native';
 import {
-  useContractDetail,
-  useCurrentContractReview,
-  useContractReviews,
-} from '@chorex/firebase-client';
-import {
+  t,
+  useAppLanguage,
   ContractSummary,
   TermsHeading,
   FormMessage,
@@ -15,6 +10,13 @@ import {
   TaskProgress,
   useDynamicTypeStyles,
 } from '@chorex/ui';
+import { ApproveContractAction } from './ApproveContractAction';
+import { Text, View } from 'react-native';
+import {
+  useContractDetail,
+  useCurrentContractReview,
+  useContractReviews,
+} from '@chorex/firebase-client';
 
 export function ContractDetail({
   contractId,
@@ -25,6 +27,8 @@ export function ContractDetail({
   authUid: string | undefined;
   childNames?: Readonly<Record<string, string>>;
 }) {
+  useAppLanguage();
+
   const state = useContractDetail(contractId, authUid);
   const type = useDynamicTypeStyles();
   const styles = {
@@ -47,8 +51,12 @@ export function ContractDetail({
       <FormMessage
         message={
           state.error.code === 'NETWORK_UNAVAILABLE'
-            ? 'Unable to load this Contract. Connect to the internet and reopen it.'
-            : 'This Contract could not be loaded or is unavailable to your account.'
+            ? t(
+                'Unable to load this Contract. Connect to the internet and reopen it.',
+              )
+            : t(
+                'This Contract could not be loaded or is unavailable to your account.',
+              )
         }
       />
     );
@@ -61,8 +69,10 @@ export function ContractDetail({
         style={styles.body}
       >
         {state.fromCache
-          ? 'No cached Contract is available yet. Connect to the internet to load it.'
-          : 'Contract not found.'}
+          ? t(
+              'No cached Contract is available yet. Connect to the internet to load it.',
+            )
+          : t('Contract not found.')}
       </Text>
     );
   const { contract, tasks, fromCache } = state;
@@ -76,7 +86,7 @@ export function ContractDetail({
           className="text-home-muted"
           style={styles.small}
         >
-          Showing saved data. Updates may be pending.
+          {t('Showing saved data. Updates may be pending.')}
         </Text>
       ) : null}
       <ContractSummary
@@ -93,7 +103,7 @@ export function ContractDetail({
           style={{ marginTop: homeTokens.spacing.section }}
         >
           <TermsHeading icon="chatbox-ellipses-outline">
-            Current request
+            {t('Current request')}
           </TermsHeading>
           <ReviewFeedback
             loading={feedback.status === 'loading'}
@@ -111,7 +121,7 @@ export function ContractDetail({
           className="text-home-muted"
           style={styles.body}
         >
-          No tasks are available.
+          {t('No tasks are available.')}
         </Text>
       ) : (
         <View

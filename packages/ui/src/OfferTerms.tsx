@@ -1,3 +1,4 @@
+import { t, useAppLanguage, dateLocale } from './localization';
 import { RewardIcon } from './RewardIcon';
 import type { ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
@@ -81,6 +82,8 @@ export function ProposalTerms({
   support?: string;
   layout?: 'standard' | 'rewardFirst';
 }) {
+  useAppLanguage();
+
   return (
     <View style={styles.terms}>
       {layout === 'rewardFirst' ? (
@@ -110,12 +113,12 @@ export function ProposalTerms({
                 </DesignText>
                 {revision.revisionNumber !== undefined ? (
                   <DesignText style={styles.revisionPill}>
-                    Revision {revision.revisionNumber}
+                    {t('Revision {0}', { '0': revision.revisionNumber })}
                   </DesignText>
                 ) : null}
               </View>
               <DesignText style={styles.secondary}>
-                {revision.reward.type}
+                {t(revision.reward.type)}
               </DesignText>
             </View>
           </View>
@@ -145,25 +148,27 @@ export function ProposalTerms({
       {layout === 'standard' ? (
         <>
           <DesignText accessibilityRole="header" style={styles.title}>
-            Proposal · {revision.reward.title}
+            {t('Proposal · {0}', { '0': revision.reward.title })}
           </DesignText>
           {author ? (
             <DesignText style={styles.secondary}>{author}</DesignText>
           ) : null}
           <DesignText accessibilityRole="header" style={styles.title}>
             {revision.revisionNumber
-              ? `Current proposal · Revision ${revision.revisionNumber}`
-              : 'Proposed terms'}
+              ? t('Current proposal · Revision {0}', {
+                  '0': revision.revisionNumber,
+                })
+              : t('Proposed terms')}
           </DesignText>
         </>
       ) : author ? (
         <DesignText style={styles.secondary}>{author}</DesignText>
       ) : null}
       <DesignText style={styles.caption}>
-        These terms form the agreement if accepted.
+        {t('These terms form the agreement if accepted.')}
       </DesignText>
       {layout === 'standard' ? (
-        <TermsHeading icon="checkbox-outline">Tasks</TermsHeading>
+        <TermsHeading icon="checkbox-outline">{t('Tasks')}</TermsHeading>
       ) : null}
       <View
         style={{
@@ -194,7 +199,7 @@ export function ProposalTerms({
               </DesignText>
               {layout === 'rewardFirst' && task.targetCount > 1 ? (
                 <DesignText style={styles.caption}>
-                  Agreed number of repetitions
+                  {t('Agreed number of repetitions')}
                 </DesignText>
               ) : null}
               {task.description ? (
@@ -205,7 +210,9 @@ export function ProposalTerms({
             </View>
             {layout === 'rewardFirst' && task.targetCount > 1 ? (
               <DesignText
-                accessibilityLabel={`${task.targetCount} repetitions`}
+                accessibilityLabel={t('{0} repetitions', {
+                  '0': task.targetCount,
+                })}
                 style={styles.repetitionsPill}
               >
                 {task.targetCount}×
@@ -216,7 +223,7 @@ export function ProposalTerms({
       </View>
       {layout === 'standard' ? (
         <>
-          <TermsHeading icon="gift-outline">Reward</TermsHeading>
+          <TermsHeading icon="gift-outline">{t('Reward')}</TermsHeading>
           <View
             style={[
               styles.reward,
@@ -226,7 +233,7 @@ export function ProposalTerms({
             <RewardIcon terms={revision.reward} size={40} />
             <View style={{ flex: 1, gap: 4 }}>
               <DesignText style={styles.body}>
-                {revision.reward.title} · {revision.reward.type}
+                {revision.reward.title} · {t(revision.reward.type)}
               </DesignText>
               {revision.reward.description ? (
                 <DesignText style={styles.secondary}>
@@ -254,23 +261,29 @@ export function ProposalTerms({
             />
           </View>
           <DesignText
-            accessibilityLabel={`Deadline: ${new Date(revision.deadlineAt).toLocaleString()}`}
+            accessibilityLabel={t('Deadline: {0}', {
+              '0': new Date(revision.deadlineAt).toLocaleString(dateLocale()),
+            })}
             style={[styles.body, { flex: 1 }]}
           >
-            {new Date(revision.deadlineAt).toLocaleString()}
+            {new Date(revision.deadlineAt).toLocaleString(dateLocale())}
           </DesignText>
         </View>
       ) : (
         <>
-          <TermsHeading icon="calendar-outline">Deadline</TermsHeading>
+          <TermsHeading icon="calendar-outline">{t('Deadline')}</TermsHeading>
           <DesignText style={styles.body}>
-            Deadline: {new Date(revision.deadlineAt).toLocaleString()}
+            {t('Deadline: {0}', {
+              '0': new Date(revision.deadlineAt).toLocaleString(dateLocale()),
+            })}
           </DesignText>
         </>
       )}
       {revision.note ? (
         <>
-          <TermsHeading icon="chatbox-outline">Proposal note</TermsHeading>
+          <TermsHeading icon="chatbox-outline">
+            {t('Proposal note')}
+          </TermsHeading>
           <DesignText style={styles.secondary}>{revision.note}</DesignText>
         </>
       ) : null}

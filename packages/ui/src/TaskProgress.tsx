@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DesignText, homeTokens } from './Home';
@@ -16,16 +17,24 @@ export function TaskProgress({
   targetCount: number;
   compact?: boolean;
 }) {
+  useAppLanguage();
+
   const progress =
     completedCount === targetCount
-      ? 'Complete'
+      ? t('Complete')
       : completedCount === 0
-        ? 'Not started'
-        : 'In progress';
+        ? t('Not started')
+        : t('In progress');
   return (
     <View
       accessible
-      accessibilityLabel={`${title}. ${description ? `${description}. ` : ''}${completedCount} of ${targetCount} completions recorded. ${progress}.`}
+      accessibilityLabel={t('{0}. {1}{2} of {3} completions recorded. {4}.', {
+        '0': title,
+        '1': description ? `${description}. ` : '',
+        '2': completedCount,
+        '3': targetCount,
+        '4': progress,
+      })}
       style={{
         gap: 12,
         padding: compact ? 0 : homeTokens.spacing.card,
@@ -42,7 +51,9 @@ export function TaskProgress({
             height: compact ? 44 : 32,
             borderRadius: compact ? 22 : 16,
             backgroundColor:
-              progress === 'Complete' ? homeTokens.mint : homeTokens.blue,
+              completedCount === targetCount
+                ? homeTokens.mint
+                : homeTokens.blue,
             alignItems: 'center',
             justifyContent: 'center',
           }}
@@ -50,11 +61,13 @@ export function TaskProgress({
           <Ionicons
             accessible={false}
             name={
-              progress === 'Complete' ? 'checkmark-outline' : 'checkbox-outline'
+              completedCount === targetCount
+                ? 'checkmark-outline'
+                : 'checkbox-outline'
             }
             size={compact ? 26 : 20}
             color={
-              progress === 'Complete'
+              completedCount === targetCount
                 ? homeTokens.success
                 : homeTokens.secondary
             }

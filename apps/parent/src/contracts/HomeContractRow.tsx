@@ -1,7 +1,14 @@
+import {
+  t,
+  useAppLanguage,
+  dateLocale,
+  CompletionBar,
+  DesignText,
+  homeTokens,
+} from '@chorex/ui';
 import { ParentHomeCard, ParentHomeRow } from '../navigation/ParentHomeRow';
 import type { Contract } from '@chorex/domain';
 import { useContractDetail } from '@chorex/firebase-client';
-import { CompletionBar, DesignText, homeTokens } from '@chorex/ui';
 export function HomeContractRow({
   contract,
   authUid,
@@ -15,6 +22,8 @@ export function HomeContractRow({
   childName?: string;
   onPress: () => void;
 }) {
+  useAppLanguage();
+
   const state = useContractDetail(contract.id, authUid);
   const progress =
     state.status === 'ready'
@@ -34,10 +43,18 @@ export function HomeContractRow({
       <ParentHomeRow
         dense={preview}
         title={contract.rewardTerms.title}
-        detail={`${childName ? `${childName} · ` : ''}${contract.status === 'READY_FOR_REVIEW' ? 'Ready for review · ' : ''}Due ${new Date(contract.deadlineAt).toLocaleDateString()}`}
+        detail={t('{0}{1}Due {2}', {
+          '0': childName ? `${childName} · ` : '',
+          '1':
+            contract.status === 'READY_FOR_REVIEW' ? 'Ready for review · ' : '',
+          '2': new Date(contract.deadlineAt).toLocaleDateString(dateLocale()),
+        })}
         reward={contract.rewardTerms}
         artRight
-        label={`Open Contract: ${childName ? `${childName} · ` : ''}${contract.rewardTerms.title}`}
+        label={t('Open Contract: {0}{1}', {
+          '0': childName ? `${childName} · ` : '',
+          '1': contract.rewardTerms.title,
+        })}
         onPress={onPress}
       >
         {progress ? (
@@ -47,19 +64,22 @@ export function HomeContractRow({
               required={progress.required}
             />
             <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
-              {progress.completed} of {progress.required} completions
+              {t('{0} of {1} completions', {
+                '0': progress.completed,
+                '1': progress.required,
+              })}
             </DesignText>
           </>
         ) : (
           <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
             {state.status === 'error'
-              ? 'Progress unavailable'
-              : 'Loading progress…'}
+              ? t('Progress unavailable')
+              : t('Loading progress…')}
           </DesignText>
         )}
         {state.status === 'ready' && state.fromCache ? (
           <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
-            Saved progress. Updates may be pending.
+            {t('Saved progress. Updates may be pending.')}
           </DesignText>
         ) : null}
       </ParentHomeRow>

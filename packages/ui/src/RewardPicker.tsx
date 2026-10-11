@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { useRef, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -33,6 +34,8 @@ export function RewardPicker({
   prominent?: boolean;
   currentReward?: { title: string; iconKey: RewardIconKey };
 }) {
+  useAppLanguage();
+
   const trigger = useRef<NativeView>(null);
   const reducedMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -49,14 +52,14 @@ export function RewardPicker({
         />
         <View style={{ flex: 1, gap: 4 }}>
           <DesignText style={prominent ? s.rewardTitle : s.label}>
-            {prominent ? '' : 'Selected reward: '}
+            {prominent ? '' : t('Selected reward: ')}
             {value === 'custom'
-              ? currentReward?.title || 'Custom'
-              : rewardPresets[value].title}
+              ? currentReward?.title || t('Custom')
+              : t(rewardPresets[value].title)}
           </DesignText>
           <Button
             ref={trigger}
-            label={prominent ? 'Change' : 'Choose reward'}
+            label={prominent ? t('Change') : t('Choose reward')}
             variant="outline"
             disabled={disabled}
             onPress={() => setOpen(true)}
@@ -81,11 +84,11 @@ export function RewardPicker({
         >
           <View style={s.header}>
             <FocusHeading key={open ? 'open' : 'closed'} style={s.title}>
-              Choose reward
+              {t('Choose reward')}
             </FocusHeading>
             <Button
-              label="Done"
-              accessibilityLabel="Close reward picker"
+              label={t('Done')}
+              accessibilityLabel={t('Close reward picker')}
               variant="outline"
               onPress={() => setOpen(false)}
             />
@@ -96,7 +99,12 @@ export function RewardPicker({
                 key={key}
                 accessible
                 accessibilityRole="button"
-                accessibilityLabel={`Choose ${key === 'custom' ? 'Custom' : rewardPresets[key].title} reward`}
+                accessibilityLabel={t('Choose {0} reward', {
+                  '0':
+                    key === 'custom'
+                      ? t('Custom')
+                      : t(rewardPresets[key].title),
+                })}
                 accessibilityState={{ selected: key === value, disabled }}
                 disabled={disabled}
                 onPress={() => {
@@ -110,7 +118,7 @@ export function RewardPicker({
                   size={52}
                 />
                 <DesignText style={s.label}>
-                  {key === 'custom' ? 'Custom' : rewardPresets[key].title}
+                  {key === 'custom' ? t('Custom') : t(rewardPresets[key].title)}
                 </DesignText>
               </Pressable>
             ))}

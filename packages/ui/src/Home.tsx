@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from './localization';
 import { createContext, useContext, type ReactNode } from 'react';
 import {
   Pressable,
@@ -136,6 +137,9 @@ export function NavigationFrame({
               )}
               {item.prominent ? null : (
                 <NativeText
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.8}
                   allowFontScaling={false}
                   style={[
                     s.caption,
@@ -216,7 +220,7 @@ export function HomeSection({
 export function CollectionHeading({
   children,
   onSeeAll,
-  label = 'See all',
+  label = t('See all'),
   count,
 }: {
   children: ReactNode;
@@ -224,6 +228,8 @@ export function CollectionHeading({
   label?: string;
   count?: number;
 }) {
+  useAppLanguage();
+
   return (
     <View
       style={{
@@ -255,7 +261,7 @@ export function CollectionHeading({
           style={{ minHeight: 24, justifyContent: 'center' }}
         >
           <Text style={{ fontSize: 14, color: homeTokens.coralText }}>
-            See all →
+            {t('See all →')}
           </Text>
         </Pressable>
       ) : null}
@@ -272,13 +278,15 @@ export function HomeHeader({
   name: string;
   child?: boolean;
 }) {
+  useAppLanguage();
+
   const { navigate } = useContext(HomeContext);
   return (
     <View style={[s.header, compact ? { marginBottom: 0 } : undefined]}>
       <View style={{ flex: 1 }}>{leading}</View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Settings"
+        accessibilityLabel={t('Settings')}
         onPress={() => navigate('more')}
         style={s.avatar}
       >
@@ -297,6 +305,8 @@ export function SectionHeading({ children }: { children: ReactNode }) {
   );
 }
 export function QuickActions() {
+  useAppLanguage();
+
   const { navigate } = useContext(HomeContext);
   const actions: { label: string; id: string; icon: Icon; color: string }[] = [
     {
@@ -326,12 +336,12 @@ export function QuickActions() {
   ];
   return (
     <View style={s.section}>
-      <SectionHeading>Quick actions</SectionHeading>
+      <SectionHeading>{t('Quick actions')}</SectionHeading>
       <View style={s.tiles}>
         {actions.map((action) => (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={action.label}
+            accessibilityLabel={t(action.label)}
             key={action.id}
             onPress={() => navigate(action.id)}
             className="active:opacity-60"
@@ -358,7 +368,7 @@ export function QuickActions() {
               }
             />
             <Text style={[s.tileText, { fontSize: 15, fontWeight: '600' }]}>
-              {action.label}
+              {t(action.label)}
             </Text>
           </Pressable>
         ))}
@@ -367,10 +377,12 @@ export function QuickActions() {
   );
 }
 export function CountBadge({ count }: { count: number }) {
+  useAppLanguage();
+
   if (count <= 0) return null;
   return (
     <Text
-      accessibilityLabel={`${count} items`}
+      accessibilityLabel={t('{0} items', { '0': count })}
       style={{
         overflow: 'hidden',
         borderRadius: homeTokens.radius.pill,
@@ -458,11 +470,13 @@ export function HomeListRow({
   grouped?: boolean;
   separator?: boolean;
 }) {
+  useAppLanguage();
+
   return (
     <Pressable
       accessibilityRole="button"
       accessible
-      accessibilityLabel={`${label}. ${detail}${progress ? `. ${progress.completed} of ${progress.required} completions recorded` : ''}`}
+      accessibilityLabel={`${label}. ${detail}${progress ? t('. {0} of {1} completions recorded', { '0': progress.completed, '1': progress.required }) : ''}`}
       onPress={onPress}
       className="active:opacity-60"
       style={[

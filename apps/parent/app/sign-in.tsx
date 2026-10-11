@@ -1,3 +1,14 @@
+import {
+  t,
+  useAppLanguage,
+  Button,
+  EntryHeading,
+  amberAuroraPalette,
+  FormMessage,
+  Screen,
+  TextField,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,20 +19,13 @@ import {
   type SignInCredentials,
   type SignInCredentialsInput,
 } from '@chorex/domain';
-import {
-  Button,
-  EntryHeading,
-  amberAuroraPalette,
-  FormMessage,
-  Screen,
-  TextField,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 import { PasswordField } from '../src/auth/PasswordField';
 import { getAuthErrorMessage } from '../src/auth/messages';
 import { useParentSession } from '../src/auth/session';
 
 export default function SignInScreen() {
+  useAppLanguage();
+
   const password = useRef<TextInput>(null);
   const { signIn } = useParentSession();
   const dynamicType = useDynamicTypeStyles();
@@ -48,8 +52,8 @@ export default function SignInScreen() {
       <View className="py-6">
         <EntryHeading
           showIcon={false}
-          title="Welcome back"
-          description="Sign in to continue your family’s agreements."
+          title={t('Welcome back')}
+          description={t('Sign in to continue your family’s agreements.')}
         />
 
         <View className="mt-6 gap-5">
@@ -65,7 +69,7 @@ export default function SignInScreen() {
                 editable={!isSubmitting}
                 error={errors.email?.message}
                 keyboardType="email-address"
-                label="Email"
+                label={t('Email')}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
                 onSubmitEditing={() => password.current?.focus()}
@@ -86,7 +90,7 @@ export default function SignInScreen() {
                 autoComplete="current-password"
                 editable={!isSubmitting}
                 error={errors.password?.message}
-                label="Password"
+                label={t('Password')}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
                 onSubmitEditing={handleSubmit(onSubmit)}
@@ -99,7 +103,7 @@ export default function SignInScreen() {
           <Button
             variant="blue"
             lightText
-            label="Sign in"
+            label={t('Sign in')}
             loading={isSubmitting}
             onPress={handleSubmit(onSubmit)}
           />
@@ -111,7 +115,7 @@ export default function SignInScreen() {
             className="text-home-muted"
             style={dynamicType.body}
           >
-            New to ChoreX?
+            {t('New to ChoreX?')}
           </Text>
           <Link href="/register" asChild>
             <Pressable
@@ -126,7 +130,7 @@ export default function SignInScreen() {
                   { color: amberAuroraPalette.auroraBlue },
                 ]}
               >
-                Create a parent account
+                {t('Create a parent account')}
               </Text>
             </Pressable>
           </Link>

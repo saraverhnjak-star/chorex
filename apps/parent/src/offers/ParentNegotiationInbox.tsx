@@ -1,6 +1,6 @@
-import { ParentHomeCard, ParentHomeRow } from '../navigation/ParentHomeRow';
-import { useRouter } from 'expo-router';
 import {
+  t,
+  useAppLanguage,
   FocusHeading,
   announceAction,
   ProposalTerms,
@@ -12,6 +12,8 @@ import {
   homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
+import { ParentHomeCard, ParentHomeRow } from '../navigation/ParentHomeRow';
+import { useRouter } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { ChildFamilyMembership, CounterOfferInput } from '@chorex/domain';
@@ -63,6 +65,8 @@ export function ParentNegotiationInbox({
   authUid: string;
   familyId: string;
 }) {
+  useAppLanguage();
+
   const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
   const [subscriptionAttempt, setSubscriptionAttempt] = useState(0);
@@ -101,8 +105,8 @@ export function ParentNegotiationInbox({
         idempotencyKey: key,
       });
       if (scope.current === subscriptionKey) {
-        setMessage('Contract active');
-        announceAction('Agreement reached. Contract is active.');
+        setMessage(t('Contract active'));
+        announceAction(t('Agreement reached. Contract is active.'));
         setConfirmation(undefined);
       }
     } catch (error) {
@@ -130,8 +134,8 @@ export function ParentNegotiationInbox({
         idempotencyKey: key,
       });
       if (scope.current === subscriptionKey) {
-        setMessage('Counteroffer rejected');
-        announceAction('Counteroffer declined.');
+        setMessage(t('Counteroffer rejected'));
+        announceAction(t('Counteroffer declined.'));
         setRejectionConfirmation(undefined);
       }
     } catch (error) {
@@ -157,8 +161,8 @@ export function ParentNegotiationInbox({
     try {
       await counterOffer({ ...terms, idempotencyKey: key });
       if (scope.current === subscriptionKey) {
-        setMessage('Counteroffer sent');
-        announceAction('Counteroffer sent. Waiting for Child.');
+        setMessage(t('Counteroffer sent'));
+        announceAction(t('Counteroffer sent. Waiting for Child.'));
         setEditing(undefined);
       }
     } catch (error) {
@@ -225,22 +229,25 @@ export function ParentNegotiationInbox({
       showHeading &&
       displayedState.status === 'ready' &&
       displayedState.items.length > 0 ? (
-        <CollectionHeading count={displayedState.items.length} label="Offers">
-          Offers
+        <CollectionHeading
+          count={displayedState.items.length}
+          label={t('Offers')}
+        >
+          {t('Offers')}
         </CollectionHeading>
       ) : null}
 
       {message ? (
         <OfferOutcome
           title={
-            message === 'Contract active'
-              ? 'Agreement reached'
-              : message === 'Counteroffer rejected'
-                ? 'Declined'
-                : 'New proposal sent'
+            message === t('Contract active')
+              ? t('Agreement reached')
+              : message === t('Counteroffer rejected')
+                ? t('Declined')
+                : t('New proposal sent')
           }
-          success={message === 'Contract active'}
-          centered={message === 'Contract active'}
+          success={message === t('Contract active')}
+          centered={message === t('Contract active')}
         >
           {message}
         </OfferOutcome>
@@ -251,7 +258,7 @@ export function ParentNegotiationInbox({
         <View className="gap-3">
           <FormMessage message={displayedState.message} />
           <Button
-            label="Try counteroffers again"
+            label={t('Try counteroffers again')}
             onPress={() => setSubscriptionAttempt((attempt) => attempt + 1)}
           />
         </View>
@@ -263,9 +270,9 @@ export function ParentNegotiationInbox({
         <OfferOutcome
           centered
           illustration="no-offers"
-          title={offerId ? 'Offer unavailable' : 'No counteroffers'}
+          title={offerId ? t('Offer unavailable') : t('No counteroffers')}
         >
-          No counteroffers are waiting for you.
+          {t('No counteroffers are waiting for you.')}
         </OfferOutcome>
       ) : null}
 
@@ -278,10 +285,15 @@ export function ParentNegotiationInbox({
                     dense
                     reward={revision.reward}
                     title={revision.reward.title}
-                    detail={`${activeChildren.find((child) => child.uid === offer.childUid)?.displayName ?? 'Child'} · Your turn`}
-                    badge="Your turn"
-                    action="View offer"
-                    label="View offer"
+                    detail={t('{0} · Your turn', {
+                      '0':
+                        activeChildren.find(
+                          (child) => child.uid === offer.childUid,
+                        )?.displayName ?? t('Child'),
+                    })}
+                    badge={t('Your turn')}
+                    action={t('View offer')}
+                    label={t('View offer')}
                     onPress={() =>
                       router.push({
                         pathname: '/offers/[offerId]',
@@ -292,25 +304,30 @@ export function ParentNegotiationInbox({
                 </ParentHomeCard>
               ))
             : preview
-              ? displayedState.items
-                  .slice(0, 2)
-                  .map(({ offer, revision }) => (
-                    <HomeListRow
-                      key={offer.id}
-                      reward={revision.reward}
-                      title={revision.reward.title}
-                      detail={`${activeChildren.find((child) => child.uid === offer.childUid)?.displayName ?? 'Child'} · Your turn`}
-                      label={`Open Offer: ${revision.reward.title}`}
-                      icon="document-text-outline"
-                      onPress={() => router.navigate('/offers')}
-                    />
-                  ))
+              ? displayedState.items.slice(0, 2).map(({ offer, revision }) => (
+                  <HomeListRow
+                    key={offer.id}
+                    reward={revision.reward}
+                    title={revision.reward.title}
+                    detail={t('{0} · Your turn', {
+                      '0':
+                        activeChildren.find(
+                          (child) => child.uid === offer.childUid,
+                        )?.displayName ?? t('Child'),
+                    })}
+                    label={t('Open Offer: {0}', {
+                      '0': revision.reward.title,
+                    })}
+                    icon="document-text-outline"
+                    onPress={() => router.navigate('/offers')}
+                  />
+                ))
               : displayedState.items.map((item) => {
                   const { offer, revision } = item;
                   const identity = `${subscriptionKey}:${offer.id}:${revision.id}`;
                   const childName =
                     activeChildren.find((child) => child.uid === offer.childUid)
-                      ?.displayName ?? 'Child profile unavailable';
+                      ?.displayName ?? t('Child profile unavailable');
                   return (
                     <View
                       style={{ gap: homeTokens.spacing.medium }}
@@ -319,9 +336,12 @@ export function ParentNegotiationInbox({
                       <ProposalTerms
                         layout="rewardFirst"
                         revision={revision}
-                        status="Your turn"
-                        author={`Proposed by ${childName}`}
-                        support={`${childName} made a counteroffer. Review the current terms below.`}
+                        status={t('Your turn')}
+                        author={t('Proposed by {0}', { '0': childName })}
+                        support={t(
+                          '{0} made a counteroffer. Review the current terms below.',
+                          { '0': childName },
+                        )}
                       />
                       {rejectionConfirmation === identity ? (
                         <View className="gap-3">
@@ -332,17 +352,18 @@ export function ParentNegotiationInbox({
                             className="text-home-text"
                             style={dynamicType.body}
                           >
-                            Rejecting this counteroffer ends this Offer
-                            negotiation. The terms will remain in its history.
+                            {t(
+                              'Rejecting this counteroffer ends this Offer negotiation. The terms will remain in its history.',
+                            )}
                           </FocusHeading>
                           <Button
-                            label="Confirm reject counteroffer"
+                            label={t('Confirm reject counteroffer')}
                             variant="danger"
                             loading={busy}
                             onPress={() => void rejectCounteroffer(item)}
                           />
                           <Button
-                            label="Keep negotiating"
+                            label={t('Keep negotiating')}
                             variant="outline"
                             disabled={busy}
                             onPress={() => setRejectionConfirmation(undefined)}
@@ -364,18 +385,19 @@ export function ParentNegotiationInbox({
                             className="text-home-text"
                             style={dynamicType.body}
                           >
-                            Accept these tasks, reward and deadline? This
-                            creates an active Contract.
+                            {t(
+                              'Accept these tasks, reward and deadline? This creates an active Contract.',
+                            )}
                           </FocusHeading>
                           <Button
-                            label="Confirm accept counteroffer"
+                            label={t('Confirm accept counteroffer')}
                             variant="blue"
                             lightText
                             loading={busy}
                             onPress={() => void acceptCounteroffer(item)}
                           />
                           <Button
-                            label="Cancel acceptance"
+                            label={t('Cancel acceptance')}
                             variant="outline"
                             disabled={busy}
                             onPress={() => setConfirmation(undefined)}
@@ -383,7 +405,7 @@ export function ParentNegotiationInbox({
                         </View>
                       ) : (
                         <Button
-                          label="Accept counteroffer"
+                          label={t('Accept counteroffer')}
                           variant="blue"
                           lightText
                           disabled={busy}
@@ -398,7 +420,7 @@ export function ParentNegotiationInbox({
                       editing !== identity &&
                       confirmation !== identity ? (
                         <Button
-                          label="Counteroffer"
+                          label={t('Counteroffer')}
                           variant="outline"
                           disabled={busy}
                           onPress={() => {
@@ -413,7 +435,7 @@ export function ParentNegotiationInbox({
                       editing !== identity &&
                       confirmation !== identity ? (
                         <Button
-                          label="Reject counteroffer"
+                          label={t('Reject counteroffer')}
                           variant="danger"
                           disabled={busy}
                           onPress={() => {

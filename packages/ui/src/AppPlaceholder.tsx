@@ -1,6 +1,9 @@
+import { t, useAppLanguage } from './localization';
 import { ScrollView, Text, View } from 'react-native';
 
 export function AppPlaceholder({ name }: { name: string }) {
+  useAppLanguage();
+
   return (
     <View className="flex-1 bg-background">
       <ScrollView
@@ -12,7 +15,7 @@ export function AppPlaceholder({ name }: { name: string }) {
         <View className="px-6 py-10">
           <View className="mx-auto w-full max-w-md">
             <Text className="text-sm font-semibold uppercase tracking-widest text-text-muted">
-              Shared visual foundation
+              {t('Shared visual foundation')}
             </Text>
             <Text
               accessibilityRole="header"
@@ -21,7 +24,7 @@ export function AppPlaceholder({ name }: { name: string }) {
               {name}
             </Text>
             <Text className="mt-3 text-base leading-6 text-text-muted">
-              A warm, clear foundation for family agreements.
+              {t('A warm, clear foundation for family agreements.')}
             </Text>
 
             <View className="mt-8 rounded-3xl border border-border bg-surface-warm p-5">
@@ -31,25 +34,27 @@ export function AppPlaceholder({ name }: { name: string }) {
                   className="mr-2 h-2.5 w-2.5 rounded-full bg-success"
                 />
                 <Text className="flex-1 text-sm font-semibold text-text">
-                  Foundation ready
+                  {t('Foundation ready')}
                 </Text>
               </View>
 
               <Text className="mt-4 text-xl font-bold text-text">
-                Amber Aurora
+                {t('Amber Aurora')}
               </Text>
               <Text className="mt-2 text-base leading-6 text-text-muted">
-                Shared colors for calm, readable Parent and Child experiences.
+                {t(
+                  'Shared colors for calm, readable Parent and Child experiences.',
+                )}
               </Text>
 
               <View className="mt-6 rounded-2xl bg-primary px-5 py-4">
                 <Text className="text-center text-base font-semibold text-text">
-                  Primary action style
+                  {t('Primary action style')}
                 </Text>
               </View>
               <View className="mt-3 rounded-2xl border border-focus bg-secondary px-5 py-4">
                 <Text className="text-center text-base font-semibold text-text">
-                  Secondary action style
+                  {t('Secondary action style')}
                 </Text>
               </View>
             </View>
