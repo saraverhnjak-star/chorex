@@ -66,7 +66,13 @@ function visitDirectory(dir) {
     }
   }
 }
-for (const dir of ['apps/parent/app', 'apps/parent/src', 'packages/ui/src'])
+for (const dir of [
+  'apps/parent/app',
+  'apps/parent/src',
+  'apps/child/app',
+  'apps/child/src',
+  'packages/ui/src',
+])
   visitDirectory(path.join(root, dir));
 console.log(
   `PASS: ${translatedKeys.size} translation calls covered; ${Object.keys(catalogs[0]).length} catalog entries per language, with matching parameters.`,

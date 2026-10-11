@@ -1,6 +1,6 @@
-import { StatusTabs } from '../navigation/StatusTabs';
-import { useRouter } from 'expo-router';
 import {
+  t,
+  useAppLanguage,
   DesignText,
   FocusHeading,
   announceAction,
@@ -18,6 +18,8 @@ import {
   homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
+import { StatusTabs } from '../navigation/StatusTabs';
+import { useRouter } from 'expo-router';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import {
@@ -32,6 +34,7 @@ import {
   rewardTermsForSelection,
   type ChildOfferHistoryItem,
   type RewardType,
+  type Offer,
   type RewardSelection,
   type RewardIconKey,
 } from '@chorex/domain';
@@ -41,6 +44,25 @@ import {
   getOfferInboxErrorMessage,
   getRejectOfferErrorMessage,
 } from './messages';
+
+function offerLabel(status: Offer['status']): string {
+  switch (status) {
+    case 'DRAFT':
+      return t('Draft');
+    case 'AWAITING_CHILD':
+      return t('Your turn');
+    case 'AWAITING_PARENT':
+      return t("Parent's turn");
+    case 'ACCEPTED':
+      return t('Accepted');
+    case 'REJECTED':
+      return t('Rejected');
+    case 'CANCELLED':
+      return t('Cancelled');
+    case 'EXPIRED':
+      return t('Expired');
+  }
+}
 
 type OfferInboxState =
   | { subscriptionKey: string; status: 'loading' }
@@ -87,6 +109,8 @@ export function OfferInbox({
   authUid: string;
   familyId: string;
 }) {
+  useAppLanguage();
+
   const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
   const [selectedStatus, setSelectedStatus] = useState('Your turn');
@@ -215,7 +239,7 @@ export function OfferInbox({
       });
       acceptIdempotencyKeys.current.delete(item.offer.id);
       setResultMessage('Contract is active.');
-      announceAction('Agreement reached. Contract is active.');
+      announceAction(t('Agreement reached. Contract is active.'));
       setState((current) =>
         current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
@@ -255,7 +279,7 @@ export function OfferInbox({
       rejectIdempotencyKeys.current.delete(item.offer.id);
       setRejectionConfirmationOfferId(undefined);
       setResultMessage('Offer rejected.');
-      announceAction('Offer declined.');
+      announceAction(t('Offer declined.'));
       setState((current) =>
         current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
@@ -286,7 +310,7 @@ export function OfferInbox({
     }
     const rewardTitle = counterOfferForm.rewardTitle.trim();
     if (!rewardTitle) {
-      setCounterOfferTitleError('Enter a reward title.');
+      setCounterOfferTitleError(t('Enter a reward title.'));
       return;
     }
 
@@ -319,7 +343,7 @@ export function OfferInbox({
       counterOfferIdempotencyKeys.current.delete(item.offer.id);
       setCounterOfferForm(undefined);
       setResultMessage('Waiting for parent');
-      announceAction('Counteroffer sent. Waiting for Parent.');
+      announceAction(t('Counteroffer sent. Waiting for Parent.'));
       setState((current) =>
         current.subscriptionKey === subscriptionKey &&
         current.status === 'ready'
@@ -366,14 +390,14 @@ export function OfferInbox({
         badge={
           offer.status === 'AWAITING_CHILD'
             ? preview
-              ? 'NEW OFFER'
-              : 'Your turn'
+              ? t('NEW OFFER')
+              : t('Your turn')
             : offer.status === 'AWAITING_PARENT'
-              ? "Parent's turn"
-              : offer.status.charAt(0) + offer.status.slice(1).toLowerCase()
+              ? t("Parent's turn")
+              : offerLabel(offer.status)
         }
         title={revision.tasks[0]?.title ?? revision.reward.title}
-        detail={`Reward: ${revision.reward.title}`}
+        detail={t('Reward: {0}', { '0': revision.reward.title })}
         reward={revision.reward}
       >
         <View
@@ -384,7 +408,7 @@ export function OfferInbox({
           }}
         >
           <HomeCardAction
-            label="View offer"
+            label={t('View offer')}
             tone="coral"
             onPress={() =>
               router.navigate({
@@ -394,7 +418,7 @@ export function OfferInbox({
             }
           />
           <HomeCardAction
-            label="Suggest a change"
+            label={t('Suggest a change')}
             tone="outline"
             onPress={() =>
               router.navigate({
@@ -409,12 +433,12 @@ export function OfferInbox({
   }
 
   if (resultMessage === 'Waiting for parent' && offerId)
-    return <WaitingState>{resultMessage}</WaitingState>;
+    return <WaitingState>{t(resultMessage)}</WaitingState>;
 
   if (resultMessage === 'Contract is active.' && offerId)
     return (
-      <OfferOutcome title="Agreement reached" success centered>
-        {resultMessage}
+      <OfferOutcome title={t('Agreement reached')} success centered>
+        {t(resultMessage)}
       </OfferOutcome>
     );
 
@@ -435,7 +459,7 @@ export function OfferInbox({
       {offerId && showBackLink ? (
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Back to Offers"
+          accessibilityLabel={t('Back to Offers')}
           onPress={() => router.navigate('/offers')}
           style={{
             alignSelf: 'flex-start',
@@ -445,7 +469,7 @@ export function OfferInbox({
           className="active:opacity-60"
         >
           <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-            ← Offers
+            {t('← Offers')}
           </DesignText>
         </Pressable>
       ) : null}
@@ -477,7 +501,7 @@ export function OfferInbox({
       ) ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ flex: 1 }}>
-            <SectionHeading>Offers</SectionHeading>
+            <SectionHeading>{t('Offers')}</SectionHeading>
           </View>
           {displayedState.status === 'ready' ? (
             <CountBadge count={displayedState.items.length} />
@@ -489,14 +513,16 @@ export function OfferInbox({
         <OfferOutcome
           title={
             resultMessage === 'Contract is active.'
-              ? 'Agreement reached'
+              ? t('Agreement reached')
               : resultMessage === 'Offer rejected.'
-                ? 'Declined'
-                : 'Waiting for parent'
+                ? t('Declined')
+                : t('Waiting for parent')
           }
           success={resultMessage === 'Contract is active.'}
         >
-          {resultMessage === 'Waiting for parent' ? undefined : resultMessage}
+          {resultMessage === 'Waiting for parent'
+            ? undefined
+            : t(resultMessage)}
         </OfferOutcome>
       ) : null}
 
@@ -505,7 +531,7 @@ export function OfferInbox({
       {displayedState.status === 'error' ? (
         <View className="gap-3">
           <FormMessage message={displayedState.message} />
-          <Button label="Try offers again" onPress={retrySubscription} />
+          <Button label={t('Try offers again')} onPress={retrySubscription} />
         </View>
       ) : null}
 
@@ -515,19 +541,19 @@ export function OfferInbox({
         <OfferOutcome
           title={
             offerId
-              ? 'Offer unavailable'
+              ? t('Offer unavailable')
               : selectedStatus === "Parent's turn"
-                ? 'No pending offers'
-                : 'No new offers'
+                ? t('No pending offers')
+                : t('No new offers')
           }
           centered={!offerId}
           illustration={!offerId ? 'no-offers' : undefined}
         >
           {offerId
-            ? 'This offer is no longer waiting for your response.'
+            ? t('This offer is no longer waiting for your response.')
             : selectedStatus === "Parent's turn"
-              ? 'No proposals are waiting for your parent.'
-              : 'No offers are waiting for you.'}
+              ? t('No proposals are waiting for your parent.')
+              : t('No offers are waiting for you.')}
         </OfferOutcome>
       ) : null}
 
@@ -541,20 +567,21 @@ export function OfferInbox({
                 badge={
                   offer.status === 'AWAITING_CHILD'
                     ? preview
-                      ? 'NEW OFFER'
-                      : 'Your turn'
+                      ? t('NEW OFFER')
+                      : t('Your turn')
                     : offer.status === 'AWAITING_PARENT'
-                      ? "Parent's turn"
-                      : offer.status.charAt(0) +
-                        offer.status.slice(1).toLowerCase()
+                      ? t("Parent's turn")
+                      : offerLabel(offer.status)
                 }
                 title={revision.tasks[0]?.title ?? revision.reward.title}
-                detail={`Reward: ${revision.reward.title}`}
+                detail={t('Reward: {0}', { '0': revision.reward.title })}
                 reward={revision.reward}
               >
                 <HomeCardAction
-                  label="View offer"
-                  accessibilityLabel={`Open offer: ${revision.reward.title}`}
+                  label={t('View offer')}
+                  accessibilityLabel={t('Open offer: {0}', {
+                    '0': revision.reward.title,
+                  })}
                   tone="coral"
                   onPress={() =>
                     router.navigate({
@@ -571,23 +598,24 @@ export function OfferInbox({
                   revision={revision}
                   status={
                     offer.status === 'AWAITING_CHILD'
-                      ? 'Your turn'
+                      ? t('Your turn')
                       : offer.status === 'AWAITING_PARENT'
-                        ? "Parent's turn"
-                        : offer.status.charAt(0) +
-                          offer.status.slice(1).toLowerCase()
+                        ? t("Parent's turn")
+                        : offerLabel(offer.status)
                   }
                   author={
                     revision.proposedByRole === 'CHILD'
-                      ? 'Proposed by you'
-                      : 'Proposed by your Parent'
+                      ? t('Proposed by you')
+                      : t('Proposed by your Parent')
                   }
                   support={
                     offer.status === 'AWAITING_CHILD'
-                      ? 'Accept to create your agreement, counter the reward, or decline.'
+                      ? t(
+                          'Accept to create your agreement, counter the reward, or decline.',
+                        )
                       : offer.status === 'AWAITING_PARENT'
-                        ? 'Your proposal is waiting for your parent.'
-                        : 'This offer is closed.'
+                        ? t('Your proposal is waiting for your parent.')
+                        : t('This offer is closed.')
                   }
                 />
                 {rejectionConfirmationOfferId === offer.id ? (
@@ -598,17 +626,19 @@ export function OfferInbox({
                       className="font-semibold text-home-text"
                       style={dynamicType.body}
                     >
-                      Reject this offer?
+                      {t('Reject this offer?')}
                     </FocusHeading>
                     <Text
                       allowFontScaling={false}
                       className="text-home-muted"
                       style={dynamicType.body}
                     >
-                      This will close the offer without creating a contract.
+                      {t(
+                        'This will close the offer without creating a contract.',
+                      )}
                     </Text>
                     <Button
-                      label="Confirm rejection"
+                      label={t('Confirm rejection')}
                       variant="danger"
                       loading={
                         mutation?.offerId === offer.id &&
@@ -622,7 +652,7 @@ export function OfferInbox({
                       }
                     />
                     <Button
-                      label="Keep offer"
+                      label={t('Keep offer')}
                       disabled={mutation !== undefined}
                       onPress={() => setRejectionConfirmationOfferId(undefined)}
                       variant="outline"
@@ -641,15 +671,16 @@ export function OfferInbox({
                       className="font-semibold text-home-text"
                       style={dynamicType.body}
                     >
-                      Make a counteroffer
+                      {t('Make a counteroffer')}
                     </FocusHeading>
                     <Text
                       allowFontScaling={false}
                       className="text-home-muted"
                       style={dynamicType.small}
                     >
-                      Your changes become a new proposal for your Parent to
-                      review. Tasks and deadline stay the same.
+                      {t(
+                        'Your changes become a new proposal for your Parent to review. Tasks and deadline stay the same.',
+                      )}
                     </Text>
                     <RewardPicker
                       prominent
@@ -668,7 +699,7 @@ export function OfferInbox({
                           current
                             ? {
                                 ...current,
-                                rewardTitle: reward.title,
+                                rewardTitle: t(reward.title),
                                 rewardSelection: selection,
                                 rewardType: reward.type,
                                 rewardIconKey: reward.iconKey,
@@ -682,7 +713,7 @@ export function OfferInbox({
                         <TextField
                           editable={mutation === undefined}
                           error={counterOfferTitleError}
-                          label="Selected reward"
+                          label={t('Selected reward')}
                           onChangeText={(rewardTitle) => {
                             setCounterOfferTitleError(undefined);
                             setCounterOfferForm((current) =>
@@ -696,7 +727,7 @@ export function OfferInbox({
                     <TextField
                       required={false}
                       editable={mutation === undefined}
-                      label="Counteroffer reward description (optional)"
+                      label={t('Counteroffer reward description (optional)')}
                       multiline
                       numberOfLines={4}
                       textAlignVertical="top"
@@ -710,7 +741,7 @@ export function OfferInbox({
                     <TextField
                       required={false}
                       editable={mutation === undefined}
-                      label="Counteroffer note (optional)"
+                      label={t('Counteroffer note (optional)')}
                       multiline
                       numberOfLines={4}
                       textAlignVertical="top"
@@ -722,7 +753,7 @@ export function OfferInbox({
                       value={counterOfferForm.note}
                     />
                     <Button
-                      label="Send counteroffer"
+                      label={t('Send counteroffer')}
                       loading={
                         mutation?.offerId === offer.id &&
                         mutation.action === 'counter'
@@ -735,7 +766,7 @@ export function OfferInbox({
                       }
                     />
                     <Button
-                      label="Cancel counteroffer"
+                      label={t('Cancel counteroffer')}
                       disabled={mutation !== undefined}
                       onPress={() => {
                         setCounterOfferForm(undefined);
@@ -754,7 +785,7 @@ export function OfferInbox({
                   >
                     <Button
                       lightText
-                      label="Accept offer"
+                      label={t('Accept offer')}
                       loading={
                         mutation?.offerId === offer.id &&
                         mutation.action === 'accept'
@@ -767,13 +798,13 @@ export function OfferInbox({
                       }
                     />
                     <Button
-                      label="Counter reward"
+                      label={t('Counter reward')}
                       disabled={mutation !== undefined}
                       onPress={() => openCounterOfferForm({ offer, revision })}
                       variant="outline"
                     />
                     <Button
-                      label="Reject offer"
+                      label={t('Reject offer')}
                       disabled={mutation !== undefined}
                       onPress={() => {
                         setActionError(undefined);

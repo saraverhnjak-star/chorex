@@ -1,4 +1,5 @@
-import {
+import { LanguageProvider } from '../src/localization/LanguageProvider';
+import { t, useAppLanguage ,
   ClientErrorFallback,
   Screen,
   homeTokens,
@@ -31,6 +32,8 @@ import { configureFirebase } from '../src/firebase';
 import { ChildSessionProvider, useChildSession } from '../src/auth/session';
 
 function ChildNavigator() {
+  useAppLanguage();
+
   const session = useChildSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -69,7 +72,7 @@ function ChildNavigator() {
       <Screen design entry>
         <View className="flex-1 items-center justify-center py-12">
           <ActivityIndicator
-            accessibilityLabel="Loading your session"
+            accessibilityLabel={t('Loading your session')}
             color={homeTokens.coral}
             size="large"
           />
@@ -78,7 +81,7 @@ function ChildNavigator() {
             className="mt-4 text-home-muted"
             style={dynamicType.body}
           >
-            Loading your session…
+            {t('Loading your session…')}
           </Text>
         </View>
       </Screen>
@@ -95,7 +98,7 @@ function ChildNavigator() {
             className="font-bold text-home-text"
             style={dynamicType.title}
           >
-            ChoreX Child
+            {t('ChoreX Child')}
           </Text>
           <Text
             allowFontScaling={false}
@@ -103,8 +106,9 @@ function ChildNavigator() {
             className="mt-4 text-home-muted"
             style={dynamicType.body}
           >
-            We couldn&apos;t restore your session. Restart the app and try
-            again.
+            {t(
+              "We couldn't restore your session. Restart the app and try again.",
+            )}
           </Text>
         </View>
       </Screen>
@@ -132,7 +136,9 @@ function ChildNavigator() {
   );
 }
 
-export default function RootLayout() {
+function BootstrapLayout() {
+  useAppLanguage();
+
   const dynamicType = useDynamicTypeStyles();
   const [bootstrap, setBootstrap] = useState<'loading' | 'ready' | 'error'>(
     'loading',
@@ -164,7 +170,7 @@ export default function RootLayout() {
         <View className="flex-1 justify-center py-12">
           {bootstrap === 'loading' ? (
             <ActivityIndicator
-              accessibilityLabel="Loading your session"
+              accessibilityLabel={t('Loading your session')}
               color={homeTokens.coral}
               size="large"
             />
@@ -176,8 +182,10 @@ export default function RootLayout() {
             style={dynamicType.body}
           >
             {bootstrap === 'error'
-              ? 'We couldn’t restore your session. Restart the app and try again.'
-              : 'Loading your session…'}
+              ? t(
+                  'We couldn’t restore your session. Restart the app and try again.',
+                )
+              : t('Loading your session…')}
           </Text>
         </View>
       </Screen>
@@ -191,4 +199,12 @@ export default function RootLayout() {
 
 export function ErrorBoundary(props: ErrorBoundaryProps) {
   return <ClientErrorFallback {...props} report={reportBoundaryError} />;
+}
+
+export default function RootLayout() {
+  return (
+    <LanguageProvider>
+      <BootstrapLayout />
+    </LanguageProvider>
+  );
 }

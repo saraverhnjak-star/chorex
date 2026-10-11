@@ -1,3 +1,4 @@
+import { t } from '@chorex/ui';
 import {
   isNotificationRegistrationError,
   notificationRegistrationErrorCodes,
@@ -8,7 +9,9 @@ export function getNotificationErrorMessage(error: unknown): string {
     isNotificationRegistrationError(error) &&
     error.code === notificationRegistrationErrorCodes.configurationMissing
   ) {
-    return 'Notifications are not configured for this Child app build.';
+    return t('Notifications are not configured for this Child app build.');
   }
-  return 'Notifications could not be enabled. Check your connection and try again.';
+  return t(
+    'Notifications could not be enabled. Check your connection and try again.',
+  );
 }

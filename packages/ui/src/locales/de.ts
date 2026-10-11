@@ -709,4 +709,186 @@ export const de: Record<string, string> = {
   'Reward icon: {0}': 'Belohnungssymbol: {0}',
   'This field is required.': 'Dieses Feld ist erforderlich.',
   'ChoreX Parent': 'ChoreX für Eltern',
+  'Accept offer': 'Angebot annehmen',
+  'Accept to create your agreement, counter the reward, or decline.':
+    'Nimm das Angebot an, schlage eine andere Belohnung vor oder lehne ab.',
+  Account: 'Konto',
+  'Account actions': 'Kontoaktionen',
+  'Active contracts': 'Aktive Vereinbarungen',
+  'Address your Parent’s feedback in real life, then send this agreement back for review. Your completed task progress stays unchanged.':
+    'Setze die Rückmeldung deines Elternteils um und reiche die Vereinbarung erneut zur Prüfung ein. Dein Aufgabenfortschritt bleibt erhalten.',
+  'Ask your parent for the pairing code from their ChoreX app.':
+    'Bitte deinen Elternteil um den Verbindungscode aus der ChoreX-App.',
+  'Back to My chores': 'Zurück zu meinen Aufgaben',
+  'Check the reward details and try again.':
+    'Prüfe die Belohnungsdetails und versuche es erneut.',
+  'Child account': 'Kinderkonto',
+  'ChoreX Child': 'ChoreX Kind',
+  'Complete all tasks before submitting for review.':
+    'Erledige alle Aufgaben, bevor du sie zur Prüfung einreichst.',
+  'Completion recorded. Waiting for updated progress…':
+    'Erledigung gespeichert. Fortschritt wird aktualisiert…',
+  'Confirm only when you have received your promised reward.':
+    'Bestätige erst, wenn du deine versprochene Belohnung erhalten hast.',
+  'Confirm receipt': 'Erhalt bestätigen',
+  'Confirm received': 'Erhalt bestätigen',
+  'Confirm rejection': 'Ablehnung bestätigen',
+  'Confirm resubmission': 'Erneutes Einreichen bestätigen',
+  'Confirm submission': 'Einreichen bestätigen',
+  'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.':
+    'Bestätige, dass du die Rückmeldung deines Elternteils umgesetzt hast. Dein Aufgabenfortschritt bleibt erhalten.',
+  'Confirm that you received this reward?':
+    'Bestätigen, dass du diese Belohnung erhalten hast?',
+  Connect: 'Verbinden',
+  'Connect to your family': 'Mit deiner Familie verbinden',
+  'Contract is active.': 'Die Vereinbarung ist aktiv.',
+  'Counter reward': 'Andere Belohnung vorschlagen',
+  'Counteroffer note (optional)': 'Nachricht zum Gegenvorschlag (optional)',
+  'Counteroffer reward description (optional)':
+    'Beschreibung der vorgeschlagenen Belohnung (optional)',
+  'Counteroffer sent. Waiting for Parent.':
+    'Gegenvorschlag gesendet. Dein Elternteil ist dran.',
+  'Deadline reminders': 'Fristerinnerungen',
+  'Due {0}{1}': 'Fällig am {0}{1}',
+  'Earned rewards': 'Verdiente Belohnungen',
+  'Enter the pairing code again.': 'Gib den Verbindungscode erneut ein.',
+  'Get a reminder when an active agreement is due soon.':
+    'Erhalte eine Erinnerung, wenn eine aktive Vereinbarung bald fällig ist.',
+  'Get updates when you receive an offer or your parent reviews your agreement.':
+    'Erhalte Neuigkeiten zu Angeboten und zur Prüfung deiner Vereinbarungen.',
+  'Keep offer': 'Angebot behalten',
+  'Loading your Child profile': 'Kinderprofil wird geladen',
+  'Make a counteroffer': 'Gegenvorschlag machen',
+  'Mark done': 'Als erledigt markieren',
+  'Mark one done': 'Eine Wiederholung markieren',
+  'My agreement': 'Meine Vereinbarung',
+  'My chores': 'Meine Aufgaben',
+  'NEW OFFER': 'NEUES ANGEBOT',
+  'Next deadline': 'Nächste Frist',
+  'No activities yet': 'Noch keine Aktivitäten',
+  'No agreements to work on': 'Keine Aufgaben aus Vereinbarungen',
+  'No agreements yet': 'Noch keine Vereinbarungen',
+  'No new offers': 'Keine neuen Angebote',
+  'No offers are waiting for you.': 'Es warten keine Angebote auf dich.',
+  'No pending offers': 'Keine ausstehenden Angebote',
+  'No proposals are waiting for your parent.':
+    'Keine Vorschläge warten auf deinen Elternteil.',
+  'No rewards yet': 'Noch keine Belohnungen',
+  None: 'Keine',
+  'Notifications are not configured for this Child app build.':
+    'Benachrichtigungen sind in dieser Version der Kinder-App nicht eingerichtet.',
+  'Offer declined.': 'Angebot abgelehnt.',
+  'Offer rejected.': 'Angebot abgelehnt.',
+  'One of your offers is incomplete. Ask your parent to publish it again.':
+    'Ein Angebot ist unvollständig. Bitte deinen Elternteil, es erneut zu veröffentlichen.',
+  'Open Contract: {0}': 'Vereinbarung öffnen: {0}',
+  'Open agreement': 'Vereinbarung öffnen',
+  'Open offer: {0}': 'Angebot öffnen: {0}',
+  'Pairing code': 'Verbindungscode',
+  'Pairing could not be completed. Try again.':
+    'Die Verbindung konnte nicht hergestellt werden. Versuche es erneut.',
+  'Past due': 'Überfällig',
+  'Proposed by you': 'Von dir vorgeschlagen',
+  'Proposed by your Parent': 'Von deinem Elternteil vorgeschlagen',
+  'Reject offer': 'Angebot ablehnen',
+  'Reject this offer?': 'Dieses Angebot ablehnen?',
+  'Resubmit for review': 'Erneut zur Prüfung einreichen',
+  'Reward received': 'Belohnung erhalten',
+  'Reward: {0}': 'Belohnung: {0}',
+  'Saved active contracts': 'Gespeicherte aktive Vereinbarungen',
+  'Saved earned rewards': 'Gespeicherte verdiente Belohnungen',
+  'Saved next deadline': 'Gespeicherte nächste Frist',
+  'See all My chores': 'Alle meine Aufgaben anzeigen',
+  'Selected reward': 'Ausgewählte Belohnung',
+  'Send this Contract back for review?':
+    'Diese Vereinbarung erneut zur Prüfung einreichen?',
+  'Send this Contract for review?':
+    'Diese Vereinbarung zur Prüfung einreichen?',
+  'Sent back for review': 'Erneut zur Prüfung eingereicht',
+  'Sent for review': 'Zur Prüfung eingereicht',
+  'Submit for review': 'Zur Prüfung einreichen',
+  'Suggest a change': 'Änderung vorschlagen',
+  'That pairing code has already been used.':
+    'Dieser Verbindungscode wurde bereits verwendet.',
+  'That pairing code has expired. Ask your parent for a new one.':
+    'Dieser Verbindungscode ist abgelaufen. Bitte deinen Elternteil um einen neuen.',
+  'That pairing code is not valid. Ask your parent for a new one.':
+    'Dieser Verbindungscode ist ungültig. Bitte deinen Elternteil um einen neuen.',
+  'The local family service is unavailable. Check your connection and try again.':
+    'Der lokale Familiendienst ist nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.',
+  'The pairing service is unavailable. Check your connection and try again.':
+    'Der Verbindungsdienst ist nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.',
+  'This Contract is no longer active. Its status will update automatically.':
+    'Diese Vereinbarung ist nicht mehr aktiv. Ihr Status wird automatisch aktualisiert.',
+  'This Contract is no longer active. Progress updates are unavailable.':
+    'Diese Vereinbarung ist nicht mehr aktiv. Fortschritt kann nicht aktualisiert werden.',
+  'This Contract or task is no longer available.':
+    'Diese Vereinbarung oder Aufgabe ist nicht mehr verfügbar.',
+  'This device could not be signed out. Try again.':
+    'Dieses Gerät konnte nicht abgemeldet werden. Versuche es erneut.',
+  'This offer is closed.': 'Dieses Angebot ist abgeschlossen.',
+  'This pairing request could not be completed.':
+    'Diese Verbindungsanfrage konnte nicht abgeschlossen werden.',
+  'This retry does not match the original action. Reopen the Contract before trying again.':
+    'Dieser Versuch entspricht nicht der ursprünglichen Aktion. Öffne die Vereinbarung erneut.',
+  'This session is not linked to a Child profile.':
+    'Diese Sitzung ist keinem Kinderprofil zugeordnet.',
+  'This submission could not be sent. Reopen the Contract and try again.':
+    'Das Einreichen ist fehlgeschlagen. Öffne die Vereinbarung erneut und versuche es noch einmal.',
+  'This task completion could not be sent. Reopen the Contract and try again.':
+    'Die Aufgabenerledigung konnte nicht gesendet werden. Öffne die Vereinbarung erneut und versuche es noch einmal.',
+  'This task is already complete. Its progress will update automatically.':
+    'Diese Aufgabe ist bereits erledigt. Ihr Fortschritt wird automatisch aktualisiert.',
+  'This version cannot open Child profiles in more than one family yet.':
+    'Diese Version unterstützt noch keine Kinderprofile in mehreren Familien.',
+  'This will close the offer without creating a contract.':
+    'Das Angebot wird geschlossen, ohne eine Vereinbarung zu erstellen.',
+  Today: 'Heute',
+  'Too many pairing attempts. Wait before trying again.':
+    'Zu viele Verbindungsversuche. Warte, bevor du es erneut versuchst.',
+  'Unable to confirm completion. Check your connection and try again. Your displayed progress has not been changed locally.':
+    'Die Erledigung konnte nicht bestätigt werden. Prüfe deine Verbindung und versuche es erneut. Dein angezeigter Fortschritt wurde lokal nicht geändert.',
+  'Unable to confirm submission. Check your connection and try again. Your Contract status has not been changed locally.':
+    'Das Einreichen konnte nicht bestätigt werden. Prüfe deine Verbindung und versuche es erneut. Der Vereinbarungsstatus wurde lokal nicht geändert.',
+  'Waiting for parent': 'Dein Elternteil ist dran',
+  'We could not confirm submission. Try again to confirm the same action.':
+    'Das Einreichen konnte nicht bestätigt werden. Versuche es erneut, um dieselbe Aktion zu bestätigen.',
+  'We could not confirm this completion. Try again to confirm the same action.':
+    'Diese Erledigung konnte nicht bestätigt werden. Versuche es erneut, um dieselbe Aktion zu bestätigen.',
+  'We couldn’t restore your session. Restart the app and try again.':
+    'Deine Sitzung konnte nicht wiederhergestellt werden. Starte die App neu und versuche es erneut.',
+  'You cannot record progress on this task.':
+    'Du kannst für diese Aufgabe keinen Fortschritt speichern.',
+  'You cannot submit this Contract.':
+    'Du kannst diese Vereinbarung nicht einreichen.',
+  'Your Child family setup is incomplete. Ask your parent to finish setup.':
+    'Dein Familienprofil ist unvollständig. Bitte deinen Elternteil, die Einrichtung abzuschließen.',
+  'Your Child session has ended. Pair this device again.':
+    'Deine Sitzung ist beendet. Verbinde dieses Gerät erneut.',
+  'Your Parent now needs to review this agreement.':
+    'Dein Elternteil muss diese Vereinbarung jetzt prüfen.',
+  'Your Parent will review the completed agreement and may approve or request changes.':
+    'Dein Elternteil prüft die erledigte Vereinbarung und kann sie bestätigen oder Änderungen anfordern.',
+  'Your agreements and earned rewards will appear here.':
+    'Hier erscheinen deine Vereinbarungen und verdienten Belohnungen.',
+  'Your agreements will appear here.': 'Hier erscheinen deine Vereinbarungen.',
+  'Your changes become a new proposal for your Parent to review. Tasks and deadline stay the same.':
+    'Deine Änderungen werden zu einem neuen Vorschlag für deinen Elternteil. Aufgaben und Frist bleiben gleich.',
+  'Your family setup could not be loaded. Try again.':
+    'Dein Familienprofil konnte nicht geladen werden. Versuche es erneut.',
+  'Your proposal is waiting for your parent.':
+    'Dein Vorschlag wartet auf deinen Elternteil.',
+  '{0}. {1} of {2} completions recorded. Mark another completion':
+    '{0}. {1} von {2} Wiederholungen gespeichert. Weitere Wiederholung markieren',
+  '{0}: {1} of {2} completions recorded':
+    '{0}: {1} von {2} Wiederholungen gespeichert',
+  '{0}{1} · Due {2}{3}': '{0}{1} · Fällig am {2}{3}',
+  '← My chores': '← Meine Aufgaben',
+  'A newer pairing code was created. Ask your parent for the latest one.':
+    'Ein neuer Verbindungscode wurde erstellt. Bitte deinen Elternteil um den aktuellen Code.',
+  '{0} days': '{0} Tage',
+  'Saved progress': 'Gespeicherter Fortschritt',
+  Accepted: 'Angenommen',
+  Rejected: 'Abgelehnt',
+  Draft: 'Entwurf',
 };

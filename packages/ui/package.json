@@ -21,8 +21,8 @@
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-css-interop": "0.2.7",
-    "typescript": "6.0.3",
-    "react-native-safe-area-context": "5.7.0"
+    "react-native-safe-area-context": "5.7.0",
+    "typescript": "6.0.3"
   },
   "peerDependencies": {
     "nativewind": "4.2.7",
@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@chorex/domain": "workspace:*",
-    "@expo/vector-icons": "15.1.1"
+    "@expo/vector-icons": "15.1.1",
+    "@react-native-picker/picker": "2.11.4"
   }
 }

@@ -1,7 +1,7 @@
+import { t, useAppLanguage , RewardList } from '@chorex/ui';
 import { useRouter } from 'expo-router';
 import { useLayoutEffect, useState } from 'react';
 import { useEarnedRewards } from '@chorex/firebase-client';
-import { RewardList } from '@chorex/ui';
 function EarnedRewardsContent({
   familyId,
   authUid,
@@ -17,6 +17,8 @@ function EarnedRewardsContent({
   familyId: string;
   authUid: string;
 }) {
+  useAppLanguage();
+
   const state = useEarnedRewards(familyId, authUid),
     router = useRouter();
   const empty =
@@ -34,8 +36,8 @@ function EarnedRewardsContent({
       onRetry={onRetry}
       preview={preview}
       onSeeAll={preview ? () => router.navigate('/rewards') : undefined}
-      title="Earned rewards"
-      empty="No rewards yet"
+      title={t('Earned rewards')}
+      empty={t('No rewards yet')}
       loading={state.status === 'loading'}
       error={state.status === 'error'}
       fromCache={state.status === 'ready' && state.fromCache}

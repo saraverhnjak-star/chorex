@@ -1,7 +1,4 @@
-import { View } from 'react-native';
-import type { Contract } from '@chorex/domain';
-import { useContractDetail } from '@chorex/firebase-client';
-import {
+import { t, useAppLanguage, dateLocale ,
   HomeListRow,
   HomeFeatureCard,
   HomeCardAction,
@@ -9,6 +6,9 @@ import {
   homeTokens,
   contractStatusLabel,
 } from '@chorex/ui';
+import { View } from 'react-native';
+import type { Contract } from '@chorex/domain';
+import { useContractDetail } from '@chorex/firebase-client';
 export function HomeContractRow({
   contract,
   authUid,
@@ -22,6 +22,8 @@ export function HomeContractRow({
   childName?: string;
   onPress: () => void;
 }) {
+  useAppLanguage();
+
   const state = useContractDetail(contract.id, authUid);
   const progress =
     state.status === 'ready'
@@ -40,7 +42,10 @@ export function HomeContractRow({
     return (
       <HomeFeatureCard
         title={contract.rewardTerms.title}
-        detail={`Due ${new Date(contract.deadlineAt).toLocaleDateString()}${childName ? ` · ${childName}` : ''}`}
+        detail={t('Due {0}{1}', {
+          '0': new Date(contract.deadlineAt).toLocaleDateString(dateLocale()),
+          '1': childName ? ` · ${childName}` : '',
+        })}
         reward={contract.rewardTerms}
         badge={contractStatusLabel(contract.status, 'CHILD')}
       >
@@ -70,7 +75,7 @@ export function HomeContractRow({
               />
             </View>
             <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
-              {progress.completed} / {progress.required} completions
+              {progress.completed} / {progress.required} {t('completions')}
             </DesignText>
           </View>
         ) : null}
@@ -78,7 +83,7 @@ export function HomeContractRow({
           <>
             {state.fromCache ? (
               <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
-                Saved progress. Updates may be pending.
+                {t('Saved progress. Updates may be pending.')}
               </DesignText>
             ) : null}
             {state.tasks.map((task) => (
@@ -99,7 +104,14 @@ export function HomeContractRow({
                   {task.title}
                 </DesignText>
                 <DesignText
-                  accessibilityLabel={`${task.title}: ${task.completedCount} of ${task.targetCount} completions recorded`}
+                  accessibilityLabel={t(
+                    '{0}: {1} of {2} completions recorded',
+                    {
+                      '0': task.title,
+                      '1': task.completedCount,
+                      '2': task.targetCount,
+                    },
+                  )}
                   style={{
                     fontSize: 18,
                     fontWeight: '700',
@@ -116,13 +128,15 @@ export function HomeContractRow({
         ) : (
           <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
             {state.status === 'error'
-              ? 'Progress unavailable'
-              : 'Loading progress…'}
+              ? t('Progress unavailable')
+              : t('Loading progress…')}
           </DesignText>
         )}
         <HomeCardAction
-          label="Open agreement"
-          accessibilityLabel={`Open Contract: ${contract.rewardTerms.title}`}
+          label={t('Open agreement')}
+          accessibilityLabel={t('Open Contract: {0}', {
+            '0': contract.rewardTerms.title,
+          })}
           onPress={onPress}
         />
       </HomeFeatureCard>
@@ -131,8 +145,21 @@ export function HomeContractRow({
     <HomeListRow
       reward={contract.rewardTerms}
       title={contract.rewardTerms.title}
-      label={`Open Contract: ${childName ? `${childName} · ` : ''}${contract.rewardTerms.title}`}
-      detail={`${childName ? `${childName} · ` : ''}${contractStatusLabel(contract.status, 'CHILD')} · Due ${new Date(contract.deadlineAt).toLocaleDateString()}${state.status === 'error' ? ' · Progress unavailable' : state.status === 'ready' && state.fromCache ? ' · Saved progress' : ''}`}
+      label={t('Open Contract: {0}{1}', {
+        '0': childName ? `${childName} · ` : '',
+        '1': contract.rewardTerms.title,
+      })}
+      detail={t('{0}{1} · Due {2}{3}', {
+        '0': childName ? `${childName} · ` : '',
+        '1': contractStatusLabel(contract.status, 'CHILD'),
+        '2': new Date(contract.deadlineAt).toLocaleDateString(dateLocale()),
+        '3':
+          state.status === 'error'
+            ? ` · ${t('Progress unavailable')}`
+            : state.status === 'ready' && state.fromCache
+              ? ` · ${t('Saved progress')}`
+              : '',
+      })}
       progress={progress}
       onPress={onPress}
     />

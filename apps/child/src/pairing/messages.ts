@@ -1,3 +1,4 @@
+import { t } from '@chorex/ui';
 import {
   authErrorCodes,
   isAuthClientError,
@@ -37,12 +38,12 @@ const pairingErrorMessages: Record<PairingClientErrorCode, string> = {
 };
 
 export function getPairingErrorMessage(error: unknown): string {
-  if (isPairingClientError(error)) return pairingErrorMessages[error.code];
+  if (isPairingClientError(error)) return t(pairingErrorMessages[error.code]);
   if (
     isAuthClientError(error) &&
     error.code === authErrorCodes.networkUnavailable
   ) {
-    return pairingErrorMessages[pairingClientErrorCodes.networkUnavailable];
+    return t(pairingErrorMessages[pairingClientErrorCodes.networkUnavailable]);
   }
-  return pairingErrorMessages[pairingClientErrorCodes.unknown];
+  return t(pairingErrorMessages[pairingClientErrorCodes.unknown]);
 }

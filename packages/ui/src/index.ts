@@ -99,3 +99,4 @@ export {
   type AppLanguage,
 } from './localization';
 export { translateMessage } from './localization';
+export { NativeLanguageSelect } from './NativeLanguageSelect';

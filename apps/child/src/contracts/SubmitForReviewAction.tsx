@@ -1,4 +1,4 @@
-import {
+import { t, useAppLanguage ,
   FocusHeading,
   announceAction,
   Button,
@@ -21,6 +21,8 @@ export function SubmitForReviewAction({
   tasks: readonly ContractTask[];
   feedbackAvailable?: boolean;
 }) {
+  useAppLanguage();
+
   const type = useDynamicTypeStyles();
   const styles = {
     body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
@@ -65,7 +67,7 @@ export function SubmitForReviewAction({
       if (active.current) {
         setConfirmed(true);
         announceAction(
-          resubmitting ? 'Sent back for review' : 'Sent for review',
+          resubmitting ? t('Sent back for review') : t('Sent for review'),
         );
         setResubmitted(resubmitting);
         setConfirming(false);
@@ -94,12 +96,12 @@ export function SubmitForReviewAction({
           className="text-home-text"
           style={styles.body}
         >
-          {resubmitted ? 'Sent back for review' : 'Sent for review'}
+          {resubmitted ? t('Sent back for review') : t('Sent for review')}
         </Text>
       ) : null}
       {contract.status === 'READY_FOR_REVIEW' ? (
         <WaitingState>
-          Your Parent now needs to review this agreement.
+          {t('Your Parent now needs to review this agreement.')}
         </WaitingState>
       ) : confirmed ? (
         <Text
@@ -108,7 +110,7 @@ export function SubmitForReviewAction({
           className="text-home-muted"
           style={styles.small}
         >
-          Waiting for updated Contract status…
+          {t('Waiting for updated Contract status…')}
         </Text>
       ) : (
         <>
@@ -119,7 +121,7 @@ export function SubmitForReviewAction({
               className="text-home-muted"
               style={styles.body}
             >
-              Complete all tasks before submitting for review.
+              {t('Complete all tasks before submitting for review.')}
             </Text>
           ) : confirming ? (
             <>
@@ -130,8 +132,8 @@ export function SubmitForReviewAction({
                 style={styles.body}
               >
                 {resubmitting
-                  ? 'Send this Contract back for review?'
-                  : 'Send this Contract for review?'}
+                  ? t('Send this Contract back for review?')
+                  : t('Send this Contract for review?')}
               </FocusHeading>
               <Text
                 allowFontScaling={false}
@@ -139,12 +141,18 @@ export function SubmitForReviewAction({
                 style={styles.body}
               >
                 {resubmitting
-                  ? 'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.'
-                  : 'Your Parent will review the completed agreement and may approve or request changes.'}
+                  ? t(
+                      'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.',
+                    )
+                  : t(
+                      'Your Parent will review the completed agreement and may approve or request changes.',
+                    )}
               </Text>
               <Button
                 label={
-                  resubmitting ? 'Confirm resubmission' : 'Confirm submission'
+                  resubmitting
+                    ? t('Confirm resubmission')
+                    : t('Confirm submission')
                 }
                 variant="blue"
                 lightText
@@ -152,7 +160,7 @@ export function SubmitForReviewAction({
                 onPress={() => void submit()}
               />
               <Button
-                label="Keep checking"
+                label={t('Keep checking')}
                 variant="outline"
                 disabled={pending}
                 onPress={() => setConfirming(false)}
@@ -162,7 +170,9 @@ export function SubmitForReviewAction({
             <Button
               variant="blue"
               lightText
-              label={resubmitting ? 'Resubmit for review' : 'Submit for review'}
+              label={
+                resubmitting ? t('Resubmit for review') : t('Submit for review')
+              }
               onPress={() => setConfirming(true)}
             />
           )}

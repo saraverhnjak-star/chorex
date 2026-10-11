@@ -1,3 +1,4 @@
+import { t, useAppLanguage } from '@chorex/ui';
 import { ChildFamilyProvider } from './FamilyContext';
 import type { ReactNode } from 'react';
 import { usePathname, useRouter } from 'expo-router';
@@ -16,6 +17,7 @@ const destinations = {
   more: '/more',
 } as const;
 export function AppNavigation({ children }: { children: ReactNode }) {
+  useAppLanguage();
   const router = useRouter();
   const path = usePathname();
   const section = path.split('/')[1];
@@ -23,7 +25,7 @@ export function AppNavigation({ children }: { children: ReactNode }) {
   return (
     <ChildFamilyProvider>
       <NavigationFrame
-        items={items}
+        items={items.map((item) => ({ ...item, label: t(item.label) }))}
         active={active}
         onNavigate={(id) => {
           const destination = destinations[id as keyof typeof destinations];

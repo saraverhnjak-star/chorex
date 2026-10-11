@@ -1,15 +1,17 @@
-import { Pressable } from 'react-native';
-import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
-import {
+import { t, useAppLanguage ,
   HomeScreenFrame,
   HomeHeader,
   DesignText,
   homeTokens,
 } from '@chorex/ui';
+import { Pressable } from 'react-native';
+import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import { useChildSession } from '../../src/auth/session';
 import { RewardDetail } from '../../src/rewards/RewardDetail';
 
 export default function RewardScreen() {
+  useAppLanguage();
+
   const { rewardId } = useLocalSearchParams<{
     rewardId: string | string[];
   }>();
@@ -26,16 +28,16 @@ export default function RewardScreen() {
         <HomeHeader
           child
           compact
-          name="Child"
+          name={t('Child')}
           leading={
             <Pressable
               accessibilityRole="link"
-              accessibilityLabel="Back to Rewards"
+              accessibilityLabel={t('Back to Rewards')}
               onPress={() => router.navigate('/rewards')}
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
               <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                ← Rewards
+                {t('← Rewards')}
               </DesignText>
             </Pressable>
           }

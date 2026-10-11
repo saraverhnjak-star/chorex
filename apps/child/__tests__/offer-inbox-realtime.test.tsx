@@ -1,3 +1,4 @@
+import { setAppLanguage, t } from '@chorex/ui';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { OfferInbox } from '../src/offers/OfferInbox';
 
@@ -263,4 +264,35 @@ it('filters the two status tabs and keeps parent-turn details read-only', () => 
   expect(screen.getByText("Parent's turn")).toBeOnTheScreen();
   expect(screen.queryByRole('button', { name: 'Accept offer' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Counter reward' })).toBeNull();
+});
+
+it('updates translated tab labels without changing filtering or user-authored reward titles', () => {
+  const view = render(<OfferInbox authUid="child-1" familyId="family-1" />);
+  const parentTurn = {
+    ...item,
+    offer: { ...item.offer, id: 'waiting', status: 'AWAITING_PARENT' },
+    revision: {
+      ...item.revision,
+      reward: { ...item.revision.reward, title: 'Waiting reward' },
+    },
+  };
+  act(() => emitItems?.([item, parentTurn]));
+  try {
+    act(() => setAppLanguage('sl'));
+    expect(screen.getByText('Nagrada: Cinema')).toBeOnTheScreen();
+    fireEvent.press(screen.getByRole('tab', { name: t("Parent's turn") }));
+    expect(screen.getByText('Nagrada: Waiting reward')).toBeOnTheScreen();
+    expect(screen.queryByText('Nagrada: Cinema')).toBeNull();
+    act(() => setAppLanguage('de'));
+    expect(screen.getByText('Belohnung: Waiting reward')).toBeOnTheScreen();
+    expect(
+      screen.getByRole('tab', { name: t("Parent's turn") }).props
+        .accessibilityState.selected,
+    ).toBe(true);
+    act(() => setAppLanguage('hr'));
+    expect(screen.getByText('Nagrada: Waiting reward')).toBeOnTheScreen();
+  } finally {
+    view.unmount();
+    act(() => setAppLanguage('en'));
+  }
 });

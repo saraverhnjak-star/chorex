@@ -1,11 +1,13 @@
+import { t, useAppLanguage , Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { ContractTask } from '@chorex/domain';
 import { recordTaskCompletion } from '@chorex/firebase-client';
-import { Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
 import { getTaskCompletionErrorMessage } from './messages';
 
 export function TaskCompletionAction({ task }: { task: ContractTask }) {
+  useAppLanguage();
+
   const type = useDynamicTypeStyles();
   const styles = {
     body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
@@ -63,12 +65,15 @@ export function TaskCompletionAction({ task }: { task: ContractTask }) {
           className="text-home-muted"
           style={styles.small}
         >
-          Completion recorded. Waiting for updated progress…
+          {t('Completion recorded. Waiting for updated progress…')}
         </Text>
       ) : null}
       <Button
-        label={task.targetCount === 1 ? 'Mark done' : 'Mark one done'}
-        accessibilityLabel={`${task.title}. ${task.completedCount} of ${task.targetCount} completions recorded. Mark another completion`}
+        label={task.targetCount === 1 ? t('Mark done') : t('Mark one done')}
+        accessibilityLabel={t(
+          '{0}. {1} of {2} completions recorded. Mark another completion',
+          { '0': task.title, '1': task.completedCount, '2': task.targetCount },
+        )}
         variant="blue"
         lightText
         loading={pending}

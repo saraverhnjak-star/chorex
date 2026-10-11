@@ -1,3 +1,11 @@
+import { t, useAppLanguage ,
+  Button,
+  HomeEmptyState,
+  CollectionHeading,
+  OfferOutcome,
+  FormMessage,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { StatusTabs } from '../navigation/StatusTabs';
 import { useRouter } from 'expo-router';
 import { useLayoutEffect, useState } from 'react';
@@ -9,14 +17,6 @@ import {
   useContractsInState,
   type ActiveContractsState,
 } from '@chorex/firebase-client';
-import {
-  Button,
-  HomeEmptyState,
-  CollectionHeading,
-  OfferOutcome,
-  FormMessage,
-  useDynamicTypeStyles,
-} from '@chorex/ui';
 
 function ActiveContractsContent({
   familyId,
@@ -35,6 +35,8 @@ function ActiveContractsContent({
   authUid: string;
   childNames?: Readonly<Record<string, string>>;
 }) {
+  useAppLanguage();
+
   const active = useActiveContracts(familyId, authUid);
   const review = useReadyForReviewContracts(familyId, authUid);
   const changes = useContractsInState(familyId, authUid, 'CHANGES_REQUESTED');
@@ -70,10 +72,14 @@ function ActiveContractsContent({
   if (preview && empty) return null;
   if (!preview && empty)
     return (
-      <OfferOutcome title="No agreements yet" centered illustration="no-chores">
+      <OfferOutcome
+        title={t('No agreements yet')}
+        centered
+        illustration="no-chores"
+      >
         {state.status === 'ready' && state.fromCache
-          ? 'No active Contracts are saved on this device yet.'
-          : 'Your agreements will appear here.'}
+          ? t('No active Contracts are saved on this device yet.')
+          : t('Your agreements will appear here.')}
       </OfferOutcome>
     );
   return (
@@ -98,19 +104,21 @@ function ActiveContractsContent({
       ) : null}
       {preview ? (
         <CollectionHeading
-          label="See all My chores"
+          label={t('See all My chores')}
           onSeeAll={() => router.navigate('/contracts')}
         >
-          My agreement
+          {t('My agreement')}
         </CollectionHeading>
       ) : null}
       {state.status === 'error' ? (
         <>
-          <FormMessage message="Your Contracts could not be loaded. Try again." />
+          <FormMessage
+            message={t('Your Contracts could not be loaded. Try again.')}
+          />
           {onRetry ? (
             <Button
               variant="outline"
-              label="Try Contracts again"
+              label={t('Try Contracts again')}
               onPress={onRetry}
             />
           ) : null}
@@ -131,29 +139,29 @@ function ActiveContractsContent({
                   : styles.small
               }
             >
-              Showing saved data. Updates may be pending.
+              {t('Showing saved data. Updates may be pending.')}
             </Text>
           ) : null}
           {state.contracts.length === 0 ? (
             preview ? (
               <HomeEmptyState>
                 {state.fromCache
-                  ? 'No active agreements saved yet.'
-                  : 'No active agreements'}
+                  ? t('No active agreements saved yet.')
+                  : t('No active agreements')}
               </HomeEmptyState>
             ) : (
               <OfferOutcome
                 title={
                   selected === "Parent's turn"
-                    ? 'Nothing waiting for review'
-                    : 'No agreements to work on'
+                    ? t('Nothing waiting for review')
+                    : t('No agreements to work on')
                 }
                 centered
                 illustration="no-chores"
               >
                 {state.fromCache
-                  ? 'No active Contracts are saved on this device yet.'
-                  : 'Your agreements will appear here.'}
+                  ? t('No active Contracts are saved on this device yet.')
+                  : t('Your agreements will appear here.')}
               </OfferOutcome>
             )
           ) : (

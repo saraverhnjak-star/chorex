@@ -1,15 +1,17 @@
-import { Pressable } from 'react-native';
-import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
-import {
+import { t, useAppLanguage ,
   HomeScreenFrame,
   HomeHeader,
   DesignText,
   homeTokens,
 } from '@chorex/ui';
+import { Pressable } from 'react-native';
+import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import { useChildSession } from '../../src/auth/session';
 import { ContractDetail } from '../../src/contracts/ContractDetail';
 
 export default function ContractScreen() {
+  useAppLanguage();
+
   const { contractId } = useLocalSearchParams<{
     contractId: string | string[];
   }>();
@@ -26,11 +28,11 @@ export default function ContractScreen() {
         <HomeHeader
           child
           compact
-          name="Child"
+          name={t('Child')}
           leading={
             <Pressable
               accessibilityRole="link"
-              accessibilityLabel="Back to My chores"
+              accessibilityLabel={t('Back to My chores')}
               onPress={() =>
                 router.canGoBack()
                   ? router.back()
@@ -39,7 +41,7 @@ export default function ContractScreen() {
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
               <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                ← My chores
+                {t('← My chores')}
               </DesignText>
             </Pressable>
           }

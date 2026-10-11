@@ -362,6 +362,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     </ChildSessionProvider>,
   );
   await screen.findByRole('header', { name: 'Settings' });
+  expect(screen.getByLabelText('Language: English')).toBeOnTheScreen();
   const reminderSwitch = screen.getByRole('switch', {
     name: 'Deadline reminders',
   });

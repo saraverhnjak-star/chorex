@@ -1,7 +1,7 @@
+import { t, useAppLanguage , SummaryMetric } from '@chorex/ui';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useActiveContracts, useEarnedRewards } from '@chorex/firebase-client';
-import { SummaryMetric } from '@chorex/ui';
 
 export function ChildHomeSummary({
   familyId,
@@ -10,6 +10,8 @@ export function ChildHomeSummary({
   familyId: string;
   authUid: string;
 }) {
+  useAppLanguage();
+
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
@@ -30,8 +32,8 @@ export function ChildHomeSummary({
         icon="checkbox-outline"
         label={
           contracts.status === 'ready' && contracts.fromCache
-            ? 'Saved active contracts'
-            : 'Active contracts'
+            ? t('Saved active contracts')
+            : t('Active contracts')
         }
         value={
           contracts.status === 'ready'
@@ -44,19 +46,19 @@ export function ChildHomeSummary({
         tone="blue"
         label={
           contracts.status === 'ready' && contracts.fromCache
-            ? 'Saved next deadline'
-            : 'Next deadline'
+            ? t('Saved next deadline')
+            : t('Next deadline')
         }
         value={
           contracts.status !== 'ready'
             ? '—'
             : days === undefined
-              ? 'None'
+              ? t('None')
               : days < 0
-                ? 'Past due'
+                ? t('Past due')
                 : days === 0
-                  ? 'Today'
-                  : `${days}d`
+                  ? t('Today')
+                  : t('{0} days', { '0': days })
         }
       />
       <SummaryMetric
@@ -64,8 +66,8 @@ export function ChildHomeSummary({
         tone="lavender"
         label={
           rewards.status === 'ready' && rewards.fromCache
-            ? 'Saved earned rewards'
-            : 'Earned rewards'
+            ? t('Saved earned rewards')
+            : t('Earned rewards')
         }
         value={
           rewards.status === 'ready' ? String(rewards.rewards.length) : '—'

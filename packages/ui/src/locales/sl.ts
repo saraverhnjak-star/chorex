@@ -692,4 +692,182 @@ export const sl: Record<string, string> = {
   'Reward icon: {0}': 'Ikona nagrade: {0}',
   'This field is required.': 'To polje je obvezno.',
   'ChoreX Parent': 'ChoreX za starše',
+  'Accept offer': 'Sprejmi ponudbo',
+  'Accept to create your agreement, counter the reward, or decline.':
+    'Sprejmi ponudbo za sklenitev dogovora, predlagaj drugo nagrado ali jo zavrni.',
+  Account: 'Račun',
+  'Account actions': 'Dejanja računa',
+  'Active contracts': 'Aktivni dogovori',
+  'Address your Parent’s feedback in real life, then send this agreement back for review. Your completed task progress stays unchanged.':
+    'Upoštevaj povratne informacije starša in dogovor znova pošlji v pregled. Napredek opravljenih nalog ostane ohranjen.',
+  'Ask your parent for the pairing code from their ChoreX app.':
+    'Prosi starša za kodo za povezavo iz aplikacije ChoreX.',
+  'Back to My chores': 'Nazaj na moja opravila',
+  'Check the reward details and try again.':
+    'Preveri podrobnosti nagrade in poskusi znova.',
+  'Child account': 'Otroški račun',
+  'ChoreX Child': 'ChoreX Otrok',
+  'Complete all tasks before submitting for review.':
+    'Pred pošiljanjem v pregled opravi vse naloge.',
+  'Completion recorded. Waiting for updated progress…':
+    'Opravilo je zabeleženo. Čakamo na posodobljen napredek …',
+  'Confirm only when you have received your promised reward.':
+    'Potrdi šele, ko prejmeš obljubljeno nagrado.',
+  'Confirm receipt': 'Potrdi prejem',
+  'Confirm received': 'Potrdi prejem',
+  'Confirm rejection': 'Potrdi zavrnitev',
+  'Confirm resubmission': 'Potrdi ponovno pošiljanje',
+  'Confirm submission': 'Potrdi pošiljanje',
+  'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.':
+    'Potrdi, da si upošteval povratne informacije starša. Napredek opravljenih nalog ostane ohranjen.',
+  'Confirm that you received this reward?': 'Potrdiš prejem te nagrade?',
+  Connect: 'Poveži',
+  'Connect to your family': 'Poveži se z družino',
+  'Contract is active.': 'Dogovor je aktiven.',
+  'Counter reward': 'Predlagaj drugo nagrado',
+  'Counteroffer note (optional)': 'Opomba k protiponudbi (neobvezno)',
+  'Counteroffer reward description (optional)':
+    'Opis predlagane nagrade (neobvezno)',
+  'Counteroffer sent. Waiting for Parent.':
+    'Protiponudba je poslana. Na vrsti je starš.',
+  'Deadline reminders': 'Opomniki za rok',
+  'Due {0}{1}': 'Do {0}{1}',
+  'Earned rewards': 'Prislužene nagrade',
+  'Enter the pairing code again.': 'Znova vnesi kodo za povezavo.',
+  'Get a reminder when an active agreement is due soon.':
+    'Prejmi opomnik, ko se bliža rok aktivnega dogovora.',
+  'Get updates when you receive an offer or your parent reviews your agreement.':
+    'Prejmi obvestilo, ko dobiš ponudbo ali starš pregleda tvoj dogovor.',
+  'Keep offer': 'Ohrani ponudbo',
+  'Loading your Child profile': 'Nalaganje otroškega profila',
+  'Make a counteroffer': 'Pripravi protiponudbo',
+  'Mark done': 'Označi kot opravljeno',
+  'Mark one done': 'Označi eno ponovitev',
+  'My agreement': 'Moj dogovor',
+  'My chores': 'Moja opravila',
+  'NEW OFFER': 'NOVA PONUDBA',
+  'Next deadline': 'Naslednji rok',
+  'No activities yet': 'Še ni aktivnosti',
+  'No agreements to work on': 'Ni dogovorov za delo',
+  'No agreements yet': 'Še ni dogovorov',
+  'No new offers': 'Ni novih ponudb',
+  'No offers are waiting for you.': 'Zate ni čakajočih ponudb.',
+  'No pending offers': 'Ni čakajočih ponudb',
+  'No proposals are waiting for your parent.':
+    'Noben predlog ne čaka na starša.',
+  'No rewards yet': 'Še ni nagrad',
+  None: 'Ni podatka',
+  'Notifications are not configured for this Child app build.':
+    'Obvestila v tej različici otroške aplikacije niso nastavljena.',
+  'Offer declined.': 'Ponudba je zavrnjena.',
+  'Offer rejected.': 'Ponudba je zavrnjena.',
+  'One of your offers is incomplete. Ask your parent to publish it again.':
+    'Ena od ponudb je nepopolna. Prosi starša, naj jo znova objavi.',
+  'Open Contract: {0}': 'Odpri dogovor: {0}',
+  'Open agreement': 'Odpri dogovor',
+  'Open offer: {0}': 'Odpri ponudbo: {0}',
+  'Pairing code': 'Koda za povezavo',
+  'Pairing could not be completed. Try again.':
+    'Povezave ni bilo mogoče dokončati. Poskusi znova.',
+  'Past due': 'Rok je potekel',
+  'Proposed by you': 'Tvoj predlog',
+  'Proposed by your Parent': 'Predlog starša',
+  'Reject offer': 'Zavrni ponudbo',
+  'Reject this offer?': 'Zavrneš to ponudbo?',
+  'Resubmit for review': 'Znova pošlji v pregled',
+  'Reward received': 'Nagrada je prejeta',
+  'Reward: {0}': 'Nagrada: {0}',
+  'Saved active contracts': 'Shranjeni aktivni dogovori',
+  'Saved earned rewards': 'Shranjene prislužene nagrade',
+  'Saved next deadline': 'Shranjeni naslednji rok',
+  'See all My chores': 'Prikaži vsa moja opravila',
+  'Selected reward': 'Izbrana nagrada',
+  'Send this Contract back for review?': 'Znova pošlješ ta dogovor v pregled?',
+  'Send this Contract for review?': 'Pošlješ ta dogovor v pregled?',
+  'Sent back for review': 'Znova poslano v pregled',
+  'Sent for review': 'Poslano v pregled',
+  'Submit for review': 'Pošlji v pregled',
+  'Suggest a change': 'Predlagaj spremembo',
+  'That pairing code has already been used.':
+    'Ta koda za povezavo je že uporabljena.',
+  'That pairing code has expired. Ask your parent for a new one.':
+    'Ta koda za povezavo je potekla. Prosi starša za novo.',
+  'That pairing code is not valid. Ask your parent for a new one.':
+    'Ta koda za povezavo ni veljavna. Prosi starša za novo.',
+  'The local family service is unavailable. Check your connection and try again.':
+    'Lokalna storitev družine ni na voljo. Preveri povezavo in poskusi znova.',
+  'The pairing service is unavailable. Check your connection and try again.':
+    'Storitev povezovanja ni na voljo. Preveri povezavo in poskusi znova.',
+  'This Contract is no longer active. Its status will update automatically.':
+    'Ta dogovor ni več aktiven. Status se bo samodejno posodobil.',
+  'This Contract is no longer active. Progress updates are unavailable.':
+    'Ta dogovor ni več aktiven. Napredka ni mogoče posodobiti.',
+  'This Contract or task is no longer available.':
+    'Ta dogovor ali naloga ni več na voljo.',
+  'This device could not be signed out. Try again.':
+    'Odjava naprave ni uspela. Poskusi znova.',
+  'This offer is closed.': 'Ta ponudba je zaključena.',
+  'This pairing request could not be completed.':
+    'Te zahteve za povezavo ni bilo mogoče dokončati.',
+  'This retry does not match the original action. Reopen the Contract before trying again.':
+    'Ta ponovni poskus se ne ujema s prvotnim dejanjem. Znova odpri dogovor, preden poskusiš znova.',
+  'This session is not linked to a Child profile.':
+    'Ta seja ni povezana z otroškim profilom.',
+  'This submission could not be sent. Reopen the Contract and try again.':
+    'Dogovora ni bilo mogoče poslati v pregled. Znova ga odpri in poskusi znova.',
+  'This task completion could not be sent. Reopen the Contract and try again.':
+    'Opravila ni bilo mogoče poslati. Znova odpri dogovor in poskusi znova.',
+  'This task is already complete. Its progress will update automatically.':
+    'Ta naloga je že opravljena. Napredek se bo samodejno posodobil.',
+  'This version cannot open Child profiles in more than one family yet.':
+    'Ta različica še ne podpira otroških profilov v več družinah.',
+  'This will close the offer without creating a contract.':
+    'Ponudba se bo zaključila brez sklenitve dogovora.',
+  Today: 'Danes',
+  'Too many pairing attempts. Wait before trying again.':
+    'Preveč poskusov povezave. Pred ponovnim poskusom počakaj.',
+  'Unable to confirm completion. Check your connection and try again. Your displayed progress has not been changed locally.':
+    'Opravila ni bilo mogoče potrditi. Preveri povezavo in poskusi znova. Prikazani napredek se lokalno ni spremenil.',
+  'Unable to confirm submission. Check your connection and try again. Your Contract status has not been changed locally.':
+    'Pošiljanja ni bilo mogoče potrditi. Preveri povezavo in poskusi znova. Status dogovora se lokalno ni spremenil.',
+  'Waiting for parent': 'Na vrsti je starš',
+  'We could not confirm submission. Try again to confirm the same action.':
+    'Pošiljanja ni bilo mogoče potrditi. Poskusi znova za potrditev istega dejanja.',
+  'We could not confirm this completion. Try again to confirm the same action.':
+    'Tega opravila ni bilo mogoče potrditi. Poskusi znova za potrditev istega dejanja.',
+  'We couldn’t restore your session. Restart the app and try again.':
+    'Seje ni bilo mogoče obnoviti. Znova zaženi aplikacijo in poskusi znova.',
+  'You cannot record progress on this task.':
+    'Pri tej nalogi ne moreš beležiti napredka.',
+  'You cannot submit this Contract.':
+    'Tega dogovora ne moreš poslati v pregled.',
+  'Your Child family setup is incomplete. Ask your parent to finish setup.':
+    'Nastavitev otroškega profila v družini ni dokončana. Prosi starša, naj jo dokonča.',
+  'Your Child session has ended. Pair this device again.':
+    'Tvoja seja se je končala. Znova poveži to napravo.',
+  'Your Parent now needs to review this agreement.':
+    'Ta dogovor mora zdaj pregledati starš.',
+  'Your Parent will review the completed agreement and may approve or request changes.':
+    'Starš bo pregledal opravljeni dogovor in ga odobril ali zahteval spremembe.',
+  'Your agreements and earned rewards will appear here.':
+    'Tukaj bodo prikazani tvoji dogovori in prislužene nagrade.',
+  'Your agreements will appear here.': 'Tukaj bodo prikazani tvoji dogovori.',
+  'Your changes become a new proposal for your Parent to review. Tasks and deadline stay the same.':
+    'Tvoje spremembe postanejo nov predlog za starša. Naloge in rok ostanejo enaki.',
+  'Your family setup could not be loaded. Try again.':
+    'Nastavitev družine ni bilo mogoče naložiti. Poskusi znova.',
+  'Your proposal is waiting for your parent.': 'Tvoj predlog čaka na starša.',
+  '{0}. {1} of {2} completions recorded. Mark another completion':
+    '{0}. Zabeleženih je {1} od {2} ponovitev. Označi naslednjo ponovitev',
+  '{0}: {1} of {2} completions recorded':
+    '{0}: zabeleženih {1} od {2} ponovitev',
+  '{0}{1} · Due {2}{3}': '{0}{1} · Do {2}{3}',
+  '← My chores': '← Moja opravila',
+  'A newer pairing code was created. Ask your parent for the latest one.':
+    'Ustvarjena je nova koda za povezavo. Prosi starša za najnovejšo.',
+  '{0} days': '{0} dni',
+  'Saved progress': 'Shranjeni napredek',
+  Accepted: 'Sprejeto',
+  Rejected: 'Zavrnjeno',
+  Draft: 'Osnutek',
 };

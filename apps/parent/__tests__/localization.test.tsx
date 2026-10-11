@@ -41,6 +41,8 @@ function ProductCopy() {
   );
 }
 beforeEach(() => {
+  readLanguage.mockReset();
+  saveLanguage.mockReset();
   setAppLanguage('en');
   readLanguage.mockResolvedValue(null);
   saveLanguage.mockResolvedValue(undefined);
@@ -77,11 +79,13 @@ it('shows native language names and flags, updates immediately and persists the 
     expect(screen.getByLabelText('Language: English')).toBeOnTheScreen(),
   );
   fireEvent.press(screen.getByLabelText('Language: English'));
-  for (const name of ['English', 'Deutsch', 'Slovenščina', 'Hrvatski'])
-    expect(screen.getByRole('radio', { name })).toBeOnTheScreen();
-  for (const flag of ['🇬🇧', '🇩🇪', '🇸🇮', '🇭🇷'])
-    expect(screen.getAllByText(flag).length).toBeGreaterThan(0);
-  fireEvent.press(screen.getByRole('radio', { name: 'Slovenščina' }));
+  const picker = screen.getByTestId('language-native-picker');
+  expect(
+    picker.props.items.map((item: { label: string }) => item.label),
+  ).toEqual(['🇬🇧 English', '🇩🇪 Deutsch', '🇸🇮 Slovenščina', '🇭🇷 Hrvatski']);
+  fireEvent(picker, 'change', { nativeEvent: { newValue: 'sl', newIndex: 2 } });
+  expect(saveLanguage).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByRole('button', { name: 'Done' }));
   expect(screen.getByLabelText('Jezik: Slovenščina')).toBeOnTheScreen();
   expect(screen.getByText('Ustvari ponudbo')).toBeOnTheScreen();
   expect(screen.getByText('Home')).toBeOnTheScreen();
@@ -101,7 +105,10 @@ it('falls back safely when storage fails and reports a failed language save', as
     expect(screen.getByLabelText('Language: English')).toBeOnTheScreen(),
   );
   fireEvent.press(screen.getByLabelText('Language: English'));
-  fireEvent.press(screen.getByRole('radio', { name: 'Hrvatski' }));
+  fireEvent(screen.getByTestId('language-native-picker'), 'change', {
+    nativeEvent: { newValue: 'hr', newIndex: 3 },
+  });
+  fireEvent.press(screen.getByRole('button', { name: 'Done' }));
   await waitFor(() =>
     expect(
       screen.getByText('Language could not be saved. Try again.'),
@@ -134,4 +141,26 @@ it('has complete catalogs with matching interpolation parameters for all product
       expect(params(value)).toEqual(params(key));
     }
   }
+});
+
+it('does not save a wheel selection when the native sheet is cancelled', async () => {
+  render(
+    <LanguageProvider>
+      <LanguagePicker />
+    </LanguageProvider>,
+  );
+  await waitFor(() =>
+    expect(screen.getByLabelText('Language: English')).toBeOnTheScreen(),
+  );
+  fireEvent.press(screen.getByLabelText('Language: English'));
+  fireEvent(screen.getByTestId('language-native-picker'), 'change', {
+    nativeEvent: { newValue: 'de', newIndex: 1 },
+  });
+  fireEvent.press(screen.getAllByRole('button', { name: 'Cancel' }).at(-1)!);
+  expect(saveLanguage).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('Language: English')).toBeOnTheScreen();
+  fireEvent.press(screen.getByLabelText('Language: English'));
+  expect(screen.getByTestId('language-native-picker').props.selectedIndex).toBe(
+    0,
+  );
 });

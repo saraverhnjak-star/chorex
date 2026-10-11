@@ -1,8 +1,8 @@
+import { t, useAppLanguage , RewardTransitionAction, RewardDetailBody } from '@chorex/ui';
 import {
   confirmRewardReceived,
   useRewardDetail,
 } from '@chorex/firebase-client';
-import { RewardTransitionAction, RewardDetailBody } from '@chorex/ui';
 export function RewardDetail({
   rewardId,
   authUid,
@@ -10,6 +10,8 @@ export function RewardDetail({
   rewardId: string;
   authUid: string | undefined;
 }) {
+  useAppLanguage();
+
   const state = useRewardDetail(rewardId, authUid);
   if (state.status === 'loading') return null;
   return (
@@ -29,11 +31,13 @@ export function RewardDetail({
           reward={state.reward}
           submit={confirmRewardReceived}
           expectedStatus="AWAITING_CHILD_CONFIRMATION"
-          actionLabel="Confirm received"
-          confirmLabel="Confirm receipt"
-          question="Confirm that you received this reward?"
-          description="Confirm only when you have received your promised reward."
-          success="Reward received"
+          actionLabel={t('Confirm received')}
+          confirmLabel={t('Confirm receipt')}
+          question={t('Confirm that you received this reward?')}
+          description={t(
+            'Confirm only when you have received your promised reward.',
+          )}
+          success={t('Reward received')}
         />
       ) : null}
     </RewardDetailBody>

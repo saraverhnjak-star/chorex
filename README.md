@@ -116,6 +116,19 @@ Xcode/iOS Simulator toolchain or Android SDK/device/emulator; once available,
 configured development client. Generated `ios/`, `android/`, `.expo/`, and `dist/`
 outputs are excluded from Git.
 
+To build the iOS development clients from the repository root (`chorex`), run
+these commands **one app at a time**, waiting for Parent to finish before Child:
+
+```sh
+pnpm --filter @chorex/parent exec expo run:ios
+pnpm --filter @chorex/child exec expo run:ios
+```
+
+The unfiltered `pnpm exec expo run:ios` command must be run inside `apps/parent`
+or `apps/child`; running it from the repository root can report `Command "expo"
+not found`. Rebuild both clients after adding or updating native modules, such as
+the native language picker. Restarting Metro alone does not update native modules.
+
 For real Expo push registration, set the existing project IDs in each app's
 `.env.local`: `EXPO_PUBLIC_PARENT_EAS_PROJECT_ID` for Parent and
 `EXPO_PUBLIC_CHILD_EAS_PROJECT_ID` for Child. Both `app.config.ts` files read

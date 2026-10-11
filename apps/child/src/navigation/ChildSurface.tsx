@@ -1,6 +1,7 @@
-import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
-import { useRouter, Redirect } from 'expo-router';
+import { LanguagePicker } from '../localization/LanguagePicker';
 import {
+  t,
+  useAppLanguage,
   DesignText,
   OfferOutcome,
   HomeScreenFrame,
@@ -19,6 +20,8 @@ import {
   homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
+import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
+import { useRouter, Redirect } from 'expo-router';
 import { EarnedRewards } from '../rewards/EarnedRewards';
 import { ActiveContracts } from '../contracts/ActiveContracts';
 import { useRef, useState } from 'react';
@@ -63,6 +66,8 @@ function ChildSurfaceContent({
   initialCounterOfferId?: string;
   offerId?: string;
 }) {
+  useAppLanguage();
+
   const session = useChildSession();
   const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
@@ -115,7 +120,7 @@ function ChildSurfaceContent({
     try {
       await session.signOut();
     } catch {
-      setSignOutError('This device could not be signed out. Try again.');
+      setSignOutError(t('This device could not be signed out. Try again.'));
       setSigningOut(false);
     }
   };
@@ -134,12 +139,12 @@ function ChildSurfaceContent({
               name={
                 familyState.status === 'ready'
                   ? familyState.home.profile.displayName
-                  : 'Child'
+                  : t('Child')
               }
               leading={
                 <Pressable
                   accessibilityRole="link"
-                  accessibilityLabel="Back to Offers"
+                  accessibilityLabel={t('Back to Offers')}
                   onPress={() => router.navigate('/offers')}
                   style={{
                     alignSelf: 'flex-start',
@@ -151,7 +156,7 @@ function ChildSurfaceContent({
                   <DesignText
                     style={{ fontSize: 14, color: homeTokens.coralText }}
                   >
-                    ← Offers
+                    {t('← Offers')}
                   </DesignText>
                 </Pressable>
               }
@@ -163,7 +168,7 @@ function ChildSurfaceContent({
               name={
                 familyState.status === 'ready'
                   ? familyState.home.profile.displayName
-                  : 'Child'
+                  : t('Child')
               }
             />
           )
@@ -173,7 +178,7 @@ function ChildSurfaceContent({
           {familyState.status === 'loading' ? (
             <View className="items-center py-6">
               <ActivityIndicator
-                accessibilityLabel="Loading your Child profile"
+                accessibilityLabel={t('Loading your Child profile')}
                 color={homeTokens.coral}
                 size="large"
               />
@@ -182,7 +187,7 @@ function ChildSurfaceContent({
                 className="mt-4 text-home-muted"
                 style={dynamicType.body}
               >
-                Loading your family…
+                {t('Loading your family…')}
               </Text>
             </View>
           ) : null}
@@ -190,7 +195,10 @@ function ChildSurfaceContent({
           {familyState.status === 'error' ? (
             <View className="mt-8 gap-4">
               <FormMessage message={familyState.message} />
-              <Button label="Try again" onPress={() => void loadFamily()} />
+              <Button
+                label={t('Try again')}
+                onPress={() => void loadFamily()}
+              />
             </View>
           ) : null}
 
@@ -212,14 +220,14 @@ function ChildSurfaceContent({
               area === 'offers' ||
               area === 'rewards' ? null : (
                 <SectionHeading>
-                  {
+                  {t(
                     (
                       {
                         rewards: 'Rewards',
                         more: 'Settings',
                       } as const
-                    )[area]
-                  }
+                    )[area],
+                  )}
                 </SectionHeading>
               )}
               {area === 'offers' || area === 'home' ? (
@@ -286,25 +294,28 @@ function ChildSurfaceContent({
                 <OfferOutcome
                   centered
                   illustration="no-activities"
-                  title="No activities yet"
+                  title={t('No activities yet')}
                 >
-                  Your agreements and earned rewards will appear here.
+                  {t('Your agreements and earned rewards will appear here.')}
                 </OfferOutcome>
               ) : null}
               {area === 'more' ? (
                 <HomeSection>
-                  <SettingsSection title="Account">
+                  <SettingsSection title={t('Account')}>
                     <SettingsRow
                       last
                       title={familyState.home.profile.displayName}
-                      subtitle="Child account"
+                      subtitle={t('Child account')}
                       icon="person-outline"
                       tone="coralSurface"
                     />
                   </SettingsSection>
-                  <SettingsSection title="Notifications">
+                  <LanguagePicker />
+                  <SettingsSection title={t('Notifications')}>
                     <NotificationPermissionCard
-                      benefit="Get updates when you receive an offer or your parent reviews your agreement."
+                      benefit={t(
+                        'Get updates when you receive an offer or your parent reviews your agreement.',
+                      )}
                       education={education.showEducation}
                       busy={
                         notifications.state.status === 'loading' ||
@@ -333,8 +344,10 @@ function ChildSurfaceContent({
                       }}
                     />
                     <ReminderPreferenceCard
-                      label="Deadline reminders"
-                      description="Get a reminder when an active agreement is due soon."
+                      label={t('Deadline reminders')}
+                      description={t(
+                        'Get a reminder when an active agreement is due soon.',
+                      )}
                       enabled={reminder.state.enabled}
                       busy={reminder.state.busy}
                       fromCache={reminder.state.fromCache}
@@ -352,12 +365,12 @@ function ChildSurfaceContent({
           {area === 'more' ? (
             <View className="mt-6 gap-4">
               <FormMessage message={signOutError} />
-              <SettingsSection title="Account actions">
+              <SettingsSection title={t('Account actions')}>
                 <SettingsRow
                   last
-                  title="Sign out"
+                  title={t('Sign out')}
                   showChevron={false}
-                  subtitle={signingOut ? 'Signing out…' : undefined}
+                  subtitle={signingOut ? t('Signing out…') : undefined}
                   icon="log-out-outline"
                   tone="coralSurface"
                   destructive
@@ -393,8 +406,10 @@ function ChildSurfaceContent({
         <EntryHeading
           child
           showIcon={false}
-          title="Connect to your family"
-          description="Ask your parent for the pairing code from their ChoreX app."
+          title={t('Connect to your family')}
+          description={t(
+            'Ask your parent for the pairing code from their ChoreX app.',
+          )}
         />
 
         <View className="mt-6 gap-5">
@@ -403,7 +418,7 @@ function ChildSurfaceContent({
             autoCapitalize="none"
             autoCorrect={false}
             editable={!submitting}
-            label="Pairing code"
+            label={t('Pairing code')}
             onChangeText={(value) => {
               setToken(value);
               idempotencyKey.current = undefined;
@@ -417,7 +432,7 @@ function ChildSurfaceContent({
             variant="blue"
             lightText
             disabled={!token.trim()}
-            label="Connect"
+            label={t('Connect')}
             loading={submitting}
             onPress={() => void pairDevice()}
           />
