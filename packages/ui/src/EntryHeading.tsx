@@ -7,10 +7,12 @@ export function EntryHeading({
   title,
   description,
   child = false,
+  showIcon = true,
 }: {
   title: string;
   description: string;
   child?: boolean;
+  showIcon?: boolean;
 }) {
   return (
     <View style={{ gap: 12 }}>
@@ -23,21 +25,23 @@ export function EntryHeading({
           X
         </DesignText>
       </DesignText>
-      <View
-        style={{
-          alignSelf: 'flex-start',
-          borderRadius: 16,
-          padding: 12,
-          backgroundColor: child ? homeTokens.mint : homeTokens.coralSurface,
-        }}
-      >
-        <Ionicons
-          accessible={false}
-          name={child ? 'link-outline' : 'people-outline'}
-          size={28}
-          color={homeTokens.text}
-        />
-      </View>
+      {showIcon ? (
+        <View
+          style={{
+            alignSelf: 'flex-start',
+            borderRadius: 16,
+            padding: 12,
+            backgroundColor: child ? homeTokens.mint : homeTokens.coralSurface,
+          }}
+        >
+          <Ionicons
+            accessible={false}
+            name={child ? 'link-outline' : 'people-outline'}
+            size={28}
+            color={homeTokens.text}
+          />
+        </View>
+      ) : null}
       <DesignText
         accessibilityRole="header"
         style={{ fontSize: 28, fontWeight: '700', color: homeTokens.text }}

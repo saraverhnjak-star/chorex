@@ -384,6 +384,30 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(readCurrentParentFamily).toHaveBeenCalledTimes(1);
 });
 
+it('shows a centered add-child action instead of home content when the family has no children', async () => {
+  const home = await readCurrentParentFamily();
+  if (!home) throw new Error('Missing test fixture');
+  jest
+    .mocked(readCurrentParentFamily)
+    .mockResolvedValueOnce({ ...home, children: [] });
+  render(
+    <AppNavigation>
+      <HomeScreen />
+    </AppNavigation>,
+  );
+  const button = await screen.findByRole('button', { name: 'Add child' });
+  expect(screen.getByText('Add your first child')).toBeOnTheScreen();
+  expect(screen.queryByRole('tab', { name: 'All children' })).toBeNull();
+  expect(
+    screen.queryByRole('header', { name: 'Needs your attention' }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole('header', { name: 'Active agreements' }),
+  ).toBeNull();
+  fireEvent.press(button);
+  expect(mockNavigate).toHaveBeenCalledWith('/family/add-child');
+});
+
 it('sends an offer in one step and shows the published result', async () => {
   render(
     <OfferDraftComposer

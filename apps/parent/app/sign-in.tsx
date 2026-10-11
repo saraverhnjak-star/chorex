@@ -11,7 +11,7 @@ import {
 import {
   Button,
   EntryHeading,
-  homeTokens,
+  amberAuroraPalette,
   FormMessage,
   Screen,
   TextField,
@@ -47,6 +47,7 @@ export default function SignInScreen() {
     <Screen design entry>
       <View className="py-6">
         <EntryHeading
+          showIcon={false}
           title="Welcome back"
           description="Sign in to continue your family’s agreements."
         />
@@ -96,6 +97,8 @@ export default function SignInScreen() {
             )}
           />
           <Button
+            variant="blue"
+            lightText
             label="Sign in"
             loading={isSubmitting}
             onPress={handleSubmit(onSubmit)}
@@ -118,7 +121,10 @@ export default function SignInScreen() {
               <Text
                 allowFontScaling={false}
                 className="font-semibold underline"
-                style={[dynamicType.body, { color: homeTokens.coralText }]}
+                style={[
+                  dynamicType.body,
+                  { color: amberAuroraPalette.auroraBlue },
+                ]}
               >
                 Create a parent account
               </Text>

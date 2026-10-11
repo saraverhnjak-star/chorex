@@ -117,6 +117,11 @@ function ParentSurfaceContent({
     setState: setFamilyState,
     reload: loadProfile,
   } = useParentFamily()!;
+  const emptyHome =
+    area === 'home' &&
+    familyState.status === 'ready' &&
+    familyState.home.children.length === 0;
+  const fillPage = familyState.status === 'onboarding' || emptyHome;
   const education = useNotificationEducation(
     familyState.status === 'ready' ? uid : undefined,
     notifications.state.permission,
@@ -242,6 +247,7 @@ function ParentSurfaceContent({
 
   return (
     <HomeScreenFrame
+      fill={fillPage}
       header={
         <HomeHeader
           leading={
@@ -267,7 +273,7 @@ function ParentSurfaceContent({
       }
       keyboard={area === 'add-child' || familyState.status === 'onboarding'}
     >
-      <View>
+      <View style={fillPage ? { flexGrow: 1 } : undefined}>
         {familyState.status === 'loading' ? (
           <View className="items-center py-6">
             <ActivityIndicator
@@ -294,6 +300,7 @@ function ParentSurfaceContent({
 
         {familyState.status === 'onboarding' ? (
           <SetupSection
+            showIcon={false}
             title="Create your family"
             description="This is the shared space for your agreements and rewards."
           >
@@ -334,6 +341,8 @@ function ParentSurfaceContent({
               )}
             />
             <Button
+              variant="blue"
+              lightText
               label="Create family"
               loading={isSubmitting}
               onPress={handleSubmit(onCreateFamily)}
@@ -342,7 +351,48 @@ function ParentSurfaceContent({
         ) : null}
 
         {familyState.status === 'ready' ? (
-          <View className="gap-5">
+          <View
+            className="gap-5"
+            style={emptyHome ? { flexGrow: 1 } : undefined}
+          >
+            {emptyHome ? (
+              <View
+                style={{
+                  flexGrow: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: homeTokens.spacing.card,
+                }}
+              >
+                <DesignText
+                  accessibilityRole="header"
+                  style={{
+                    fontSize: 24,
+                    fontWeight: '700',
+                    color: homeTokens.text,
+                    textAlign: 'center',
+                  }}
+                >
+                  Add your first child
+                </DesignText>
+                <DesignText
+                  style={{
+                    fontSize: 16,
+                    color: homeTokens.secondary,
+                    textAlign: 'center',
+                  }}
+                >
+                  Create a child profile to start making agreements and sharing
+                  rewards together.
+                </DesignText>
+                <Button
+                  label="Add child"
+                  variant="blue"
+                  lightText
+                  onPress={() => router.push('/family/add-child')}
+                />
+              </View>
+            ) : null}
             {area !== 'home' &&
             area !== 'contracts' &&
             area !== 'rewards' &&
@@ -366,7 +416,7 @@ function ParentSurfaceContent({
                 }
               </SectionHeading>
             ) : null}
-            {area === 'home' ? (
+            {area === 'home' && !emptyHome ? (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -414,7 +464,7 @@ function ParentSurfaceContent({
                 })}
               </ScrollView>
             ) : null}
-            {area === 'home' ? (
+            {area === 'home' && !emptyHome ? (
               <HomeAttention
                 selectedChildUid={selectedChildUid}
                 familyId={familyState.home.family.id}
@@ -470,7 +520,7 @@ function ParentSurfaceContent({
                 />
               </HomeSection>
             ) : null}
-            {area === 'home' ? (
+            {area === 'home' && !emptyHome ? (
               <ActiveContracts
                 selectedChildUid={
                   area === 'home' ? selectedChildUid : undefined
@@ -764,7 +814,14 @@ function ParentSurfaceContent({
 
         {familyState.status !== 'loading' &&
         (area === 'more' || familyState.status !== 'ready') ? (
-          <View className="mt-6 gap-4">
+          <View
+            className="mt-6 gap-4"
+            style={
+              familyState.status === 'onboarding'
+                ? { marginTop: 'auto', paddingTop: homeTokens.spacing.section }
+                : undefined
+            }
+          >
             <FormMessage message={signOutError} />
             {area === 'more' ? (
               <ParentSettingsSection title="Privacy & account">
@@ -789,14 +846,14 @@ function ParentSurfaceContent({
               <View className="gap-3">
                 <Button
                   label="Privacy & Data"
-                  variant="secondary"
+                  variant="outlineBlue"
                   onPress={() => router.push('/privacy')}
                 />
                 <Button
                   label="Sign out"
                   loading={signingOut}
                   onPress={handleSignOut}
-                  variant="secondary"
+                  variant="danger"
                 />
               </View>
             )}

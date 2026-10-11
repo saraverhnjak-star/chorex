@@ -11,7 +11,7 @@ import {
 import {
   Button,
   EntryHeading,
-  homeTokens,
+  amberAuroraPalette,
   FormMessage,
   Screen,
   TextField,
@@ -49,6 +49,7 @@ export default function RegisterScreen() {
     <Screen design entry>
       <View className="py-6">
         <EntryHeading
+          showIcon={false}
           title="Create your account"
           description="Start with your account. Your family comes next."
         />
@@ -120,6 +121,8 @@ export default function RegisterScreen() {
             )}
           />
           <Button
+            variant="blue"
+            lightText
             label="Create account"
             loading={isSubmitting}
             onPress={handleSubmit(onSubmit)}
@@ -142,7 +145,10 @@ export default function RegisterScreen() {
               <Text
                 allowFontScaling={false}
                 className="font-semibold underline"
-                style={[dynamicType.body, { color: homeTokens.coralText }]}
+                style={[
+                  dynamicType.body,
+                  { color: amberAuroraPalette.auroraBlue },
+                ]}
               >
                 Return to sign in
               </Text>
