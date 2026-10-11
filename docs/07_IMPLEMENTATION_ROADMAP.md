@@ -176,6 +176,8 @@ Selecting the same winning bid twice creates one contract only.
 
 This phase may be executed before optional Phase 6. It is required before a public production release even if auctions remain deferred.
 
+Release Readiness 1 native verification is **PARTIAL** as of 2026-10-11. Physical push, first permission lifecycle, online preferences/sign-out, VoiceOver/Inspector, native deletion/cache teardown and fatal/symbolication gates remain open; local checks do not supersede them. See the [Readiness 1 acceptance record](PHASE_7_RELEASE_READINESS_1_NATIVE_VERIFICATION_ACCEPTANCE.md) for observed evidence and environment/configuration blockers. Production App Check enforcement remains in Release Readiness 2.
+
 Phase 5.5 design acceptance is **PASS** following the [final Design & UX consistency audit](PHASE_5_5_FINAL_DESIGN_UX_AUDIT.md), including representative small-screen/larger-text observations and ADR-046/047 presentation checks. Phase 7 may begin. Phase 5 native/push acceptance remains **PARTIAL** with its outstanding observations tracked separately; this design verdict does not certify production release readiness.
 
 Build:

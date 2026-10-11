@@ -1,4 +1,9 @@
-import { t, useAppLanguage , RewardTransitionAction, RewardDetailBody } from '@chorex/ui';
+import {
+  t,
+  useAppLanguage,
+  RewardTransitionAction,
+  RewardDetailBody,
+} from '@chorex/ui';
 import {
   confirmRewardReceived,
   useRewardDetail,

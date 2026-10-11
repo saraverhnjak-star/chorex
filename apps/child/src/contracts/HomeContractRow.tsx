@@ -1,4 +1,7 @@
-import { t, useAppLanguage, dateLocale ,
+import {
+  t,
+  useAppLanguage,
+  dateLocale,
   HomeListRow,
   HomeFeatureCard,
   HomeCardAction,

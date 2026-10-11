@@ -1,4 +1,4 @@
-import { t, useAppLanguage , SummaryMetric } from '@chorex/ui';
+import { t, useAppLanguage, SummaryMetric } from '@chorex/ui';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useActiveContracts, useEarnedRewards } from '@chorex/firebase-client';

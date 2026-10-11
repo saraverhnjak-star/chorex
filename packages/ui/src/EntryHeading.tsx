@@ -27,7 +27,9 @@ export function EntryHeading({
         }}
       >
         Chore
-        <DesignText style={{ fontSize: 30, color: amberAuroraPalette.auroraBlue }}>
+        <DesignText
+          style={{ fontSize: 30, color: amberAuroraPalette.auroraBlue }}
+        >
           X
         </DesignText>
       </DesignText>

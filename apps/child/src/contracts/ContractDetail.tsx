@@ -1,4 +1,6 @@
-import { t, useAppLanguage ,
+import {
+  t,
+  useAppLanguage,
   ContractSummary,
   TermsHeading,
   FormMessage,

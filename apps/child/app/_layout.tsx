@@ -1,5 +1,7 @@
 import { LanguageProvider } from '../src/localization/LanguageProvider';
-import { t, useAppLanguage ,
+import {
+  t,
+  useAppLanguage,
   ClientErrorFallback,
   Screen,
   homeTokens,

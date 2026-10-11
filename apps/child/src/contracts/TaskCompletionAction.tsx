@@ -1,4 +1,10 @@
-import { t, useAppLanguage , Button, FormMessage, useDynamicTypeStyles } from '@chorex/ui';
+import {
+  t,
+  useAppLanguage,
+  Button,
+  FormMessage,
+  useDynamicTypeStyles,
+} from '@chorex/ui';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import type { ContractTask } from '@chorex/domain';

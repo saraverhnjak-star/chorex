@@ -1,4 +1,4 @@
-import { t, useAppLanguage , RewardList } from '@chorex/ui';
+import { t, useAppLanguage, RewardList } from '@chorex/ui';
 import { useRouter } from 'expo-router';
 import { useLayoutEffect, useState } from 'react';
 import { useEarnedRewards } from '@chorex/firebase-client';
