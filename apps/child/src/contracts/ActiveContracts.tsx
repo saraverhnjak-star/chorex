@@ -4,6 +4,7 @@ import {
   Button,
   HomeEmptyState,
   CollectionHeading,
+  amberAuroraPalette,
   OfferOutcome,
   FormMessage,
   useDynamicTypeStyles,
@@ -106,6 +107,7 @@ function ActiveContractsContent({
       ) : null}
       {preview ? (
         <CollectionHeading
+          seeAllColor={amberAuroraPalette.auroraBlue}
           label={t('See all My chores')}
           onSeeAll={() => router.navigate('/contracts')}
         >
