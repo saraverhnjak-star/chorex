@@ -4,14 +4,25 @@ import {
   Button,
   FormMessage,
   useDynamicTypeStyles,
+  DesignText,
+  DesignIcon,
+  homeTokens,
 } from '@chorex/ui';
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import type { ContractTask } from '@chorex/domain';
 import { recordTaskCompletion } from '@chorex/firebase-client';
 import { getTaskCompletionErrorMessage } from './messages';
 
-export function TaskCompletionAction({ task }: { task: ContractTask }) {
+export function TaskCompletionAction({
+  task,
+  occurrences = false,
+  readOnly = false,
+}: {
+  task: ContractTask;
+  occurrences?: boolean;
+  readOnly?: boolean;
+}) {
   useAppLanguage();
 
   const type = useDynamicTypeStyles();
@@ -36,6 +47,7 @@ export function TaskCompletionAction({ task }: { task: ContractTask }) {
   const complete = async () => {
     if (
       inFlight.current ||
+      readOnly ||
       waitingForRead ||
       task.completedCount >= task.targetCount
     )
@@ -62,7 +74,7 @@ export function TaskCompletionAction({ task }: { task: ContractTask }) {
     }
   };
   return (
-    <View className="gap-2 mt-3">
+    <View className={occurrences ? 'gap-2' : 'gap-2 mt-3'}>
       <FormMessage message={error} />
       {waitingForRead ? (
         <Text
@@ -74,18 +86,95 @@ export function TaskCompletionAction({ task }: { task: ContractTask }) {
           {t('Completion recorded. Waiting for updated progress…')}
         </Text>
       ) : null}
-      <Button
-        label={task.targetCount === 1 ? t('Mark done') : t('Mark one done')}
-        accessibilityLabel={t(
-          '{0}. {1} of {2} completions recorded. Mark another completion',
-          { '0': task.title, '1': task.completedCount, '2': task.targetCount },
-        )}
-        variant="blue"
-        lightText
-        loading={pending}
-        disabled={waitingForRead}
-        onPress={() => void complete()}
-      />
+      {occurrences ? (
+        Array.from({ length: task.targetCount }, (_, index) => {
+          const done = index < task.completedCount;
+          return (
+            <View
+              key={index}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: homeTokens.spacing.medium,
+                paddingVertical: homeTokens.spacing.small,
+              }}
+            >
+              <Pressable
+                accessibilityRole={done || readOnly ? 'image' : 'button'}
+                accessibilityLabel={t(
+                  '{0}. {1} of {2} completions recorded. Mark another completion',
+                  {
+                    '0': task.title,
+                    '1': task.completedCount,
+                    '2': task.targetCount,
+                  },
+                )}
+                accessibilityState={{
+                  disabled: done || readOnly || pending || waitingForRead,
+                }}
+                disabled={done || readOnly || pending || waitingForRead}
+                onPress={() => void complete()}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: done ? homeTokens.mint : homeTokens.surface,
+                  borderWidth: done ? 0 : 1,
+                  borderColor: homeTokens.secondary,
+                }}
+              >
+                {done ? (
+                  <DesignIcon
+                    accessible={false}
+                    name="checkmark-outline"
+                    size={26}
+                    color={homeTokens.success}
+                  />
+                ) : pending ? (
+                  <ActivityIndicator color={homeTokens.secondary} />
+                ) : null}
+              </Pressable>
+              <View style={{ flex: 1, gap: homeTokens.spacing.small }}>
+                <DesignText
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    color: homeTokens.text,
+                  }}
+                >
+                  {task.title}
+                </DesignText>
+                {task.description ? (
+                  <DesignText
+                    style={{ fontSize: 14, color: homeTokens.secondary }}
+                  >
+                    {task.description}
+                  </DesignText>
+                ) : null}
+              </View>
+            </View>
+          );
+        })
+      ) : (
+        <Button
+          label={task.targetCount === 1 ? t('Mark done') : t('Mark one done')}
+          accessibilityLabel={t(
+            '{0}. {1} of {2} completions recorded. Mark another completion',
+            {
+              '0': task.title,
+              '1': task.completedCount,
+              '2': task.targetCount,
+            },
+          )}
+          variant="blue"
+          lightText
+          loading={pending}
+          disabled={waitingForRead}
+          onPress={() => void complete()}
+        />
+      )}
     </View>
   );
 }

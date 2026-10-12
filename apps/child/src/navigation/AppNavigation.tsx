@@ -4,10 +4,10 @@ import type { ReactNode } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { NavigationFrame, type NavigationItem } from '@chorex/ui';
 const items: readonly NavigationItem[] = [
-  { id: 'home', label: 'Home', icon: 'home-outline' },
-  { id: 'contracts', label: 'My chores', icon: 'checkbox-outline' },
-  { id: 'offers', label: 'Offers', icon: 'document-text-outline' },
-  { id: 'rewards', label: 'Rewards', icon: 'gift-outline' },
+  { id: 'home', label: 'Home', icon: 'home' },
+  { id: 'contracts', label: 'My chores', icon: 'checkbox' },
+  { id: 'offers', label: 'Offers', icon: 'document-text' },
+  { id: 'rewards', label: 'Rewards', icon: 'gift' },
 ];
 const destinations = {
   home: '/',
@@ -25,6 +25,8 @@ export function AppNavigation({ children }: { children: ReactNode }) {
   return (
     <ChildFamilyProvider>
       <NavigationFrame
+        showLabels={false}
+        iconSize={32}
         items={items.map((item) => ({ ...item, label: t(item.label) }))}
         active={active}
         onNavigate={(id) => {

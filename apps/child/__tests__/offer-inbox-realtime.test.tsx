@@ -4,7 +4,7 @@ import { OfferInbox } from '../src/offers/OfferInbox';
 
 const mockNavigate = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ navigate: mockNavigate }),
+  useRouter: () => ({ navigate: mockNavigate, push: mockNavigate, canGoBack: () => false, replace: mockNavigate }),
 }));
 
 const mockUnsubscribe = jest.fn();
@@ -77,7 +77,7 @@ it('applies realtime add, change, and remove events and cleans up subscriptions'
   ).not.toBeOnTheScreen();
 
   act(() => emitItems?.([item]));
-  expect(screen.getByText('Reward: Cinema')).toBeOnTheScreen();
+  expect(screen.getByText('Cinema')).toBeOnTheScreen();
 
   act(() =>
     emitItems?.([
@@ -94,11 +94,11 @@ it('applies realtime add, change, and remove events and cleans up subscriptions'
       },
     ]),
   );
-  expect(screen.getByText('Reward: Museum')).toBeOnTheScreen();
-  expect(screen.queryByText('Reward: Cinema')).not.toBeOnTheScreen();
+  expect(screen.getByText('Museum')).toBeOnTheScreen();
+  expect(screen.queryByText('Cinema')).not.toBeOnTheScreen();
 
   act(() => emitItems?.([]));
-  expect(screen.queryByText('Reward: Museum')).not.toBeOnTheScreen();
+  expect(screen.queryByText('Museum')).not.toBeOnTheScreen();
 
   view.rerender(<OfferInbox authUid="child-2" familyId="family-2" />);
   expect(mockSubscribe).toHaveBeenLastCalledWith(
@@ -129,15 +129,15 @@ it('shows the Home offer card only while an offer is available', () => {
   expect(view.toJSON()).toBeNull();
   act(() => emitItems?.([item]));
   expect(screen.getByText('NEW OFFER')).toBeOnTheScreen();
-  expect(screen.getByText('Load the dishwasher')).toBeOnTheScreen();
+  expect(screen.getByText('Number of tasks: 2')).toBeOnTheScreen();
   expect(screen.getByRole('button', { name: 'View offer' })).toBeOnTheScreen();
   expect(
     screen.getByRole('button', { name: 'Suggest a change' }),
   ).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Suggest a change' }));
   expect(mockNavigate).toHaveBeenLastCalledWith({
-    pathname: '/offers/[offerId]',
-    params: { offerId: 'offer-1', counterOfferId: 'offer-1' },
+    pathname: '/offers/counter',
+    params: { offerId: 'offer-1' },
   });
   act(() => emitItems?.([]));
   expect(view.toJSON()).toBeNull();
@@ -154,13 +154,12 @@ it('opens the selected counteroffer form after the Offers subscription loads', (
   );
   act(() => emitItems?.([item]));
   expect(
-    screen.getByRole('button', { name: 'Send counteroffer' }),
+    screen.getByRole('button', { name: 'Send' }),
   ).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Cancel counteroffer' }));
-  act(() => emitItems?.([item]));
-  expect(
-    screen.queryByRole('button', { name: 'Send counteroffer' }),
-  ).toBeNull();
+  expect(screen.queryByLabelText('Selected reward')).toBeNull();
+  expect(screen.queryByText('Make a counteroffer')).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('/offers');
 });
 
 it('lists all offers and navigates to the selected offer without exposing mutation controls', () => {
@@ -252,10 +251,10 @@ it('filters the two status tabs and keeps parent-turn details read-only', () => 
   expect(
     screen.getAllByRole('tab').map((tab) => tab.props.accessibilityLabel),
   ).toEqual(['Your turn', "Parent's turn"]);
-  expect(screen.queryByText('Reward: Waiting reward')).toBeNull();
+  expect(screen.queryByText('Waiting reward')).toBeNull();
   fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
-  expect(screen.getByText('Reward: Waiting reward')).toBeOnTheScreen();
-  expect(screen.queryByText('Reward: Closed reward')).toBeNull();
+  expect(screen.getByText('Waiting reward')).toBeOnTheScreen();
+  expect(screen.queryByText('Closed reward')).toBeNull();
   expect(screen.queryByRole('tab', { name: 'Closed' })).toBeNull();
   view.rerender(
     <OfferInbox authUid="child-1" familyId="family-1" offerId="waiting" />,
@@ -279,18 +278,18 @@ it('updates translated tab labels without changing filtering or user-authored re
   act(() => emitItems?.([item, parentTurn]));
   try {
     act(() => setAppLanguage('sl'));
-    expect(screen.getByText('Nagrada: Cinema')).toBeOnTheScreen();
+    expect(screen.getByText('Cinema')).toBeOnTheScreen();
     fireEvent.press(screen.getByRole('tab', { name: t("Parent's turn") }));
-    expect(screen.getByText('Nagrada: Waiting reward')).toBeOnTheScreen();
-    expect(screen.queryByText('Nagrada: Cinema')).toBeNull();
+    expect(screen.getByText('Waiting reward')).toBeOnTheScreen();
+    expect(screen.queryByText('Cinema')).toBeNull();
     act(() => setAppLanguage('de'));
-    expect(screen.getByText('Belohnung: Waiting reward')).toBeOnTheScreen();
+    expect(screen.getByText('Waiting reward')).toBeOnTheScreen();
     expect(
       screen.getByRole('tab', { name: t("Parent's turn") }).props
         .accessibilityState.selected,
     ).toBe(true);
     act(() => setAppLanguage('hr'));
-    expect(screen.getByText('Nagrada: Waiting reward')).toBeOnTheScreen();
+    expect(screen.getByText('Waiting reward')).toBeOnTheScreen();
   } finally {
     view.unmount();
     act(() => setAppLanguage('en'));

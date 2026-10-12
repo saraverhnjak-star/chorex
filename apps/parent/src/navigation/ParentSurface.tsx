@@ -32,7 +32,6 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Pressable,
   ScrollView,
@@ -130,7 +129,10 @@ function ParentSurfaceContent({
     familyState.status === 'ready' &&
     familyState.home.children.length === 0;
   const fillPage =
-    familyState.status === 'onboarding' || area === 'home' || area === 'create';
+    familyState.status === 'onboarding' ||
+    area === 'home' ||
+    area === 'create' ||
+    area === 'rewards';
   const education = useNotificationEducation(
     familyState.status === 'ready' ? uid : undefined,
     notifications.state.permission,
@@ -268,8 +270,13 @@ function ParentSurfaceContent({
                 onPress={() => router.replace('/family')}
                 style={{ minHeight: 44, justifyContent: 'center' }}
               >
-                <DesignText style={{ color: homeTokens.secondary }}>
-                  {t('← Family')}
+                <DesignText
+                  style={{
+                    fontSize: 14,
+                    color: amberAuroraPalette.navigationActive,
+                  }}
+                >
+                  ← {t('Back')}
                 </DesignText>
               </Pressable>
             ) : area === 'home' ||
@@ -413,7 +420,10 @@ function ParentSurfaceContent({
                 : 'auto'
             }
             style={{
-              flexGrow: area === 'home' || area === 'create' ? 1 : undefined,
+              flexGrow:
+                area === 'home' || area === 'create' || area === 'rewards'
+                  ? 1
+                  : undefined,
               opacity: area === 'home' && !emptyHome && homeLoading ? 0 : 1,
             }}
           >
@@ -426,16 +436,10 @@ function ParentSurfaceContent({
                   gap: homeTokens.spacing.card,
                 }}
               >
-                <Image
-                  accessible={false}
-                  source={require('../../../../packages/ui/assets/icons/add_child.png')}
-                  resizeMode="contain"
-                  style={{ width: 120, height: 120 }}
-                />
                 <DesignText
                   accessibilityRole="header"
                   style={{
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: '700',
                     color: homeTokens.text,
                     textAlign: 'center',
@@ -509,13 +513,11 @@ function ParentSurfaceContent({
                       onPress={() => setSelectedChildUid(child.uid)}
                       style={{
                         minHeight: 44,
-                        paddingHorizontal: 24,
+                        paddingHorizontal: homeTokens.spacing.medium,
                         paddingVertical: homeTokens.spacing.small,
-                        borderRadius: homeTokens.radius.pill,
-                        borderWidth: selected ? 2 : 1,
-                        borderColor: amberAuroraPalette.auroraBlue,
-                        backgroundColor: selected
-                          ? amberAuroraPalette.auroraBlue
+                        borderBottomWidth: 2,
+                        borderBottomColor: selected
+                          ? homeTokens.text
                           : 'transparent',
                         justifyContent: 'center',
                       }}
@@ -523,10 +525,10 @@ function ParentSurfaceContent({
                       <DesignText
                         style={{
                           fontSize: 16,
-                          fontWeight: '600',
+                          fontWeight: selected ? '700' : '500',
                           color: selected
-                            ? homeTokens.surface
-                            : amberAuroraPalette.auroraBlue,
+                            ? homeTokens.text
+                            : homeTokens.secondary,
                         }}
                       >
                         {child.displayName}
@@ -580,7 +582,7 @@ function ParentSurfaceContent({
               </HomeSection>
             ) : null}
             {area === 'rewards' ? (
-              <HomeSection>
+              <HomeSection fill>
                 <PendingRewards
                   familyId={familyState.home.family.id}
                   authUid={user.uid}

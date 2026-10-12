@@ -32,6 +32,7 @@ export function RewardDetail({
     >
       {state.status === 'ready' && state.reward.childUid === authUid ? (
         <RewardTransitionAction
+          green
           key={`${state.reward.id}:${authUid}`}
           reward={state.reward}
           submit={confirmRewardReceived}

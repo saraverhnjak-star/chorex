@@ -8,6 +8,7 @@ type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'blue'
+  | 'green'
   | 'deepBlue'
   | 'outlineBlue'
   | 'outline'
@@ -29,6 +30,7 @@ const containerClasses: Record<ButtonVariant, string> = {
   secondary: 'bg-secondary',
   blue: 'bg-secondary',
   deepBlue: 'bg-secondary',
+  green: 'bg-secondary',
   outline: 'bg-home-surface',
   outlineBlue: 'bg-home-surface',
   danger: 'bg-home-surface',
@@ -63,6 +65,7 @@ export function Button({
       onPress={onPress}
       style={
         home ||
+        variant === 'green' ||
         variant === 'blue' ||
         variant === 'deepBlue' ||
         variant === 'outlineBlue'
@@ -71,15 +74,17 @@ export function Button({
                 ? { borderColor: amberAuroraPalette.auroraBlue }
                 : {}),
               backgroundColor:
-                variant === 'deepBlue'
-                  ? amberAuroraPalette.deepBlue
-                  : variant === 'blue'
-                    ? amberAuroraPalette.auroraBlue
-                    : variant === 'primary'
-                      ? homeTokens.coral
-                      : variant === 'secondary'
-                        ? homeTokens.blue
-                        : homeTokens.surface,
+                variant === 'green'
+                  ? homeTokens.success
+                  : variant === 'deepBlue'
+                    ? amberAuroraPalette.deepBlue
+                    : variant === 'blue'
+                      ? amberAuroraPalette.auroraBlue
+                      : variant === 'primary'
+                        ? homeTokens.coral
+                        : variant === 'secondary'
+                          ? homeTokens.blue
+                          : homeTokens.surface,
             }
           : undefined
       }

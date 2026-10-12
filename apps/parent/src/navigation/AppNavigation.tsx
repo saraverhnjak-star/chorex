@@ -8,11 +8,11 @@ import {
   type NavigationItem,
 } from '@chorex/ui';
 const items: readonly NavigationItem[] = [
-  { id: 'home', label: 'Home', icon: 'home-outline' },
-  { id: 'contracts', label: 'Contracts', icon: 'checkbox-outline' },
+  { id: 'home', label: 'Home', icon: 'home' },
+  { id: 'contracts', label: 'Contracts', icon: 'checkbox' },
   { id: 'create', label: 'Create order', icon: 'add', prominent: true },
-  { id: 'offers', label: 'Offers', icon: 'document-text-outline' },
-  { id: 'rewards', label: 'Rewards', icon: 'gift-outline' },
+  { id: 'offers', label: 'Offers', icon: 'document-text' },
+  { id: 'rewards', label: 'Rewards', icon: 'gift' },
 ];
 const destinations = {
   home: '/',
@@ -36,7 +36,7 @@ export function AppNavigation({ children }: { children: ReactNode }) {
         showLabels={false}
         iconSize={32}
         accentColor={amberAuroraPalette.deepBlue}
-        prominentColor={amberAuroraPalette.auroraBlue}
+        prominentColor={amberAuroraPalette.navigationInactive}
         items={items.map((item) => ({ ...item, label: t(item.label) }))}
         active={active}
         onNavigate={(id) => {

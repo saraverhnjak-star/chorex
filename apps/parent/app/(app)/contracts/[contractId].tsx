@@ -4,7 +4,7 @@ import {
   HomeScreenFrame,
   HomeHeader,
   DesignText,
-  homeTokens,
+  amberAuroraPalette,
 } from '@chorex/ui';
 import { Pressable } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,7 +12,9 @@ import { useParentSession } from '../../../src/auth/session';
 import { useParentFamily } from '../../../src/navigation/FamilyContext';
 import { ContractDetail } from '../../../src/contracts/ContractDetail';
 
-export default function ContractScreen() {
+export default function ContractScreen({
+  requestChangesOnly = false,
+}: { requestChangesOnly?: boolean } = {}) {
   useAppLanguage();
 
   const { contractId } = useLocalSearchParams<{
@@ -43,8 +45,13 @@ export default function ContractScreen() {
               }
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
-              <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                {t('← Contracts')}
+              <DesignText
+                style={{
+                  fontSize: 14,
+                  color: amberAuroraPalette.navigationActive,
+                }}
+              >
+                ← {t('Back')}
               </DesignText>
             </Pressable>
           }
@@ -54,6 +61,7 @@ export default function ContractScreen() {
       <ContractDetail
         key={`${session.user.uid}:${id}`}
         contractId={id}
+        requestChangesOnly={requestChangesOnly}
         authUid={session.user.uid}
         childNames={
           home

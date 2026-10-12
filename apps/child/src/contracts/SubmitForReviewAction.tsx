@@ -1,11 +1,11 @@
 import {
   t,
   useAppLanguage,
-  FocusHeading,
   announceAction,
   Button,
   FormMessage,
-  WaitingState,
+  DesignText,
+  homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { useEffect, useRef, useState } from 'react';
@@ -33,10 +33,8 @@ export function SubmitForReviewAction({
   const key = useRef<string | undefined>(undefined);
   const inFlight = useRef(false);
   const active = useRef(true);
-  const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
-  const [resubmitted, setResubmitted] = useState(false);
   const [error, setError] = useState<string>();
   const allComplete =
     tasks.length > 0 &&
@@ -71,8 +69,6 @@ export function SubmitForReviewAction({
         announceAction(
           resubmitting ? t('Sent back for review') : t('Sent for review'),
         );
-        setResubmitted(resubmitting);
-        setConfirming(false);
       }
     } catch (failure) {
       // A failed response can hide a committed transition. Retry with the same key.
@@ -91,20 +87,21 @@ export function SubmitForReviewAction({
   if (resubmitting && !feedbackAvailable && !confirmed) return null;
   return (
     <View className="gap-2">
-      {confirmed ? (
-        <Text
-          allowFontScaling={false}
-          accessibilityLiveRegion="polite"
-          className="text-home-text"
-          style={styles.body}
-        >
-          {resubmitted ? t('Sent back for review') : t('Sent for review')}
-        </Text>
-      ) : null}
       {contract.status === 'READY_FOR_REVIEW' ? (
-        <WaitingState>
-          {t('Your Parent now needs to review this agreement.')}
-        </WaitingState>
+        <View
+          style={{
+            backgroundColor: homeTokens.attention,
+            borderRadius: homeTokens.radius.card,
+            padding: homeTokens.spacing.card,
+          }}
+        >
+          <DesignText
+            accessibilityLiveRegion="polite"
+            style={{ fontSize: 18, lineHeight: 25, color: homeTokens.text }}
+          >
+            {t('Your Parent now needs to review this agreement.')}
+          </DesignText>
+        </View>
       ) : confirmed ? (
         <Text
           allowFontScaling={false}
@@ -125,49 +122,6 @@ export function SubmitForReviewAction({
             >
               {t('Complete all tasks before submitting for review.')}
             </Text>
-          ) : confirming ? (
-            <>
-              <FocusHeading
-                allowFontScaling={false}
-                accessibilityRole="header"
-                className="font-semibold text-home-text"
-                style={styles.body}
-              >
-                {resubmitting
-                  ? t('Send this Contract back for review?')
-                  : t('Send this Contract for review?')}
-              </FocusHeading>
-              <Text
-                allowFontScaling={false}
-                className="text-home-text"
-                style={styles.body}
-              >
-                {resubmitting
-                  ? t(
-                      'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.',
-                    )
-                  : t(
-                      'Your Parent will review the completed agreement and may approve or request changes.',
-                    )}
-              </Text>
-              <Button
-                label={
-                  resubmitting
-                    ? t('Confirm resubmission')
-                    : t('Confirm submission')
-                }
-                variant="blue"
-                lightText
-                loading={pending}
-                onPress={() => void submit()}
-              />
-              <Button
-                label={t('Keep checking')}
-                variant="outline"
-                disabled={pending}
-                onPress={() => setConfirming(false)}
-              />
-            </>
           ) : (
             <Button
               variant="blue"
@@ -175,7 +129,8 @@ export function SubmitForReviewAction({
               label={
                 resubmitting ? t('Resubmit for review') : t('Submit for review')
               }
-              onPress={() => setConfirming(true)}
+              loading={pending}
+              onPress={() => void submit()}
             />
           )}
         </>

@@ -1,3 +1,5 @@
+import { amberAuroraPalette } from '@chorex/ui';
+import { ParentEmptyState } from '../navigation/ParentEmptyState';
 import { t, useAppLanguage } from '@chorex/ui';
 import type { ComponentProps } from 'react';
 import { View } from 'react-native';
@@ -6,7 +8,6 @@ import {
   CollectionHeading,
   DesignText,
   FormMessage,
-  OfferOutcome,
   homeTokens,
   type RewardList,
 } from '@chorex/ui';
@@ -33,6 +34,7 @@ export function ParentRewardList({
     <View style={{ gap: homeTokens.spacing.medium }}>
       {showHeading ? (
         <CollectionHeading
+          seeAllColor={amberAuroraPalette.navigationActive}
           count={rewards.length}
           onSeeAll={preview ? onSeeAll : undefined}
           label={t('See all Rewards')}
@@ -70,21 +72,18 @@ export function ParentRewardList({
             {fromCache ? t('No rewards saved yet.') : empty}
           </DesignText>
         ) : (
-          <OfferOutcome
-            centered
-            illustration="no-rewards"
-            title={t('No rewards')}
-          >
+          <ParentEmptyState title={t('No rewards')}>
             {fromCache ? t('No rewards saved yet.') : empty}
-          </OfferOutcome>
+          </ParentEmptyState>
         )
       ) : null}
       {(preview ? rewards.slice(0, 1) : rewards).map((reward) => {
         const pending = reward.status === 'PENDING_FULFILLMENT';
         const childName = childNames[reward.childUid];
         return (
-          <ParentHomeCard key={reward.id}>
+          <ParentHomeCard tone="mint" key={reward.id}>
             <ParentHomeRow
+              tone="mint"
               dense
               title={reward.terms.title}
               reward={reward.terms}

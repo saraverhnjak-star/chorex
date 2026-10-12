@@ -17,9 +17,10 @@ export function ParentHomeRow({
   onPress,
   children,
   separator = false,
-  button = false,
+  tone = 'coralSurface',
   artRight = false,
   dense = false,
+  iconSize = 80,
 }: {
   title: string;
   detail: string;
@@ -31,8 +32,10 @@ export function ParentHomeRow({
   children?: ReactNode;
   separator?: boolean;
   button?: boolean;
+  tone?: 'blue' | 'coralSurface' | 'mint';
   artRight?: boolean;
   dense?: boolean;
+  iconSize?: number;
 }) {
   return (
     <Pressable
@@ -54,21 +57,27 @@ export function ParentHomeRow({
           alignItems: 'center',
         }}
       >
-        <RewardIcon terms={reward} size={64} />
-        <View style={{ flex: 1, gap: 6 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: homeTokens.spacing.small,
-            }}
-          >
+        <RewardIcon terms={reward} size={iconSize} />
+        <View style={{ flex: 1, minWidth: 0, gap: homeTokens.spacing.small }}>
+          {badge ? (
             <DesignText
               style={{
-                flexGrow: 1,
-                flexBasis: 100,
-                flexShrink: 1,
+                fontSize: 13,
+                fontWeight: '700',
+                color:
+                  tone === 'mint'
+                    ? homeTokens.success
+                    : tone === 'blue'
+                      ? amberAuroraPalette.auroraBlue
+                      : homeTokens.coralText,
+              }}
+            >
+              {badge}
+            </DesignText>
+          ) : null}
+          <View>
+            <DesignText
+              style={{
                 fontSize: 20,
                 fontWeight: '700',
                 color: homeTokens.text,
@@ -76,30 +85,10 @@ export function ParentHomeRow({
             >
               {title}
             </DesignText>
-            {badge ? (
-              <DesignText
-                style={{
-                  marginLeft: 'auto',
-                  maxWidth: '100%',
-                  flexShrink: 0,
-                  fontSize: 12,
-                  fontWeight: '700',
-                  color: button
-                    ? homeTokens.success
-                    : amberAuroraPalette.auroraBlue,
-                  backgroundColor: button ? homeTokens.mint : homeTokens.blue,
-                  paddingHorizontal: homeTokens.spacing.medium,
-                  paddingVertical: homeTokens.spacing.small,
-                  borderRadius: homeTokens.radius.pill,
-                }}
-              >
-                {badge}
-              </DesignText>
-            ) : null}
+            <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
+              {detail}
+            </DesignText>
           </View>
-          <DesignText style={{ fontSize: 14, color: homeTokens.secondary }}>
-            {detail}
-          </DesignText>
           {children}
         </View>
       </View>
@@ -107,14 +96,18 @@ export function ParentHomeRow({
   );
 }
 
-export function ParentHomeCard({ children }: { children: ReactNode }) {
+export function ParentHomeCard({
+  children,
+  tone = 'surface',
+}: {
+  children: ReactNode;
+  tone?: 'surface' | 'blue' | 'coralSurface' | 'mint';
+}) {
   return (
     <View
       style={{
         borderRadius: homeTokens.radius.card,
-        borderWidth: 1,
-        borderColor: homeTokens.border,
-        backgroundColor: homeTokens.surface,
+        backgroundColor: homeTokens[tone],
         overflow: 'hidden',
       }}
     >

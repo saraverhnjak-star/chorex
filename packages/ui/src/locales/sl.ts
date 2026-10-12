@@ -1,4 +1,8 @@
 export const sl: Record<string, string> = {
+  'The agreement was rejected.': 'Dogovor je bil zavrnjen.',
+  'Reward is on the way!': 'Nagrada je na poti!',
+  '{0} of {1} tasks': '{0} od {1} nalog',
+  'Number of tasks: {0}': 'Število nalog: {0}',
   Profile: 'Profil',
   Language: 'Jezik',
   'Language could not be saved. Try again.':
@@ -72,6 +76,8 @@ export const sl: Record<string, string> = {
   'Child confirmation follows delivery': 'Otrok potrdi prejem po izpolnitvi',
   'Child profile unavailable': 'Profil otroka ni na voljo',
   "Child's name": 'Otrokovo ime',
+  'To fulfill': 'Za izpolnitev',
+  'Reward archive': 'Arhiv nagrad',
   'Kids turn': 'Čaka na otroka',
   "Child's turn": 'Čaka na otroka',
   Children: 'Otroci',
@@ -384,6 +390,7 @@ export const sl: Record<string, string> = {
   Selected: 'Izbrano',
   'Selected reward:': 'Izbrana nagrada:',
   'Selected reward: ': 'Izbrana nagrada: ',
+  Send: 'Pošlji',
   'Send counteroffer': 'Pošlji protiponudbo',
   'Send feedback': 'Pošlji povratno informacijo',
   'Send offer': 'Pošlji ponudbo',

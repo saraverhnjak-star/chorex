@@ -1,4 +1,6 @@
 import { t, useAppLanguage, dateLocale } from './localization';
+import { HomeFeatureCard } from './HomeFeatureCard';
+import { amberAuroraPalette } from './theme';
 import { RewardIcon } from './RewardIcon';
 import type { ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
@@ -74,6 +76,8 @@ export function ProposalTerms({
   author,
   support,
   layout = 'standard',
+  cardHeader = false,
+  participantName,
 }: {
   revision: Pick<OfferRevision, 'tasks' | 'reward' | 'deadlineAt' | 'note'> &
     Partial<Pick<OfferRevision, 'revisionNumber'>>;
@@ -81,12 +85,47 @@ export function ProposalTerms({
   author?: string;
   support?: string;
   layout?: 'standard' | 'rewardFirst';
+  cardHeader?: boolean;
+  participantName?: string;
 }) {
   useAppLanguage();
 
   return (
     <View style={styles.terms}>
-      {layout === 'rewardFirst' ? (
+      {cardHeader ? (
+        <>
+          <HomeFeatureCard
+            tone="coralSurface"
+            badge={status}
+            title={revision.reward.title}
+            reward={revision.reward}
+            detail={
+              (participantName ? `${participantName} · ` : '') +
+              t('Deadline: {0}', {
+                '0': new Date(revision.deadlineAt).toLocaleString(
+                  dateLocale(),
+                  {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  },
+                ),
+              })
+            }
+          />
+          {revision.reward.description ? (
+            <DesignText
+              style={{
+                fontSize: 20,
+                lineHeight: 28,
+                color: homeTokens.text,
+                marginTop: homeTokens.spacing.medium,
+              }}
+            >
+              {revision.reward.description}
+            </DesignText>
+          ) : null}
+        </>
+      ) : layout === 'rewardFirst' ? (
         <View style={{ gap: homeTokens.spacing.medium }}>
           <View
             style={{
@@ -129,7 +168,7 @@ export function ProposalTerms({
           ) : null}
         </View>
       ) : null}
-      {status ? (
+      {status && !cardHeader ? (
         <View style={styles.status}>
           <Ionicons
             accessible={false}
@@ -161,12 +200,14 @@ export function ProposalTerms({
               : t('Proposed terms')}
           </DesignText>
         </>
-      ) : author ? (
+      ) : author && !cardHeader ? (
         <DesignText style={styles.secondary}>{author}</DesignText>
       ) : null}
-      <DesignText style={styles.caption}>
-        {t('These terms form the agreement if accepted.')}
-      </DesignText>
+      {!cardHeader ? (
+        <DesignText style={styles.caption}>
+          {t('These terms form the agreement if accepted.')}
+        </DesignText>
+      ) : null}
       {layout === 'standard' ? (
         <TermsHeading icon="checkbox-outline">{t('Tasks')}</TermsHeading>
       ) : null}
@@ -178,26 +219,37 @@ export function ProposalTerms({
       >
         {revision.tasks.map((task, index) => (
           <View key={index} style={styles.task}>
-            <View
-              style={[
-                styles.icon,
-                layout === 'rewardFirst' ? styles.largeTaskIcon : undefined,
-              ]}
-            >
-              <Ionicons
-                accessible={false}
-                name="checkmark-outline"
-                size={layout === 'rewardFirst' ? 26 : 18}
-                color={homeTokens.success}
-              />
-            </View>
+            {!cardHeader ? (
+              <View
+                style={[
+                  styles.icon,
+                  layout === 'rewardFirst' ? styles.largeTaskIcon : undefined,
+                  cardHeader ? { backgroundColor: homeTokens.blue } : undefined,
+                ]}
+              >
+                <Ionicons
+                  accessible={false}
+                  name={cardHeader ? 'checkbox-outline' : 'checkmark-outline'}
+                  size={layout === 'rewardFirst' ? 26 : 18}
+                  color={
+                    cardHeader
+                      ? amberAuroraPalette.auroraBlue
+                      : homeTokens.success
+                  }
+                />
+              </View>
+            ) : null}
             <View style={{ flex: 1, gap: 4 }}>
-              <DesignText style={styles.body}>
+              <DesignText
+                style={[styles.body, cardHeader ? { fontSize: 22 } : undefined]}
+              >
                 {layout === 'rewardFirst'
                   ? task.title
                   : `${task.title} · ${task.targetCount}×`}
               </DesignText>
-              {layout === 'rewardFirst' && task.targetCount > 1 ? (
+              {!cardHeader &&
+              layout === 'rewardFirst' &&
+              task.targetCount > 1 ? (
                 <DesignText style={styles.caption}>
                   {t('Agreed number of repetitions')}
                 </DesignText>
@@ -208,7 +260,7 @@ export function ProposalTerms({
                 </DesignText>
               ) : null}
             </View>
-            {layout === 'rewardFirst' && task.targetCount > 1 ? (
+            {layout === 'rewardFirst' ? (
               <DesignText
                 accessibilityLabel={t('{0} repetitions', {
                   '0': task.targetCount,
@@ -244,7 +296,7 @@ export function ProposalTerms({
           </View>
         </>
       ) : null}
-      {layout === 'rewardFirst' ? (
+      {cardHeader ? null : layout === 'rewardFirst' ? (
         <View
           style={{
             flexDirection: 'row',
@@ -289,12 +341,20 @@ export function ProposalTerms({
         </>
       )}
       {revision.note ? (
-        <>
-          <TermsHeading icon="chatbox-outline">
+        <View
+          style={{
+            backgroundColor: homeTokens.mint,
+            marginTop: homeTokens.spacing.medium,
+            borderRadius: homeTokens.radius.card,
+            padding: homeTokens.spacing.medium,
+            gap: homeTokens.spacing.small,
+          }}
+        >
+          <DesignText accessibilityRole="header" style={styles.title}>
             {t('Proposal note')}
-          </TermsHeading>
+          </DesignText>
           <DesignText style={styles.secondary}>{revision.note}</DesignText>
-        </>
+        </View>
       ) : null}
     </View>
   );
@@ -413,14 +473,9 @@ const styles = StyleSheet.create({
   },
   largeTaskIcon: { width: 44, height: 44, borderRadius: 22 },
   repetitionsPill: {
-    fontSize: 14,
+    fontSize: 28,
     fontWeight: '600',
-    color: homeTokens.secondary,
-    backgroundColor: homeTokens.blue,
-    borderRadius: homeTokens.radius.pill,
-    paddingHorizontal: homeTokens.spacing.medium,
-    paddingVertical: homeTokens.spacing.small,
-    overflow: 'hidden',
+    color: amberAuroraPalette.auroraBlue,
   },
   deadlineIcon: {
     width: 48,

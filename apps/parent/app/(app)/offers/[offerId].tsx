@@ -4,7 +4,7 @@ import {
   HomeScreenFrame,
   HomeHeader,
   DesignText,
-  homeTokens,
+  amberAuroraPalette,
 } from '@chorex/ui';
 import { SentOffers } from '../../../src/offers/SentOffers';
 import { Pressable } from 'react-native';
@@ -16,9 +16,10 @@ import { ParentNegotiationInbox } from '../../../src/offers/ParentNegotiationInb
 export default function OfferScreen() {
   useAppLanguage();
 
-  const { offerId, sent } = useLocalSearchParams<{
+  const { offerId, sent, revisionId } = useLocalSearchParams<{
     offerId: string | string[];
     sent?: string;
+    revisionId?: string;
   }>();
   const session = useParentSession();
   const router = useRouter();
@@ -43,8 +44,13 @@ export default function OfferScreen() {
               }
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
-              <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                {t('← Offers')}
+              <DesignText
+                style={{
+                  fontSize: 14,
+                  color: amberAuroraPalette.navigationActive,
+                }}
+              >
+                ← {t('Back')}
               </DesignText>
             </Pressable>
           }
@@ -64,6 +70,7 @@ export default function OfferScreen() {
         <ParentNegotiationInbox
           key={`${session.user.uid}:${id}`}
           offerId={id}
+          counterRevisionId={revisionId}
           familyId={home.family.id}
           authUid={session.user.uid}
           activeChildren={home.children}

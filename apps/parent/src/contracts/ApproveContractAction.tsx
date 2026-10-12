@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import {
   t,
   useAppLanguage,
@@ -6,6 +7,7 @@ import {
   Button,
   FormMessage,
   TextField,
+  homeTokens,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { Controller, useForm, useWatch } from 'react-hook-form';
@@ -82,12 +84,15 @@ function errorMessage(error: unknown, requestingChanges = false): string {
 export function ApproveContractAction({
   contract,
   authUid,
+  requestChangesOnly = false,
 }: {
   contract: Contract;
   authUid: string | undefined;
+  requestChangesOnly?: boolean;
 }) {
   useAppLanguage();
 
+  const router = useRouter();
   const type = useDynamicTypeStyles();
   const styles = {
     body: { ...type.body, lineHeight: Number(type.body.fontSize) * 1.35 },
@@ -96,9 +101,13 @@ export function ApproveContractAction({
   const key = useRef<string | undefined>(undefined),
     inFlight = useRef(false),
     active = useRef(true);
-  const [confirming, setConfirming] = useState<'APPROVE' | 'REQUEST_CHANGES'>(),
+  const [confirming, setConfirming] = useState<
+      'APPROVE' | 'REQUEST_CHANGES' | undefined
+    >(requestChangesOnly ? 'REQUEST_CHANGES' : undefined),
     [pending, setPending] = useState(false),
-    [confirmed, setConfirmed] = useState<'APPROVE' | 'REQUEST_CHANGES'>(),
+    [confirmed, setConfirmed] = useState<
+      'APPROVE' | 'REQUEST_CHANGES' | undefined
+    >(),
     [error, setError] = useState<string>();
   const changesKey = useRef<string | undefined>(undefined);
   const changesPayload = useRef<
@@ -145,6 +154,11 @@ export function ApproveContractAction({
       if (active.current) {
         setConfirmed('REQUEST_CHANGES');
         announceAction(t('Changes requested. Feedback sent.'));
+        if (requestChangesOnly)
+          router.replace({
+            pathname: '/contracts/[contractId]',
+            params: { contractId: contract.id },
+          });
         setConfirming(undefined);
       }
     } catch (failure) {
@@ -260,6 +274,7 @@ export function ApproveContractAction({
                   <TextField
                     label={t('Feedback')}
                     multiline
+                    numberOfLines={3}
                     editable={!pending}
                     value={field.value}
                     onChangeText={field.onChange}
@@ -268,53 +283,33 @@ export function ApproveContractAction({
                   />
                 )}
               />
-              <Button
-                label={t('Send feedback')}
-                variant="blue"
-                lightText
-                loading={pending}
-                disabled={!validNote || pending}
-                onPress={() => void handleSubmit(requestChanges)()}
-              />
-              <Button
-                label={t('Keep reviewing')}
-                variant="outline"
-                disabled={pending}
-                onPress={() => setConfirming(undefined)}
-              />
-            </>
-          ) : confirming ? (
-            <>
-              <FocusHeading
-                allowFontScaling={false}
-                accessibilityRole="header"
-                className="font-semibold text-home-text"
-                style={styles.body}
+              <View
+                style={{
+                  marginTop: homeTokens.spacing.medium,
+                  gap: homeTokens.spacing.medium,
+                }}
               >
-                {t('Approve this completed agreement?')}
-              </FocusHeading>
-              <Text
-                allowFontScaling={false}
-                className="text-home-text"
-                style={styles.body}
-              >
-                {t(
-                  'Approval accepts the completed agreement and earns the promised reward for your Child. You will still need to fulfill the reward.',
-                )}
-              </Text>
-              <Button
-                label={t('Confirm approval')}
-                variant="blue"
-                lightText
-                loading={pending}
-                onPress={() => void approve()}
-              />
-              <Button
-                label={t('Keep reviewing')}
-                variant="outline"
-                disabled={pending}
-                onPress={() => setConfirming(undefined)}
-              />
+                <Button
+                  label={t('Send feedback')}
+                  variant="blue"
+                  lightText
+                  loading={pending}
+                  disabled={!validNote || pending}
+                  onPress={() => void handleSubmit(requestChanges)()}
+                />
+                <Button
+                  label={t('Keep reviewing')}
+                  variant="outline"
+                  disabled={pending}
+                  onPress={() =>
+                    requestChangesOnly
+                      ? router.canGoBack()
+                        ? router.back()
+                        : router.replace('/contracts')
+                      : setConfirming(undefined)
+                  }
+                />
+              </View>
             </>
           ) : (
             <View className="gap-2">
@@ -322,14 +317,19 @@ export function ApproveContractAction({
                 label={t('Approve')}
                 variant="blue"
                 lightText
-                onPress={() => setConfirming('APPROVE')}
+                loading={pending}
+                onPress={() => void approve()}
               />
               <Button
                 label={t('Request changes')}
+                disabled={pending}
                 variant="outline"
                 onPress={() => {
                   setError(undefined);
-                  setConfirming('REQUEST_CHANGES');
+                  router.push({
+                    pathname: '/contracts/request-changes',
+                    params: { contractId: contract.id },
+                  });
                 }}
               />
             </View>

@@ -12,13 +12,59 @@ export function StatusTabs({
   testID,
 }: {
   counts?: Readonly<Record<string, number>>;
-  tone?: 'blue' | 'orange' | 'green';
+  tone?: 'blue' | 'orange' | 'green' | 'neutral';
   testID?: string;
   labels: readonly string[];
   selected: string;
   onSelect: (label: string) => void;
 }) {
   useAppLanguage();
+  if (tone === 'neutral')
+    return (
+      <View
+        testID={testID}
+        accessibilityRole="tablist"
+        style={{ flexDirection: 'row', gap: homeTokens.spacing.medium }}
+      >
+        {labels.map((label) => {
+          const active = selected === label;
+          const count = counts[label] ?? 0;
+          return (
+            <Pressable
+              key={label}
+              accessibilityRole="tab"
+              accessibilityLabel={t(label)}
+              accessibilityState={{ selected: active }}
+              onPress={() => onSelect(label)}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 44,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderBottomWidth: 2,
+                borderBottomColor: active ? homeTokens.text : 'transparent',
+                paddingVertical: homeTokens.spacing.small,
+              }}
+            >
+              <DesignText
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={{
+                  fontSize: 14,
+                  fontWeight: active ? '700' : '500',
+                  color: active ? homeTokens.text : homeTokens.secondary,
+                }}
+              >
+                {t(label)}
+                {count > 0 ? ` (${count})` : ''}
+              </DesignText>
+            </Pressable>
+          );
+        })}
+      </View>
+    );
   return (
     <View
       testID={testID}

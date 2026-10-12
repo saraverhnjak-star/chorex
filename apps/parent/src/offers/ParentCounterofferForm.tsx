@@ -3,24 +3,26 @@ import {
   useAppLanguage,
   RewardPicker,
   homeTokens,
-  ProposalTerms,
-  TermsHeading,
+  DesignIcon,
+  amberAuroraColors,
+  amberAuroraPalette,
   Button,
   FormMessage,
   TextField,
   useDynamicTypeStyles,
 } from '@chorex/ui';
+import { DraftSectionHeading } from './DraftSectionHeading';
 import { DeadlinePicker } from './DeadlinePicker';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import {
   parentCounterOfferInputSchema,
   offerValidationBounds,
-  rewardSelectionFor,
   rewardTermsForSelection,
   type CounterOfferInput,
   type OfferRevision,
   type RewardType,
+  type RewardSelection,
 } from '@chorex/domain';
 
 type ParentProposal = Extract<CounterOfferInput, { tasks: unknown }>;
@@ -76,8 +78,8 @@ export function ParentCounterofferForm({
       targetCount: String(task.targetCount),
     })),
   );
-  const [rewardSelection, setRewardSelection] = useState(() =>
-    rewardSelectionFor(revision.reward),
+  const [rewardSelection, setRewardSelection] = useState<RewardSelection>(() =>
+    revision.reward.type === 'CUSTOM' ? 'custom' : revision.reward.iconKey,
   );
   const [rewardTitle, setRewardTitle] = useState(revision.reward.title);
   const [rewardDescription, setRewardDescription] = useState(
@@ -91,7 +93,6 @@ export function ParentCounterofferForm({
   const [time, setTime] = useState(initialDeadline.time);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string>();
-  const [proposal, setProposal] = useState<ParentProposal>();
 
   const updateTask = (
     index: number,
@@ -104,7 +105,8 @@ export function ParentCounterofferForm({
       ),
     );
   };
-  const review = () => {
+  const send = () => {
+    if (busy) return;
     const deadlineAt =
       date === initialDeadline.date && time === initialDeadline.time
         ? revision.deadlineAt
@@ -149,7 +151,7 @@ export function ParentCounterofferForm({
       return;
     }
     setError(undefined);
-    setProposal(result.data);
+    void onSubmit(result.data);
   };
   return (
     <View
@@ -164,9 +166,7 @@ export function ParentCounterofferForm({
         className="font-bold text-home-text"
         style={dynamicType.body}
       >
-        {proposal
-          ? t('Review your counteroffer')
-          : t('Edit counteroffer terms')}
+        {t('Edit counteroffer terms')}
       </Text>
       <Text
         allowFontScaling={false}
@@ -176,58 +176,66 @@ export function ParentCounterofferForm({
         {t('Your changes become a new proposal for the Child to review.')}
       </Text>
       <FormMessage message={error} />
-      {proposal ? (
-        <>
-          <ProposalTerms
-            layout="rewardFirst"
-            revision={proposal}
-            author={t('Your new proposal')}
-          />
-          <Text
-            allowFontScaling={false}
-            className="text-home-muted"
-            style={dynamicType.body}
+      <DraftSectionHeading tone="blue">
+        {t('Choose reward')}
+      </DraftSectionHeading>
+      <RewardPicker
+        prominent
+        value={rewardSelection}
+        disabled={busy}
+        onChange={(selection) => {
+          if (selection === rewardSelection) return;
+          setRewardSelection(selection);
+          const reward = rewardTermsForSelection(selection);
+          setRewardTitle(t(reward.title));
+          setRewardType(reward.type);
+          setRewardIconKey(reward.iconKey);
+        }}
+      />
+      {rewardSelection === 'custom' ? (
+        <TextField
+          label={t('Reward title')}
+          value={rewardTitle}
+          editable={!busy}
+          maxLength={offerValidationBounds.titleMaxLength}
+          onChangeText={setRewardTitle}
+        />
+      ) : null}
+      <TextField
+        required={false}
+        label={t('Reward description (optional)')}
+        value={rewardDescription}
+        editable={!busy}
+        multiline
+        numberOfLines={2}
+        maxLength={offerValidationBounds.descriptionMaxLength}
+        onChangeText={setRewardDescription}
+      />
+      <DraftSectionHeading tone="lavender">{t('Tasks')}</DraftSectionHeading>
+      {tasks.map((task, index) => (
+        <View key={index} style={{ gap: homeTokens.spacing.small }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: homeTokens.spacing.small,
+            }}
           >
-            {t('The child will need to agree to this new proposal.')}
-          </Text>
-          <Button
-            label={t('Send counteroffer')}
-            variant="blue"
-            lightText
-            loading={busy}
-            onPress={() => void onSubmit(proposal)}
-          />
-          <Button
-            label={t('Edit proposal')}
-            variant="outline"
-            disabled={busy}
-            onPress={() => setProposal(undefined)}
-          />
-        </>
-      ) : (
-        <>
-          <TermsHeading icon="checkbox-outline">{t('Tasks')}</TermsHeading>
-          {tasks.map((task, index) => (
-            <View key={index} className="gap-3">
+            <View style={{ flex: 1 }}>
               <TextField
+                hideLabel
+                placeholder={t('Task')}
                 label={t('Task {0} title', { '0': index + 1 })}
                 value={task.title}
                 editable={!busy}
                 maxLength={offerValidationBounds.titleMaxLength}
                 onChangeText={(value) => updateTask(index, 'title', value)}
               />
+            </View>
+            <Text style={{ fontSize: 24, color: homeTokens.secondary }}>×</Text>
+            <View style={{ width: 72 }}>
               <TextField
-                required={false}
-                label={t('Task {0} description (optional)', { '0': index + 1 })}
-                value={task.description}
-                editable={!busy}
-                multiline
-                maxLength={offerValidationBounds.descriptionMaxLength}
-                onChangeText={(value) =>
-                  updateTask(index, 'description', value)
-                }
-              />
-              <TextField
+                hideLabel
                 label={t('Task {0} target count', { '0': index + 1 })}
                 value={task.targetCount}
                 editable={!busy}
@@ -236,94 +244,84 @@ export function ParentCounterofferForm({
                   updateTask(index, 'targetCount', value)
                 }
               />
-              {tasks.length > 1 ? (
-                <Button
-                  label={t('Remove task {0}', { '0': index + 1 })}
-                  variant="outline"
-                  disabled={busy}
-                  onPress={() =>
-                    setTasks((current) => current.filter((_, i) => i !== index))
-                  }
-                />
-              ) : null}
             </View>
-          ))}
-          {tasks.length < offerValidationBounds.taskCountMax ? (
-            <Button
-              label={t('Add task')}
-              variant="outline"
-              disabled={busy}
-              onPress={() =>
-                setTasks((current) => [
-                  ...current,
-                  { title: '', description: '', targetCount: '1' },
-                ])
-              }
-            />
-          ) : null}
-          <TermsHeading icon="gift-outline">{t('Choose reward')}</TermsHeading>
-          <RewardPicker
-            prominent
-            value={rewardSelection}
-            disabled={busy}
-            onChange={(selection) => {
-              if (selection === rewardSelection) return;
-              setRewardSelection(selection);
-              const reward = rewardTermsForSelection(selection);
-              setRewardTitle(t(reward.title));
-              setRewardType(reward.type);
-              setRewardIconKey(reward.iconKey);
-            }}
-          />
-          {rewardSelection === 'custom' ? (
-            <TextField
-              label={t('Reward title')}
-              value={rewardTitle}
-              editable={!busy}
-              maxLength={offerValidationBounds.titleMaxLength}
-              onChangeText={setRewardTitle}
-            />
-          ) : null}
-          <TextField
-            required={false}
-            label={t('Reward description (optional)')}
-            value={rewardDescription}
-            editable={!busy}
-            multiline
-            maxLength={offerValidationBounds.descriptionMaxLength}
-            onChangeText={setRewardDescription}
-          />
-          <TermsHeading icon="calendar-outline">{t('Deadline')}</TermsHeading>
-          <DeadlinePicker
-            date={date}
-            time={time}
-            disabled={busy}
-            onChange={({ date, time }) => {
-              setDate(date);
-              setTime(time);
-            }}
-          />
-          <TermsHeading icon="chatbox-outline">
-            {t('Optional note')}
-          </TermsHeading>
-          <TextField
-            required={false}
-            label={t('Proposal note (optional)')}
-            value={note}
-            editable={!busy}
-            multiline
-            maxLength={offerValidationBounds.descriptionMaxLength}
-            onChangeText={setNote}
-          />
-          <Button
-            label={t('Review counteroffer')}
-            disabled={busy}
-            onPress={review}
-          />
-        </>
-      )}
+            {tasks.length > 1 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('Remove task {0}', {
+                  '0': index + 1,
+                })}
+                accessibilityState={{ disabled: busy }}
+                disabled={busy}
+                onPress={() =>
+                  setTasks((current) => current.filter((_, i) => i !== index))
+                }
+                style={{
+                  width: 48,
+                  height: 48,
+                  flexShrink: 0,
+                  borderRadius: homeTokens.radius.pill,
+                  backgroundColor: amberAuroraColors.danger,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <DesignIcon
+                  accessible={false}
+                  name="trash-outline"
+                  size={22}
+                  color={amberAuroraPalette.paper}
+                />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      ))}
+      {tasks.length < offerValidationBounds.taskCountMax ? (
+        <Button
+          label={t('Add task')}
+          variant="outline"
+          disabled={busy}
+          onPress={() =>
+            setTasks((current) => [
+              ...current,
+              { title: '', description: '', targetCount: '1' },
+            ])
+          }
+        />
+      ) : null}
+      <DraftSectionHeading tone="mint">{t('Deadline')}</DraftSectionHeading>
+      <DeadlinePicker
+        compact
+        date={date}
+        time={time}
+        disabled={busy}
+        onChange={({ date, time }) => {
+          setDate(date);
+          setTime(time);
+        }}
+      />
+      <TextField
+        required={false}
+        label={t('Proposal note (optional)')}
+        value={note}
+        editable={!busy}
+        multiline
+        numberOfLines={2}
+        maxLength={offerValidationBounds.descriptionMaxLength}
+        onChangeText={setNote}
+      />
+      <View style={{ marginTop: homeTokens.spacing.medium }}>
+        <Button
+          variant="blue"
+          lightText
+          label={t('Send')}
+          loading={busy}
+          onPress={send}
+        />
+      </View>
       <Button
-        label={t('Cancel counteroffer')}
+        label={t('Cancel')}
         variant="outline"
         disabled={busy}
         onPress={onCancel}

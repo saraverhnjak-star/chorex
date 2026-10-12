@@ -1,9 +1,9 @@
+import { ParentEmptyState } from '../navigation/ParentEmptyState';
 import {
   t,
   useAppLanguage,
   Button,
   FormMessage,
-  OfferOutcome,
   ProposalTerms,
   homeTokens,
 } from '@chorex/ui';
@@ -80,30 +80,24 @@ export function SentOffers({
         </>
       ) : null}
       {state.status === 'ready' && state.items.length === 0 ? (
-        <OfferOutcome
-          centered
-          illustration="no-offers"
+        <ParentEmptyState
           title={offerId ? t('Offer unavailable') : t('No sent offers')}
         >
           {t("Offers waiting for your child's response will appear here.")}
-        </OfferOutcome>
+        </ParentEmptyState>
       ) : null}
       {state.items.map(({ offer, revision }) =>
         offerId ? (
           <ProposalTerms
+            cardHeader
+            participantName={childNames[offer.childUid] ?? t('Child')}
             key={offer.id}
             layout="rewardFirst"
             revision={revision}
             status={t('Kids turn')}
-            author={t('For {0}', {
-              '0': childNames[offer.childUid] ?? t('Child'),
-            })}
-            support={t(
-              'Waiting for your child to accept, decline or suggest a change.',
-            )}
           />
         ) : (
-          <ParentHomeCard key={offer.id}>
+          <ParentHomeCard tone="coralSurface" key={offer.id}>
             <ParentHomeRow
               dense
               reward={revision.reward}

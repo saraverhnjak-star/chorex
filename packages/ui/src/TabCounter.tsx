@@ -1,6 +1,14 @@
 import { View } from 'react-native';
 import { DesignText, homeTokens } from './Home';
-export function TabCounter({ count, color }: { count: number; color: string }) {
+export function TabCounter({
+  count,
+  color,
+  textColor = homeTokens.surface,
+}: {
+  count: number;
+  color: string;
+  textColor?: string;
+}) {
   if (count <= 0) return null;
   return (
     <View
@@ -14,9 +22,7 @@ export function TabCounter({ count, color }: { count: number; color: string }) {
         flexShrink: 0,
       }}
     >
-      <DesignText
-        style={{ fontSize: 12, fontWeight: '700', color: homeTokens.surface }}
-      >
+      <DesignText style={{ fontSize: 12, fontWeight: '700', color: textColor }}>
         {count > 99 ? '99+' : count}
       </DesignText>
     </View>

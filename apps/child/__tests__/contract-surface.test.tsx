@@ -155,6 +155,15 @@ beforeEach(() => {
   mockSubmit.mockReset();
   mockIsContractClientError.mockReturnValue(false);
 });
+function completionButton() {
+  const buttons = screen.getAllByRole('button', {
+    name: /Dishwasher.*Mark another completion/,
+  });
+  return (
+    buttons.find((button) => !button.props.accessibilityState?.disabled) ??
+    buttons[0]!
+  );
+}
 const props = { contractId: 'contract-1', authUid: 'child-1' };
 function emitReady(fromCache = false) {
   act(() => {
@@ -170,12 +179,8 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
   expect(
     screen.getByLabelText('Contract status: In progress'),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByLabelText(
-      'Dishwasher. After dinner. 0 of 3 completions recorded. Not started.',
-    ),
-  ).toBeOnTheScreen();
-  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(completionButton()).toBeOnTheScreen();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
   expect(screen.queryByText('Promised reward')).toBeNull();
   expect(
     screen.getByRole('header', { name: 'Promised reward: Cinema, EXPERIENCE' }),
@@ -187,17 +192,23 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
     ),
   ).toBeOnTheScreen();
 
-  expect(
-    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
-  ).toBeOnTheScreen();
+  expect(completionButton()).toBeOnTheScreen();
   act(() =>
     mockTasks({ data: [{ ...task, completedCount: 2 }], fromCache: false }),
   );
-  expect(screen.getByText('2 / 3 · In progress')).toBeOnTheScreen();
+  expect(
+    screen.getAllByRole('image', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
+  ).toHaveLength(2);
   act(() =>
     mockTasks({ data: [{ ...task, completedCount: 3 }], fromCache: false }),
   );
-  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.getAllByRole('image', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
+  ).toHaveLength(3);
   expect(
     screen.queryByRole('button', {
       name: /Dishwasher.*Mark another completion/,
@@ -330,16 +341,12 @@ it('prevents rapid taps and waits for realtime counts after backend confirmation
   );
   render(<ContractDetail {...props} />);
   emitReady();
-  const button = screen.getByRole('button', {
-    name: /Dishwasher.*Mark another completion/,
-  });
+  const button = completionButton();
   fireEvent.press(button);
   fireEvent.press(button);
   expect(mockComplete).toHaveBeenCalledTimes(1);
-  expect(
-    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
-  ).toBeDisabled();
-  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(completionButton()).toBeDisabled();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
   const firstInput = mockComplete.mock.calls[0][0];
   expect(firstInput).toEqual({
     contractId: 'contract-1',
@@ -347,28 +354,18 @@ it('prevents rapid taps and waits for realtime counts after backend confirmation
     idempotencyKey: expect.any(String),
   });
   await act(async () => resolve({ task: { ...task, completedCount: 1 } }));
-  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
   expect(
     screen.getByText('Completion recorded. Waiting for updated progress…'),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
-  ).toBeDisabled();
+  expect(completionButton()).toBeDisabled();
   act(() =>
     mockTasks({ data: [{ ...task, completedCount: 1 }], fromCache: false }),
   );
-  expect(screen.getByText('1 / 3 · In progress')).toBeOnTheScreen();
-  expect(
-    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
-  ).toBeEnabled();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
+  expect(completionButton()).toBeEnabled();
   mockComplete.mockResolvedValueOnce({ task: { ...task, completedCount: 2 } });
-  await act(async () =>
-    fireEvent.press(
-      screen.getByRole('button', {
-        name: /Dishwasher.*Mark another completion/,
-      }),
-    ),
-  );
+  await act(async () => fireEvent.press(completionButton()));
   expect(mockComplete.mock.calls[1][0].idempotencyKey).not.toBe(
     firstInput.idempotencyKey,
   );
@@ -380,31 +377,19 @@ it('offline/backend failure leaves cached counts unchanged and explicit retry re
     .mockResolvedValueOnce({ task: { ...task, completedCount: 1 } });
   render(<ContractDetail {...props} />);
   emitReady(true);
-  await act(async () =>
-    fireEvent.press(
-      screen.getByRole('button', {
-        name: /Dishwasher.*Mark another completion/,
-      }),
-    ),
-  );
+  await act(async () => fireEvent.press(completionButton()));
   expect(
     screen.getByText(
       'Unable to confirm completion. Check your connection and try again. Your displayed progress has not been changed locally.',
     ),
   ).toBeOnTheScreen();
-  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
   expect(
     screen.queryByText('Completion recorded. Waiting for updated progress…'),
   ).toBeNull();
-  await act(async () =>
-    fireEvent.press(
-      screen.getByRole('button', {
-        name: /Dishwasher.*Mark another completion/,
-      }),
-    ),
-  );
+  await act(async () => fireEvent.press(completionButton()));
   expect(mockComplete.mock.calls[1][0]).toEqual(mockComplete.mock.calls[0][0]);
-  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
 });
 it('one-time tasks expose Mark done and non-ACTIVE/other actor surfaces remain read-only', () => {
   render(<ContractDetail {...props} />);
@@ -412,16 +397,18 @@ it('one-time tasks expose Mark done and non-ACTIVE/other actor surfaces remain r
     mockContract({ data: contract, fromCache: false });
     mockTasks({ data: [{ ...task, targetCount: 1 }], fromCache: false });
   });
-  expect(
-    screen.getByRole('button', { name: /Dishwasher.*Mark another completion/ }),
-  ).toBeOnTheScreen();
+  expect(completionButton()).toBeOnTheScreen();
   act(() =>
     mockTasks({
       data: [{ ...task, targetCount: 1, completedCount: 1 }],
       fromCache: false,
     }),
   );
-  expect(screen.getByText('1 / 1 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.getAllByRole('image', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
+  ).toHaveLength(1);
   expect(
     screen.queryByRole('button', {
       name: /Dishwasher.*Mark another completion/,
@@ -469,15 +456,9 @@ it.each([
     });
     render(<ContractDetail {...props} />);
     emitReady();
-    await act(async () =>
-      fireEvent.press(
-        screen.getByRole('button', {
-          name: /Dishwasher.*Mark another completion/,
-        }),
-      ),
-    );
+    await act(async () => fireEvent.press(completionButton()));
     expect(screen.getByText(message)).toBeOnTheScreen();
-    expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+    expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
     expect(screen.queryByText('private backend exception')).toBeNull();
   },
 );
@@ -488,7 +469,7 @@ function completeTasks() {
     mockTasks({ data: [{ ...task, completedCount: 3 }], fromCache: false }),
   );
 }
-it('submission requires nonempty complete tasks and deliberate confirmation, with cancellation', () => {
+it('submission requires nonempty complete tasks without a confirmation step', () => {
   render(<ContractDetail {...props} />);
   emitReady();
   expect(
@@ -502,15 +483,12 @@ it('submission requires nonempty complete tasks and deliberate confirmation, wit
     screen.queryByRole('button', { name: 'Submit for review' }),
   ).toBeNull();
   completeTasks();
-  fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
-  expect(
-    screen.getByRole('header', { name: 'Send this Contract for review?' }),
-  ).toBeOnTheScreen();
-  expect(mockSubmit).not.toHaveBeenCalled();
-  fireEvent.press(screen.getByRole('button', { name: 'Keep checking' }));
   expect(
     screen.getByRole('button', { name: 'Submit for review' }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole('button', { name: 'Confirm submission' }),
+  ).toBeNull();
 });
 it('submission pending prevents duplicate taps; backend receipt does not optimistically alter status; realtime removes actions', async () => {
   let resolve: (value: unknown) => void = () => {};
@@ -522,8 +500,7 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
   );
   render(<ContractDetail {...props} />);
   completeTasks();
-  fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
-  const button = screen.getByRole('button', { name: 'Confirm submission' });
+  const button = screen.getByRole('button', { name: 'Submit for review' });
   fireEvent.press(button);
   fireEvent.press(button);
   expect(mockSubmit).toHaveBeenCalledTimes(1);
@@ -535,7 +512,7 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
   await act(async () =>
     resolve({ contract: { ...contract, status: 'READY_FOR_REVIEW' } }),
   );
-  expect(screen.getByText('Sent for review')).toBeOnTheScreen();
+  expect(screen.queryByText('Sent for review')).toBeNull();
   expect(
     screen.getByLabelText('Contract status: In progress'),
   ).toBeOnTheScreen();
@@ -555,7 +532,11 @@ it('submission pending prevents duplicate taps; backend receipt does not optimis
     screen.getByText('Your Parent now needs to review this agreement.'),
   ).toBeOnTheScreen();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
-  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.getAllByRole('image', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
+  ).toHaveLength(3);
 });
 it.each([
   [
@@ -581,10 +562,9 @@ it.each([
     });
     render(<ContractDetail {...props} />);
     completeTasks();
-    fireEvent.press(screen.getByRole('button', { name: 'Submit for review' }));
     await act(async () =>
       fireEvent.press(
-        screen.getByRole('button', { name: 'Confirm submission' }),
+        screen.getByRole('button', { name: 'Submit for review' }),
       ),
     );
     expect(screen.getByText(message)).toBeOnTheScreen();
@@ -594,7 +574,7 @@ it.each([
     expect(screen.queryByText('Sent for review')).toBeNull();
     await act(async () =>
       fireEvent.press(
-        screen.getByRole('button', { name: 'Confirm submission' }),
+        screen.getByRole('button', { name: 'Submit for review' }),
       ),
     );
     expect(mockSubmit.mock.calls[1][0]).toEqual(mockSubmit.mock.calls[0][0]);
@@ -660,8 +640,10 @@ it('realtime requested changes displays authoritative cached feedback and read-o
     screen.getByText('Showing saved feedback. Updates may be pending.'),
   ).toBeOnTheScreen();
   expect(
-    screen.getByText('Changes were requested. The reward has not been earned.'),
-  ).toBeOnTheScreen();
+    screen.queryByText(
+      'Changes were requested. The reward has not been earned.',
+    ),
+  ).toBeNull();
   expect(
     screen.getByRole('button', { name: 'Resubmit for review' }),
   ).toBeEnabled();
@@ -715,20 +697,13 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
   );
   render(<ContractDetail {...props} />);
   emitCorrection();
-  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.getAllByRole('image', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
+  ).toHaveLength(3);
   expect(screen.queryByRole('button', { name: 'Mark one done' })).toBeNull();
-  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
-  expect(
-    screen.getByRole('header', { name: 'Send this Contract back for review?' }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByText(
-      'Confirm that you have addressed your Parent’s feedback. Your completed task progress stays unchanged.',
-    ),
-  ).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Keep checking' }));
-  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
-  const button = screen.getByRole('button', { name: 'Confirm resubmission' });
+  const button = screen.getByRole('button', { name: 'Resubmit for review' });
   fireEvent.press(button);
   fireEvent.press(button);
   expect(mockSubmit).toHaveBeenCalledTimes(1);
@@ -740,7 +715,7 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
       contract: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
     }),
   );
-  expect(screen.getByText('Sent back for review')).toBeOnTheScreen();
+  expect(screen.queryByText('Sent back for review')).toBeNull();
   expect(screen.getByLabelText('Contract status: Your turn')).toBeOnTheScreen();
   act(() =>
     mockContract({
@@ -753,23 +728,26 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
   ).toBeOnTheScreen();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
   expect(screen.queryByText('Please check the result.')).toBeNull();
-  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.getAllByRole('image', {
+      name: /Dishwasher.*Mark another completion/,
+    }),
+  ).toHaveLength(3);
 });
 it('resubmission failure keeps correction state and same-key retry; a new round uses a fresh key', async () => {
   mockSubmit.mockRejectedValueOnce(new Error('offline')).mockResolvedValue({});
   render(<ContractDetail {...props} />);
   emitCorrection();
-  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
   await act(async () =>
     fireEvent.press(
-      screen.getByRole('button', { name: 'Confirm resubmission' }),
+      screen.getByRole('button', { name: 'Resubmit for review' }),
     ),
   );
   expect(screen.getByLabelText('Contract status: Your turn')).toBeOnTheScreen();
   expect(screen.queryByText('Sent back for review')).toBeNull();
   await act(async () =>
     fireEvent.press(
-      screen.getByRole('button', { name: 'Confirm resubmission' }),
+      screen.getByRole('button', { name: 'Resubmit for review' }),
     ),
   );
   expect(mockSubmit.mock.calls[0][0]).toEqual(mockSubmit.mock.calls[1][0]);
@@ -780,10 +758,9 @@ it('resubmission failure keeps correction state and same-key retry; a new round 
     }),
   );
   emitCorrection(1);
-  fireEvent.press(screen.getByRole('button', { name: 'Resubmit for review' }));
   await act(async () =>
     fireEvent.press(
-      screen.getByRole('button', { name: 'Confirm resubmission' }),
+      screen.getByRole('button', { name: 'Resubmit for review' }),
     ),
   );
   expect(mockSubmit.mock.calls[2][0].idempotencyKey).not.toBe(
@@ -902,9 +879,7 @@ it('distinguishes the current request from historical context and adds no histor
   act(() =>
     mockHistory({ data: historicalReviews.slice(0, 1), fromCache: false }),
   );
-  expect(
-    screen.getByRole('header', { name: 'Current request' }),
-  ).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Current request' })).toBeNull();
   expect(
     screen.getByRole('header', { name: 'Review history' }),
   ).toBeOnTheScreen();
@@ -971,14 +946,17 @@ it('hides the aggregate progress for one repeated task and shows it for multiple
   render(<ContractDetail {...props} />);
   emitReady();
   expect(screen.queryByText('0 of 1 tasks complete')).toBeNull();
-  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
   act(() =>
     mockTasks({
       data: [task, { ...task, id: 'task-2', title: 'Plants' }],
       fromCache: false,
     }),
   );
-  expect(screen.getByText('0 of 2 tasks complete')).toBeOnTheScreen();
+  expect(
+    screen.getByRole('progressbar', { name: 'Recorded completions' }).props
+      .accessibilityValue,
+  ).toMatchObject({ now: 0, max: 6 });
 });
 
 it('keeps submitted agreements visible with Parent’s turn and their details destination', () => {

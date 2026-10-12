@@ -18,7 +18,9 @@ export function HomeContractRow({
   childName,
   onPress,
   preview = false,
+  showTasks = true,
 }: {
+  showTasks?: boolean;
   preview?: boolean;
   contract: Contract;
   authUid: string;
@@ -44,6 +46,7 @@ export function HomeContractRow({
   if (preview)
     return (
       <HomeFeatureCard
+        tone="blue"
         title={contract.rewardTerms.title}
         detail={t('Due {0}{1}', {
           '0': new Date(contract.deadlineAt).toLocaleDateString(dateLocale()),
@@ -65,7 +68,7 @@ export function HomeContractRow({
               style={{
                 height: 10,
                 borderRadius: homeTokens.radius.pill,
-                backgroundColor: homeTokens.border,
+                backgroundColor: homeTokens.surface,
                 overflow: 'hidden',
               }}
             >
@@ -89,44 +92,45 @@ export function HomeContractRow({
                 {t('Saved progress. Updates may be pending.')}
               </DesignText>
             ) : null}
-            {state.tasks.map((task) => (
-              <View
-                key={task.id}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 12,
-                  borderTopWidth: 1,
-                  borderColor: homeTokens.border,
-                  paddingTop: 12,
-                }}
-              >
-                <DesignText
-                  style={{ flex: 1, fontSize: 17, color: homeTokens.text }}
-                >
-                  {task.title}
-                </DesignText>
-                <DesignText
-                  accessibilityLabel={t(
-                    '{0}: {1} of {2} completions recorded',
-                    {
-                      '0': task.title,
-                      '1': task.completedCount,
-                      '2': task.targetCount,
-                    },
-                  )}
+            {showTasks &&
+              state.tasks.map((task) => (
+                <View
+                  key={task.id}
                   style={{
-                    fontSize: 18,
-                    fontWeight: '700',
-                    color: homeTokens.success,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    backgroundColor: homeTokens.surface,
+                    borderRadius: homeTokens.radius.card,
+                    padding: homeTokens.spacing.medium,
                   }}
                 >
-                  {task.completedCount >= task.targetCount
-                    ? '✓'
-                    : `${task.completedCount} / ${task.targetCount}`}
-                </DesignText>
-              </View>
-            ))}
+                  <DesignText
+                    style={{ flex: 1, fontSize: 17, color: homeTokens.text }}
+                  >
+                    {task.title}
+                  </DesignText>
+                  <DesignText
+                    accessibilityLabel={t(
+                      '{0}: {1} of {2} completions recorded',
+                      {
+                        '0': task.title,
+                        '1': task.completedCount,
+                        '2': task.targetCount,
+                      },
+                    )}
+                    style={{
+                      fontSize: 18,
+                      fontWeight: '700',
+                      color: homeTokens.success,
+                    }}
+                  >
+                    {task.completedCount >= task.targetCount
+                      ? '✓'
+                      : `${task.completedCount} / ${task.targetCount}`}
+                  </DesignText>
+                </View>
+              ))}
           </>
         ) : (
           <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>

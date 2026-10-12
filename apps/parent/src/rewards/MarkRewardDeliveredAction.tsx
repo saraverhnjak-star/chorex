@@ -12,7 +12,7 @@ export function MarkRewardDeliveredAction({
 
   return (
     <RewardTransitionAction
-      blue
+      green
       reward={reward}
       submit={markRewardDelivered}
       expectedStatus="PENDING_FULFILLMENT"

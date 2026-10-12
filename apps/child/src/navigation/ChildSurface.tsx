@@ -18,6 +18,7 @@ import {
   EntryHeading,
   TextField,
   homeTokens,
+  amberAuroraPalette,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
@@ -154,9 +155,9 @@ function ChildSurfaceContent({
                   className="active:opacity-60"
                 >
                   <DesignText
-                    style={{ fontSize: 14, color: homeTokens.coralText }}
+                    style={{ fontSize: 14, color: amberAuroraPalette.navigationActive }}
                   >
-                    {t('← Offers')}
+                    ← {t('Back')}
                   </DesignText>
                 </Pressable>
               }

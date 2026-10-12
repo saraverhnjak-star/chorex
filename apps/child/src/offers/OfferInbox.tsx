@@ -16,6 +16,7 @@ import {
   FormMessage,
   TextField,
   homeTokens,
+  amberAuroraPalette,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { StatusTabs } from '../navigation/StatusTabs';
@@ -30,7 +31,6 @@ import {
   subscribeToChildOfferHistory,
 } from '@chorex/firebase-client';
 import {
-  rewardSelectionFor,
   rewardTermsForSelection,
   type ChildOfferHistoryItem,
   type RewardType,
@@ -166,7 +166,10 @@ export function OfferInbox({
               setCounterOfferForm({
                 offerId: item.offer.id,
                 rewardTitle: item.revision.reward.title,
-                rewardSelection: rewardSelectionFor(item.revision.reward),
+                rewardSelection:
+                  item.revision.reward.type === 'CUSTOM'
+                    ? 'custom'
+                    : item.revision.reward.iconKey,
                 rewardType: item.revision.reward.type,
                 rewardIconKey: item.revision.reward.iconKey,
                 rewardDescription: item.revision.reward.description ?? '',
@@ -365,18 +368,9 @@ export function OfferInbox({
   };
 
   const openCounterOfferForm = (item: ChildOfferHistoryItem) => {
-    setActionError(undefined);
-    setResultMessage(undefined);
-    setCounterOfferTitleError(undefined);
-    setRejectionConfirmationOfferId(undefined);
-    setCounterOfferForm({
-      offerId: item.offer.id,
-      rewardTitle: item.revision.reward.title,
-      rewardSelection: rewardSelectionFor(item.revision.reward),
-      rewardType: item.revision.reward.type,
-      rewardIconKey: item.revision.reward.iconKey,
-      rewardDescription: item.revision.reward.description ?? '',
-      note: '',
+    router.push({
+      pathname: '/offers/counter',
+      params: { offerId: item.offer.id },
     });
   };
 
@@ -396,8 +390,13 @@ export function OfferInbox({
               ? t("Parent's turn")
               : offerLabel(offer.status)
         }
-        title={revision.tasks[0]?.title ?? revision.reward.title}
-        detail={t('Reward: {0}', { '0': revision.reward.title })}
+        title={revision.reward.title}
+        detail={t('Number of tasks: {0}', {
+          '0': revision.tasks.reduce(
+            (total, task) => total + task.targetCount,
+            0,
+          ),
+        })}
         reward={revision.reward}
       >
         <View
@@ -422,8 +421,8 @@ export function OfferInbox({
             tone="outline"
             onPress={() =>
               router.navigate({
-                pathname: '/offers/[offerId]',
-                params: { offerId: offer.id, counterOfferId: offer.id },
+                pathname: '/offers/counter',
+                params: { offerId: offer.id },
               })
             }
           />
@@ -468,8 +467,10 @@ export function OfferInbox({
           }}
           className="active:opacity-60"
         >
-          <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-            {t('← Offers')}
+          <DesignText
+            style={{ fontSize: 14, color: amberAuroraPalette.navigationActive }}
+          >
+            ← {t('Back')}
           </DesignText>
         </Pressable>
       ) : null}
@@ -573,8 +574,13 @@ export function OfferInbox({
                       ? t("Parent's turn")
                       : offerLabel(offer.status)
                 }
-                title={revision.tasks[0]?.title ?? revision.reward.title}
-                detail={t('Reward: {0}', { '0': revision.reward.title })}
+                title={revision.reward.title}
+                detail={t('Number of tasks: {0}', {
+                  '0': revision.tasks.reduce(
+                    (total, task) => total + task.targetCount,
+                    0,
+                  ),
+                })}
                 reward={revision.reward}
               >
                 <HomeCardAction
@@ -593,31 +599,34 @@ export function OfferInbox({
               </HomeFeatureCard>
             ) : (
               <View className="gap-4" style={{ flexGrow: 1 }} key={offer.id}>
-                <ProposalTerms
-                  layout="rewardFirst"
-                  revision={revision}
-                  status={
-                    offer.status === 'AWAITING_CHILD'
-                      ? t('Your turn')
-                      : offer.status === 'AWAITING_PARENT'
-                        ? t("Parent's turn")
-                        : offerLabel(offer.status)
-                  }
-                  author={
-                    revision.proposedByRole === 'CHILD'
-                      ? t('Proposed by you')
-                      : t('Proposed by your Parent')
-                  }
-                  support={
-                    offer.status === 'AWAITING_CHILD'
-                      ? t(
-                          'Accept to create your agreement, counter the reward, or decline.',
-                        )
-                      : offer.status === 'AWAITING_PARENT'
-                        ? t('Your proposal is waiting for your parent.')
-                        : t('This offer is closed.')
-                  }
-                />
+                {!initialCounterOfferId ? (
+                  <ProposalTerms
+                    cardHeader
+                    layout="rewardFirst"
+                    revision={revision}
+                    status={
+                      offer.status === 'AWAITING_CHILD'
+                        ? t('Your turn')
+                        : offer.status === 'AWAITING_PARENT'
+                          ? t("Parent's turn")
+                          : offerLabel(offer.status)
+                    }
+                    author={
+                      revision.proposedByRole === 'CHILD'
+                        ? t('Proposed by you')
+                        : t('Proposed by your Parent')
+                    }
+                    support={
+                      offer.status === 'AWAITING_CHILD'
+                        ? t(
+                            'Accept to create your agreement, counter the reward, or decline.',
+                          )
+                        : offer.status === 'AWAITING_PARENT'
+                          ? t('Your proposal is waiting for your parent.')
+                          : t('This offer is closed.')
+                    }
+                  />
+                ) : null}
                 {rejectionConfirmationOfferId === offer.id ? (
                   <View className="gap-3 rounded-2xl border border-home-border bg-home-surface p-4">
                     <FocusHeading
@@ -665,23 +674,6 @@ export function OfferInbox({
                     className="gap-3"
                     style={{ marginTop: homeTokens.spacing.section }}
                   >
-                    <FocusHeading
-                      allowFontScaling={false}
-                      accessibilityRole="header"
-                      className="font-semibold text-home-text"
-                      style={dynamicType.body}
-                    >
-                      {t('Make a counteroffer')}
-                    </FocusHeading>
-                    <Text
-                      allowFontScaling={false}
-                      className="text-home-muted"
-                      style={dynamicType.small}
-                    >
-                      {t(
-                        'Your changes become a new proposal for your Parent to review. Tasks and deadline stay the same.',
-                      )}
-                    </Text>
                     <RewardPicker
                       prominent
                       currentReward={{
@@ -708,7 +700,7 @@ export function OfferInbox({
                         );
                       }}
                     />
-                    {counterOfferForm.rewardSelection === 'custom' ? (
+                    {counterOfferForm.rewardType === 'CUSTOM' ? (
                       <>
                         <TextField
                           editable={mutation === undefined}
@@ -753,7 +745,8 @@ export function OfferInbox({
                       value={counterOfferForm.note}
                     />
                     <Button
-                      label={t('Send counteroffer')}
+                      label={t('Send')}
+                      lightText
                       loading={
                         mutation?.offerId === offer.id &&
                         mutation.action === 'counter'
@@ -766,9 +759,14 @@ export function OfferInbox({
                       }
                     />
                     <Button
-                      label={t('Cancel counteroffer')}
+                      label={t('Cancel')}
                       disabled={mutation !== undefined}
                       onPress={() => {
+                        if (initialCounterOfferId) {
+                          if (router.canGoBack()) router.back();
+                          else router.replace('/offers');
+                          return;
+                        }
                         setCounterOfferForm(undefined);
                         setCounterOfferTitleError(undefined);
                       }}

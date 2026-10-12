@@ -2,13 +2,15 @@ import {
   t,
   useAppLanguage,
   Button,
+  DesignText,
+  amberAuroraPalette,
   EntryHeading,
   FormMessage,
   Screen,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { requestParentAccountDeletion } from '@chorex/firebase-client';
@@ -105,12 +107,20 @@ export default function PrivacyScreen() {
             'The public privacy policy and external deletion-request route are pending release review.',
           )}
         </Text>
-        <Button
-          label={t('Back to Settings')}
-          variant="secondary"
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('Back to Settings')}
+          accessibilityState={{ disabled: busy }}
           onPress={() => router.replace('/more')}
           disabled={busy}
-        />
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
+          <DesignText
+            style={{ fontSize: 14, color: amberAuroraPalette.navigationActive }}
+          >
+            ← {t('Back')}
+          </DesignText>
+        </Pressable>
         <Text
           accessibilityRole="header"
           allowFontScaling={false}

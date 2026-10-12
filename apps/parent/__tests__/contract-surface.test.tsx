@@ -160,12 +160,7 @@ it('renders frozen terms, persisted progress and locale deadline with no mutatio
   expect(
     screen.getByLabelText('Contract status: In progress'),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByLabelText(
-      'Dishwasher. After dinner. 0 of 3 completions recorded. Not started.',
-    ),
-  ).toBeOnTheScreen();
-  expect(screen.getByText('0 / 3 · Not started')).toBeOnTheScreen();
+  expect(screen.getAllByText('Dishwasher')).toHaveLength(3);
   expect(
     screen.getByLabelText('Promised reward: Cinema, EXPERIENCE'),
   ).toBeOnTheScreen();
@@ -176,16 +171,22 @@ it('renders frozen terms, persisted progress and locale deadline with no mutatio
       `Deadline: ${new Date(contract.deadlineAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}`,
     ),
   ).toBeOnTheScreen();
-  expect(screen.getByText('Agreement with Mia')).toBeOnTheScreen();
+  expect(screen.getByText(/Due.*Mia/)).toBeOnTheScreen();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
   act(() =>
     mockTasks({ data: [{ ...task, completedCount: 2 }], fromCache: false }),
   );
-  expect(screen.getByText('2 / 3 · In progress')).toBeOnTheScreen();
+  expect(
+    screen.getByRole('progressbar', { name: 'Recorded completions' }).props
+      .accessibilityValue,
+  ).toMatchObject({ now: 2, max: 3 });
   act(() =>
     mockTasks({ data: [{ ...task, completedCount: 3 }], fromCache: false }),
   );
-  expect(screen.getByText('3 / 3 · Complete')).toBeOnTheScreen();
+  expect(
+    screen.getByRole('progressbar', { name: 'Recorded completions' }).props
+      .accessibilityValue,
+  ).toMatchObject({ now: 3, max: 3 });
   view.unmount();
   expect(mockContractStop).toHaveBeenCalled();
   expect(mockTasksStop).toHaveBeenCalled();
@@ -321,7 +322,7 @@ function emitReview() {
     mockTasks({ data: [{ ...task, completedCount: 3 }], fromCache: false });
   });
 }
-it('approval confirms deliberately, guards duplicate taps, waits for receipt and realtime, and distinguishes earning from fulfillment', async () => {
+it('approval sends directly, guards duplicate taps, waits for receipt and realtime, and distinguishes earning from fulfillment', async () => {
   let resolve!: (value: unknown) => void;
   mockApprove.mockImplementationOnce(
     () =>
@@ -331,15 +332,7 @@ it('approval confirms deliberately, guards duplicate taps, waits for receipt and
   );
   render(<ContractDetail {...props} />);
   emitReview();
-  fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
-  expect(mockApprove).not.toHaveBeenCalled();
-  expect(
-    screen.getByRole('header', { name: 'Approve this completed agreement?' }),
-  ).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Keep reviewing' }));
-  expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
-  const button = screen.getByRole('button', { name: 'Confirm approval' });
+  const button = screen.getByRole('button', { name: 'Approve' });
   fireEvent.press(button);
   fireEvent.press(button);
   expect(mockApprove).toHaveBeenCalledTimes(1);
@@ -375,9 +368,8 @@ it('ambiguous approval failure preserves status and explicit retry uses the same
     .mockResolvedValueOnce({});
   render(<ContractDetail {...props} />);
   emitReview();
-  fireEvent.press(screen.getByRole('button', { name: 'Approve' }));
   await act(async () =>
-    fireEvent.press(screen.getByRole('button', { name: 'Confirm approval' })),
+    fireEvent.press(screen.getByRole('button', { name: 'Approve' })),
   );
   expect(
     screen.getByLabelText('Contract status: Ready for review'),
@@ -390,7 +382,7 @@ it('ambiguous approval failure preserves status and explicit retry uses the same
   ).toBeOnTheScreen();
   const input = mockApprove.mock.calls[0][0];
   await act(async () =>
-    fireEvent.press(screen.getByRole('button', { name: 'Confirm approval' })),
+    fireEvent.press(screen.getByRole('button', { name: 'Approve' })),
   );
   expect(mockApprove.mock.calls[1][0]).toEqual(input);
 });
@@ -438,10 +430,15 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
         resolve = r;
       }),
   );
-  render(<ContractDetail {...props} />);
+  const view = render(<ContractDetail {...props} />);
   emitReview();
   expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: '/contracts/request-changes',
+    params: { contractId: 'contract-1' },
+  });
+  view.rerender(<ContractDetail {...props} requestChangesOnly />);
   expect(
     screen.getByRole('header', { name: 'Request changes to this agreement?' }),
   ).toBeOnTheScreen();
@@ -449,8 +446,7 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
   fireEvent.changeText(screen.getByLabelText('Feedback'), '   ');
   expect(screen.getByRole('button', { name: 'Send feedback' })).toBeDisabled();
   fireEvent.press(screen.getByRole('button', { name: 'Keep reviewing' }));
-  expect(screen.getByRole('button', { name: 'Approve' })).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
+  expect(mockReplace).toHaveBeenCalledWith('/contracts');
   fireEvent.changeText(
     screen.getByLabelText('Feedback'),
     ' Please check again. ',
@@ -468,9 +464,7 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
   );
   expect(screen.getByRole('button', { name: 'Send feedback' })).toBeDisabled();
   expect(screen.getByLabelText('Feedback')).toHaveProp('editable', false);
-  expect(
-    screen.getByLabelText('Contract status: Ready for review'),
-  ).toBeOnTheScreen();
+
   expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
   await act(async () => resolve({}));
   expect(screen.getByText('Changes requested')).toBeOnTheScreen();
@@ -483,9 +477,8 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
       fromCache: false,
     }),
   );
-  expect(
-    screen.getByLabelText('Contract status: Kids turn'),
-  ).toBeOnTheScreen();
+  view.rerender(<ContractDetail {...props} />);
+  expect(screen.getByLabelText('Contract status: Kids turn')).toBeOnTheScreen();
   expect(
     screen.queryByRole('button', { name: 'Approve' }),
   ).not.toBeOnTheScreen();
@@ -495,25 +488,25 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
   act(() =>
     mockReview({ data: { note: 'Please check again.' }, fromCache: false }),
   );
+  view.rerender(<ContractDetail {...props} />);
   expect(screen.getByText('Please check again.')).toBeOnTheScreen();
   expect(
-    screen.getByText('Changes were requested. The reward has not been earned.'),
-  ).toBeOnTheScreen();
+    screen.queryByText(
+      'Changes were requested. The reward has not been earned.',
+    ),
+  ).toBeNull();
 });
 it('request changes failure keeps READY_FOR_REVIEW and unchanged normalized feedback retries retain the key', async () => {
   mockRequestChanges
     .mockRejectedValueOnce(new Error('timeout'))
     .mockResolvedValueOnce({});
-  render(<ContractDetail {...props} />);
+  render(<ContractDetail {...props} requestChangesOnly />);
   emitReview();
-  fireEvent.press(screen.getByRole('button', { name: 'Request changes' }));
   fireEvent.changeText(screen.getByLabelText('Feedback'), ' Check this. ');
   await act(async () =>
     fireEvent.press(screen.getByRole('button', { name: 'Send feedback' })),
   );
-  expect(
-    screen.getByLabelText('Contract status: Ready for review'),
-  ).toBeOnTheScreen();
+  expect(screen.getByLabelText('Feedback')).toBeOnTheScreen();
   expect(screen.queryByText('Changes requested')).not.toBeOnTheScreen();
   expect(
     screen.getByText(
@@ -603,12 +596,6 @@ it('renders all immutable rounds with one-based labels, notes and realtime final
   act(() =>
     mockHistory({ data: historicalReviews.slice(0, 2), fromCache: true }),
   );
-  expect(screen.queryByText('Historical feedback 0')).toBeNull();
-  expect(screen.getByRole('button', { name: 'Review history' })).toHaveProp(
-    'accessibilityState',
-    { expanded: false },
-  );
-  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
   expect(screen.getByText('Historical feedback 0')).toBeOnTheScreen();
   expect(screen.getByText('Historical feedback 1')).toBeOnTheScreen();
   expect(
@@ -647,8 +634,7 @@ it('renders all immutable rounds with one-based labels, notes and realtime final
     screen.queryByText('Showing saved review history. Updates may be pending.'),
   ).not.toBeOnTheScreen();
   expect(mockHistoryObserve).toHaveBeenCalledTimes(1);
-  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
-  expect(screen.queryByText('Review 3: Approved')).toBeNull();
+  expect(screen.getByText('Review 3: Approved')).toBeOnTheScreen();
 });
 it('retains the history listener across cycles/statuses, clears it on identity change and ignores stale callbacks', () => {
   const view = render(<ContractDetail {...props} />);
@@ -662,7 +648,6 @@ it('retains the history listener across cycles/statuses, clears it on identity c
       fromCache: false,
     }),
   );
-  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
   expect(screen.getByText('Historical feedback 0')).toBeOnTheScreen();
   expect(mockHistoryObserve).toHaveBeenCalledTimes(1);
   const old = mockHistory;
@@ -684,13 +669,10 @@ it('distinguishes the current request from historical context and adds no histor
   act(() =>
     mockHistory({ data: historicalReviews.slice(0, 1), fromCache: false }),
   );
-  expect(
-    screen.getByRole('header', { name: 'Current request' }),
-  ).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Current request' })).toBeNull();
   expect(
     screen.getByRole('header', { name: 'Review history' }),
   ).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('button', { name: 'Review history' }));
   expect(screen.getAllByText('Historical feedback 0')).toHaveLength(2);
   for (const name of ['Edit feedback', 'Reply', 'Acknowledge', 'Delete review'])
     expect(screen.queryByRole('button', { name })).not.toBeOnTheScreen();

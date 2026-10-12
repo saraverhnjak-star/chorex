@@ -19,8 +19,8 @@ it('puts For review first, selects it initially, and switches queues with status
   expect(screen.getByRole('tab', { name: 'For review' })).toBeSelected();
   expect(screen.getByText('Review queue')).toBeOnTheScreen();
   expect(screen.queryByText('Active queue')).toBeNull();
-  expect(screen.getByText('1')).toBeOnTheScreen();
-  expect(screen.getByText('2')).toBeOnTheScreen();
+  expect(screen.getByText('For review (1)')).toBeOnTheScreen();
+  expect(screen.getByText('Active (2)')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('tab', { name: 'Active' }));
   expect(screen.getByText('Active queue')).toBeOnTheScreen();
   expect(screen.queryByText('Review queue')).toBeNull();

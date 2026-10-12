@@ -3,6 +3,8 @@ const amberAuroraPalette = Object.freeze({
   warmAmber: '#F2A65A',
   auroraBlue: '#7796B8',
   deepBlue: '#24466B',
+  navigationInactive: '#B0B4BA',
+  navigationActive: '#555B64',
   warmCanvas: '#FFF8F2',
   peachGlow: '#FFF0E7',
   paper: '#FFFFFF',

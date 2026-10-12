@@ -2,12 +2,11 @@ import {
   t,
   useAppLanguage,
   ContractSummary,
-  TermsHeading,
   FormMessage,
   homeTokens,
+  amberAuroraColors,
   ReviewFeedback,
   ReviewHistory,
-  TaskProgress,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { SubmitForReviewAction } from './SubmitForReviewAction';
@@ -90,6 +89,7 @@ export function ContractDetail({
         </Text>
       ) : null}
       <ContractSummary
+        cardHeader
         contract={contract}
         tasks={tasks}
         viewer="CHILD"
@@ -102,10 +102,9 @@ export function ContractDetail({
           className="gap-3"
           style={{ marginTop: homeTokens.spacing.section }}
         >
-          <TermsHeading icon="chatbox-ellipses-outline">
-            {t('Current request')}
-          </TermsHeading>
           <ReviewFeedback
+            rejected
+            compact
             loading={feedback.status === 'loading'}
             error={feedback.status === 'error'}
             note={
@@ -135,31 +134,29 @@ export function ContractDetail({
       ) : (
         <View
           style={{
-            marginTop: homeTokens.spacing.section,
-            gap: homeTokens.spacing.section,
+            marginTop: homeTokens.spacing.small,
+            gap: homeTokens.spacing.small,
           }}
         >
           {tasks.map((task) => (
-            <View key={task.id} className="gap-2">
-              <TaskProgress
-                compact
-                title={task.title}
-                description={task.description}
-                completedCount={task.completedCount}
-                targetCount={task.targetCount}
-              />
-              {contract.status === 'ACTIVE' &&
-              contract.childUid === authUid &&
-              task.assigneeUid === authUid &&
-              task.completedCount < task.targetCount ? (
-                <TaskCompletionAction task={task} />
-              ) : null}
-            </View>
+            <TaskCompletionAction
+              key={task.id}
+              task={task}
+              occurrences
+              readOnly={
+                contract.status !== 'ACTIVE' ||
+                contract.childUid !== authUid ||
+                task.assigneeUid !== authUid
+              }
+            />
           ))}
         </View>
       )}
       {history.status !== 'ready' || history.reviews.length > 0 ? (
         <ReviewHistory
+          backgroundColor={`${amberAuroraColors.danger}15`}
+          hideIcons
+          key={`${contract.id}:${authUid}`}
           loading={history.status === 'loading'}
           error={history.status === 'error'}
           reviews={history.status === 'ready' ? history.reviews : []}

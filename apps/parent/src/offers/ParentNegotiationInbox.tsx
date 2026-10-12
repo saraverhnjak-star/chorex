@@ -1,3 +1,5 @@
+import { amberAuroraPalette } from '@chorex/ui';
+import { ParentEmptyState } from '../navigation/ParentEmptyState';
 import {
   t,
   useAppLanguage,
@@ -54,6 +56,7 @@ export function ParentNegotiationInbox({
   list = false,
   showHeading = true,
   offerId,
+  counterRevisionId,
   onLoadingChange,
 }: {
   activeChildren: readonly ChildFamilyMembership[];
@@ -61,6 +64,7 @@ export function ParentNegotiationInbox({
   list?: boolean;
   showHeading?: boolean;
   offerId?: string;
+  counterRevisionId?: string;
   onLoadingChange?: (loading: boolean) => void;
   authUid: string;
   familyId: string;
@@ -78,7 +82,6 @@ export function ParentNegotiationInbox({
 
   const [rejectionConfirmation, setRejectionConfirmation] = useState<string>();
   const [editing, setEditing] = useState<string>();
-  const [confirmation, setConfirmation] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
   const [actionError, setActionError] = useState<string>();
@@ -107,7 +110,6 @@ export function ParentNegotiationInbox({
       if (scope.current === subscriptionKey) {
         setMessage(t('Contract active'));
         announceAction(t('Agreement reached. Contract is active.'));
-        setConfirmation(undefined);
       }
     } catch (error) {
       if (scope.current === subscriptionKey)
@@ -164,6 +166,11 @@ export function ParentNegotiationInbox({
         setMessage(t('Counteroffer sent'));
         announceAction(t('Counteroffer sent. Waiting for Child.'));
         setEditing(undefined);
+        if (counterRevisionId)
+          router.replace({
+            pathname: '/offers/[offerId]',
+            params: { offerId: proposal.offerId, sent: 'true' },
+          });
       }
     } catch (error) {
       if (scope.current === subscriptionKey)
@@ -227,6 +234,7 @@ export function ParentNegotiationInbox({
     <View style={{ gap: homeTokens.spacing.section, flexGrow: 1 }}>
       {list && showHeading ? (
         <CollectionHeading
+          seeAllColor={amberAuroraPalette.navigationActive}
           count={
             displayedState.status === 'ready'
               ? displayedState.items.length
@@ -268,20 +276,18 @@ export function ParentNegotiationInbox({
       {displayedState.status === 'ready' &&
       displayedState.items.length === 0 &&
       !message ? (
-        <OfferOutcome
-          centered
-          illustration="no-offers"
+        <ParentEmptyState
           title={offerId ? t('Offer unavailable') : t('No counteroffers')}
         >
           {t('No counteroffers are waiting for you.')}
-        </OfferOutcome>
+        </ParentEmptyState>
       ) : null}
 
       {displayedState.status === 'ready' && displayedState.items.length > 0 ? (
-        <View className="gap-4">
+        <View className="gap-4" style={offerId ? { flexGrow: 1 } : undefined}>
           {list
             ? displayedState.items.map(({ offer, revision }) => (
-                <ParentHomeCard key={offer.id}>
+                <ParentHomeCard tone="coralSurface" key={offer.id}>
                   <ParentHomeRow
                     dense
                     reward={revision.reward}
@@ -329,12 +335,39 @@ export function ParentNegotiationInbox({
                   const childName =
                     activeChildren.find((child) => child.uid === offer.childUid)
                       ?.displayName ?? t('Child profile unavailable');
+                  if (counterRevisionId) {
+                    return revision.id === counterRevisionId ? (
+                      <ParentCounterofferForm
+                        key={identity}
+                        revision={revision}
+                        busy={busy}
+                        onCancel={() =>
+                          router.canGoBack()
+                            ? router.back()
+                            : router.replace('/offers')
+                        }
+                        onSubmit={sendCounteroffer}
+                      />
+                    ) : (
+                      <FormMessage
+                        key={identity}
+                        message={t(
+                          'This offer changed. Refresh it before countering.',
+                        )}
+                      />
+                    );
+                  }
                   return (
                     <View
-                      style={{ gap: homeTokens.spacing.medium }}
+                      style={{
+                        gap: homeTokens.spacing.medium,
+                        flexGrow: offerId ? 1 : undefined,
+                      }}
                       key={offer.id}
                     >
                       <ProposalTerms
+                        cardHeader
+                        participantName={childName}
                         layout="rewardFirst"
                         revision={revision}
                         status={t('Your turn')}
@@ -344,110 +377,94 @@ export function ParentNegotiationInbox({
                           { '0': childName },
                         )}
                       />
-                      {rejectionConfirmation === identity ? (
-                        <View className="gap-3">
-                          <FocusHeading
-                            allowFontScaling={false}
-                            accessibilityRole="alert"
-                            accessibilityLiveRegion="assertive"
-                            className="text-home-text"
-                            style={dynamicType.body}
-                          >
-                            {t(
-                              'Rejecting this counteroffer ends this Offer negotiation. The terms will remain in its history.',
-                            )}
-                          </FocusHeading>
-                          <Button
-                            label={t('Confirm reject counteroffer')}
-                            variant="danger"
-                            loading={busy}
-                            onPress={() => void rejectCounteroffer(item)}
+                      <View
+                        style={{
+                          gap: homeTokens.spacing.medium,
+                          marginTop: offerId ? 'auto' : undefined,
+                          paddingTop: homeTokens.spacing.medium,
+                        }}
+                      >
+                        {rejectionConfirmation === identity ? (
+                          <View className="gap-3">
+                            <FocusHeading
+                              allowFontScaling={false}
+                              accessibilityRole="alert"
+                              accessibilityLiveRegion="assertive"
+                              className="text-home-text"
+                              style={dynamicType.body}
+                            >
+                              {t(
+                                'Rejecting this counteroffer ends this Offer negotiation. The terms will remain in its history.',
+                              )}
+                            </FocusHeading>
+                            <Button
+                              label={t('Confirm reject counteroffer')}
+                              variant="danger"
+                              loading={busy}
+                              onPress={() => void rejectCounteroffer(item)}
+                            />
+                            <Button
+                              label={t('Keep negotiating')}
+                              variant="outline"
+                              disabled={busy}
+                              onPress={() =>
+                                setRejectionConfirmation(undefined)
+                              }
+                            />
+                          </View>
+                        ) : editing === identity ? (
+                          <ParentCounterofferForm
+                            key={identity}
+                            revision={revision}
+                            busy={busy}
+                            onCancel={() => setEditing(undefined)}
+                            onSubmit={sendCounteroffer}
                           />
+                        ) : (
                           <Button
-                            label={t('Keep negotiating')}
-                            variant="outline"
-                            disabled={busy}
-                            onPress={() => setRejectionConfirmation(undefined)}
-                          />
-                        </View>
-                      ) : editing === identity ? (
-                        <ParentCounterofferForm
-                          key={identity}
-                          revision={revision}
-                          busy={busy}
-                          onCancel={() => setEditing(undefined)}
-                          onSubmit={sendCounteroffer}
-                        />
-                      ) : confirmation === identity ? (
-                        <View className="gap-3">
-                          <FocusHeading
-                            allowFontScaling={false}
-                            accessibilityLiveRegion="polite"
-                            className="text-home-text"
-                            style={dynamicType.body}
-                          >
-                            {t(
-                              'Accept these tasks, reward and deadline? This creates an active Contract.',
-                            )}
-                          </FocusHeading>
-                          <Button
-                            label={t('Confirm accept counteroffer')}
-                            variant="blue"
+                            label={t('Accept counteroffer')}
+                            variant="primary"
                             lightText
                             loading={busy}
-                            onPress={() => void acceptCounteroffer(item)}
+                            onPress={() => {
+                              void acceptCounteroffer(item);
+                            }}
                           />
+                        )}
+                        {rejectionConfirmation !== identity &&
+                        editing !== identity ? (
                           <Button
-                            label={t('Cancel acceptance')}
+                            label={t('Counteroffer')}
                             variant="outline"
                             disabled={busy}
-                            onPress={() => setConfirmation(undefined)}
+                            onPress={() => {
+                              router.push({
+                                pathname: '/offers/counter',
+                                params: {
+                                  offerId: offer.id,
+                                  revisionId: revision.id,
+                                },
+                              });
+                              setActionError(undefined);
+                              setMessage(undefined);
+                            }}
                           />
-                        </View>
-                      ) : (
-                        <Button
-                          label={t('Accept counteroffer')}
-                          variant="blue"
-                          lightText
-                          disabled={busy}
-                          onPress={() => {
-                            setConfirmation(identity);
-                            setActionError(undefined);
-                            setMessage(undefined);
-                          }}
-                        />
-                      )}
-                      {rejectionConfirmation !== identity &&
-                      editing !== identity &&
-                      confirmation !== identity ? (
-                        <Button
-                          label={t('Counteroffer')}
-                          variant="outline"
-                          disabled={busy}
-                          onPress={() => {
-                            setEditing(identity);
-                            setConfirmation(undefined);
-                            setActionError(undefined);
-                            setMessage(undefined);
-                          }}
-                        />
-                      ) : null}
-                      {rejectionConfirmation !== identity &&
-                      editing !== identity &&
-                      confirmation !== identity ? (
-                        <Button
-                          label={t('Reject counteroffer')}
-                          variant="danger"
-                          disabled={busy}
-                          onPress={() => {
-                            setRejectionConfirmation(identity);
-                            setConfirmation(undefined);
-                            setEditing(undefined);
-                            setActionError(undefined);
-                            setMessage(undefined);
-                          }}
-                        />
-                      ) : null}
+                        ) : null}
+                        {rejectionConfirmation !== identity &&
+                        editing !== identity ? (
+                          <Button
+                            label={t('Reject counteroffer')}
+                            variant="danger"
+                            disabled={busy}
+                            onPress={() => {
+                              setRejectionConfirmation(identity);
+                              setEditing(undefined);
+                              setActionError(undefined);
+                              setMessage(undefined);
+                            }}
+                          />
+                        ) : null}
+                      </View>
                     </View>
                   );
                 })}

@@ -1,3 +1,4 @@
+import { amberAuroraPalette } from '@chorex/ui';
 import {
   t,
   useAppLanguage,
@@ -29,6 +30,7 @@ export function HomeFamilyOverview({
   return (
     <View style={{ gap: 12 }}>
       <CollectionHeading
+        seeAllColor={amberAuroraPalette.navigationActive}
         count={home.children.length}
         label={t('See all Family')}
         onSeeAll={preview ? () => router.navigate('/family') : undefined}

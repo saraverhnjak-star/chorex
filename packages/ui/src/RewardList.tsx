@@ -48,8 +48,8 @@ export function RewardList({
     'AWAITING_CHILD_CONFIRMATION',
   );
   const statusTabs = [
-    { status: 'AWAITING_CHILD_CONFIRMATION', label: 'Your turn' },
     { status: 'PENDING_FULFILLMENT', label: "Parent's turn" },
+    { status: 'AWAITING_CHILD_CONFIRMATION', label: 'Your turn' },
   ] as const;
   const rewards =
     viewer === 'CHILD'
@@ -236,7 +236,6 @@ export function RewardList({
             key={group.label ?? 'rewards'}
             style={{
               gap: homeTokens.spacing.medium,
-              marginTop: viewer === 'CHILD' ? homeTokens.spacing.medium : 0,
             }}
           >
             {group.rewards.map((reward) =>
@@ -293,7 +292,10 @@ function ChildRewardCard({
       }
     >
       <HomeCardAction
-        label={t('Open reward: {0}', { '0': reward.terms.title })}
+        label={t('Open reward')}
+        accessibilityLabel={t('Open reward: {0}', {
+          '0': reward.terms.title,
+        })}
         tone="green"
         onPress={() => onSelect(reward.id)}
       />
@@ -303,7 +305,7 @@ function ChildRewardCard({
 
 function ChildRewardCollection({ children }: { children: ReactNode }) {
   return (
-    <View style={{ gap: homeTokens.spacing.medium, flexGrow: 1 }}>
+    <View style={{ gap: homeTokens.spacing.card, flexGrow: 1 }}>
       {children}
     </View>
   );

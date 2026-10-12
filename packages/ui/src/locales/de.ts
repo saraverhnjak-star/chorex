@@ -1,4 +1,8 @@
 export const de: Record<string, string> = {
+  'The agreement was rejected.': 'Die Vereinbarung wurde abgelehnt.',
+  'Reward is on the way!': 'Die Belohnung ist unterwegs!',
+  '{0} of {1} tasks': '{0} von {1} Aufgaben',
+  'Number of tasks: {0}': 'Anzahl Aufgaben: {0}',
   Profile: 'Profil',
   Language: 'Sprache',
   'Language could not be saved. Try again.':
@@ -77,6 +81,8 @@ export const de: Record<string, string> = {
     'Bestätigung durch das Kind folgt nach der Übergabe',
   'Child profile unavailable': 'Kinderprofil nicht verfügbar',
   "Child's name": 'Name des Kindes',
+  'To fulfill': 'Zu erfüllen',
+  'Reward archive': 'Belohnungsarchiv',
   'Kids turn': 'Kind ist dran',
   "Child's turn": 'Kind ist dran',
   Children: 'Kinder',
@@ -396,6 +402,7 @@ export const de: Record<string, string> = {
   Selected: 'Ausgewählt',
   'Selected reward:': 'Gewählte Belohnung:',
   'Selected reward: ': 'Gewählte Belohnung: ',
+  Send: 'Senden',
   'Send counteroffer': 'Gegenvorschlag senden',
   'Send feedback': 'Rückmeldung senden',
   'Send offer': 'Angebot senden',

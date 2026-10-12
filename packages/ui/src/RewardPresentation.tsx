@@ -127,8 +127,10 @@ export function RewardCard({
 }
 export function RewardFulfillmentProgress({
   reward,
+  taskStyle = false,
 }: {
   reward: EarnedReward;
+  taskStyle?: boolean;
 }) {
   useAppLanguage();
 
@@ -169,12 +171,38 @@ export function RewardFulfillmentProgress({
           accessibilityLabel={`${step.label}. ${step.detail}${step.date ? `. ${new Date(step.date).toLocaleString(dateLocale(), { dateStyle: 'short', timeStyle: 'short' })}` : t('. Not yet completed.')}`}
           style={s.step}
         >
-          <Ionicons
-            accessible={false}
-            name={step.date ? 'checkmark-circle-outline' : 'ellipse-outline'}
-            size={22}
-            color={step.date ? homeTokens.success : homeTokens.secondary}
-          />
+          {taskStyle ? (
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: step.date
+                  ? homeTokens.mint
+                  : homeTokens.surface,
+                borderWidth: step.date ? 0 : 1,
+                borderColor: homeTokens.secondary,
+              }}
+            >
+              {step.date ? (
+                <Ionicons
+                  accessible={false}
+                  name="checkmark-outline"
+                  size={26}
+                  color={homeTokens.success}
+                />
+              ) : null}
+            </View>
+          ) : (
+            <Ionicons
+              accessible={false}
+              name={step.date ? 'checkmark-circle-outline' : 'ellipse-outline'}
+              size={22}
+              color={step.date ? homeTokens.success : homeTokens.secondary}
+            />
+          )}
           <View style={s.content}>
             <DesignText style={s.title}>{step.label}</DesignText>
             <DesignText style={s.caption}>{step.detail}</DesignText>

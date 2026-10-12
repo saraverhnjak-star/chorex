@@ -1,6 +1,13 @@
-import { t, useAppLanguage, StatusTabs, homeTokens } from '@chorex/ui';
+import {
+  t,
+  useAppLanguage,
+  StatusTabs,
+  DesignText,
+  DesignIcon,
+  homeTokens,
+} from '@chorex/ui';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { EarnedReward } from '@chorex/domain';
 import {
@@ -32,24 +39,25 @@ function PendingRewardsContent({
   const [selectedStatus, setSelectedStatus] = useState<EarnedReward['status']>(
     'PENDING_FULFILLMENT',
   );
+  const [archiveExpanded, setArchiveExpanded] = useState(false);
+  const archive =
+    received.status === 'ready'
+      ? received.rewards
+          .filter((reward) => reward.status === 'FULFILLED')
+          .sort((a, b) => Date.parse(b.fulfilledAt) - Date.parse(a.fulfilledAt))
+      : [];
   const tabs = [
     {
       status: 'PENDING_FULFILLMENT' as const,
-      label: 'Waiting',
+      label: 'To fulfill',
       empty: 'No rewards waiting for delivery',
       state: pending,
     },
     {
       status: 'AWAITING_CHILD_CONFIRMATION' as const,
-      label: 'Delivered',
+      label: 'Kids turn',
       empty: 'No rewards waiting for confirmation',
       state: awaiting,
-    },
-    {
-      status: 'FULFILLED' as const,
-      label: 'Received',
-      empty: 'No received rewards yet',
-      state: received,
     },
   ];
   const selected = tabs.find((tab) => tab.status === selectedStatus)!;
@@ -61,11 +69,16 @@ function PendingRewardsContent({
   )
     return null;
   return (
-    <View style={{ gap: homeTokens.spacing.section }}>
+    <View
+      style={{
+        gap: homeTokens.spacing.section,
+        flexGrow: preview ? undefined : 1,
+      }}
+    >
       {!preview ? (
         <StatusTabs
           testID="parent-reward-status-tabs"
-          tone="green"
+          tone="neutral"
           labels={tabs.map((tab) => tab.label)}
           selected={selected.label}
           onSelect={(label) =>
@@ -120,6 +133,58 @@ function PendingRewardsContent({
           router.push({ pathname: '/rewards/[rewardId]', params: { rewardId } })
         }
       />
+      {!preview ? (
+        <View
+          style={{
+            gap: homeTokens.spacing.medium,
+            marginTop: 'auto',
+            paddingTop: homeTokens.spacing.section,
+          }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('Reward archive')}
+            accessibilityState={{ expanded: archiveExpanded }}
+            onPress={() => setArchiveExpanded((value) => !value)}
+            style={{
+              minHeight: 44,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <DesignText style={{ fontSize: 16, color: homeTokens.secondary }}>
+              {t('Reward archive')} ({archive.length})
+            </DesignText>
+            <DesignIcon
+              accessible={false}
+              name={archiveExpanded ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={homeTokens.secondary}
+            />
+          </Pressable>
+          {archiveExpanded ? (
+            <ParentRewardList
+              showHeading={false}
+              onRetry={onRetry}
+              viewer="PARENT"
+              title={t('Reward archive')}
+              empty={t('No received rewards yet')}
+              loading={false}
+              error={received.status === 'error'}
+              fromCache={received.status === 'ready' && received.fromCache}
+              rewards={archive}
+              childNames={childNames}
+              onSelect={(rewardId) =>
+                router.push({
+                  pathname: '/rewards/[rewardId]',
+                  params: { rewardId },
+                })
+              }
+            />
+          ) : null}
+        </View>
+      ) : null}
     </View>
   );
 }

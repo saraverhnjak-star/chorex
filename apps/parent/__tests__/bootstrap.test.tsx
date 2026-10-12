@@ -460,7 +460,7 @@ it('sends an offer in one step and shows the published result', async () => {
   );
 
   expect(await screen.findByText('Offer published')).toBeOnTheScreen();
-  expect(screen.getByText('Waiting for the child response.')).toBeOnTheScreen();
+  expect(screen.getByText('Kids turn')).toBeOnTheScreen();
   expect(mockPublishOffer).toHaveBeenCalledWith(
     expect.objectContaining({
       offerId: 'offer-test-id',

@@ -5,6 +5,7 @@ import { View, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Contract, ContractTask, UserProfile } from '@chorex/domain';
 import { DesignText, homeTokens } from './Home';
+import { HomeFeatureCard } from './HomeFeatureCard';
 
 export function contractStatusLabel(
   status: Contract['status'],
@@ -32,12 +33,14 @@ export function ContractSummary({
   viewer,
   participantName,
   isParticipant = true,
+  cardHeader = false,
 }: {
   contract: Contract;
   tasks: readonly ContractTask[];
   viewer: UserProfile['accountType'];
   participantName?: string;
   isParticipant?: boolean;
+  cardHeader?: boolean;
 }) {
   useAppLanguage();
 
@@ -87,6 +90,79 @@ export function ContractSummary({
   ).length;
   const completed = tasks.reduce((sum, task) => sum + task.completedCount, 0);
   const required = tasks.reduce((sum, task) => sum + task.targetCount, 0);
+  if (cardHeader)
+    return (
+      <View style={{ gap: homeTokens.spacing.medium }}>
+        <HomeFeatureCard
+          tone="blue"
+          titleAccessibilityLabel={t('Promised reward: {0}, {1}', {
+            '0': contract.rewardTerms.title,
+            '1': t(contract.rewardTerms.type),
+          })}
+          badgeAccessibilityLabel={t('Contract status: {0}', {
+            '0': contractStatusLabel(status, viewer),
+          })}
+          detailAccessibilityLabel={t('Deadline: {0}', {
+            '0': new Date(contract.deadlineAt).toLocaleString(dateLocale(), {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }),
+          })}
+          badge={
+            viewer === 'PARENT' && status === 'READY_FOR_REVIEW'
+              ? t('Your turn')
+              : contractStatusLabel(status, viewer)
+          }
+          title={contract.rewardTerms.title}
+          reward={contract.rewardTerms}
+          detail={t('Due {0}{1}', {
+            '0': new Date(contract.deadlineAt).toLocaleString(dateLocale(), {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }),
+            '1':
+              viewer === 'PARENT' && participantName
+                ? ` · ${participantName}`
+                : '',
+          })}
+        >
+          <CompletionBar
+            tone="blue"
+            completed={completed}
+            required={required}
+            height={14}
+            backgroundColor={homeTokens.surface}
+          />
+        </HomeFeatureCard>
+        {contract.rewardTerms.description ? (
+          <DesignText
+            style={[
+              s.body,
+              {
+                fontSize: 20,
+                lineHeight: 28,
+                marginTop: homeTokens.spacing.medium,
+              },
+            ]}
+          >
+            {contract.rewardTerms.description}
+          </DesignText>
+        ) : null}
+        {status === 'APPROVED' && responsibility && isParticipant ? (
+          <DesignText style={s.body}>{responsibility}</DesignText>
+        ) : null}
+        {contract.approvedAt ? (
+          <DesignText style={s.caption}>
+            {t('Approved: {0}', {
+              '0': new Date(contract.approvedAt).toLocaleString(dateLocale(), {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              }),
+            })}
+          </DesignText>
+        ) : null}
+      </View>
+    );
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
       <View
@@ -208,9 +284,6 @@ export function ContractSummary({
             decorative
             tone="blue"
           />
-          <DesignText style={s.caption}>
-            {completed} / {required} {t('completions recorded')}
-          </DesignText>
         </View>
       ) : null}
     </View>
@@ -222,11 +295,15 @@ export function CompletionBar({
   required,
   decorative = false,
   tone = 'green',
+  height = 6,
+  backgroundColor,
 }: {
   completed: number;
   required: number;
   decorative?: boolean;
   tone?: 'green' | 'blue';
+  height?: number;
+  backgroundColor?: string;
 }) {
   useAppLanguage();
 
@@ -246,11 +323,16 @@ export function CompletionBar({
           '1': required,
         }),
       }}
-      style={s.track}
+      style={[
+        s.track,
+        { height },
+        backgroundColor ? { backgroundColor } : undefined,
+      ]}
     >
       <View
         style={[
           s.fill,
+          { height },
           tone === 'blue'
             ? { backgroundColor: amberAuroraPalette.auroraBlue }
             : undefined,

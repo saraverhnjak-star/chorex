@@ -78,7 +78,7 @@ export function OfferTabs(props: {
       importantForAccessibility={loading ? 'no-hide-descendants' : 'auto'}
     >
       <StatusTabs
-        tone="orange"
+        tone="neutral"
         labels={['Counteroffers', 'Sent']}
         counts={counts}
         selected={selected === 'counter' ? 'Counteroffers' : 'Sent'}

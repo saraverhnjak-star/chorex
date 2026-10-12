@@ -100,3 +100,5 @@ export {
 } from './localization';
 export { translateMessage } from './localization';
 export { NativeLanguageSelect } from './NativeLanguageSelect';
+
+export { default as DesignIcon } from '@expo/vector-icons/Ionicons';

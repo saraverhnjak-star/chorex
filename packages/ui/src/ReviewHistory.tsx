@@ -12,12 +12,16 @@ export function ReviewHistory({
   error,
   fromCache = false,
   collapsible = false,
+  hideIcons = false,
+  backgroundColor,
 }: {
   reviews: readonly ContractReview[];
   loading: boolean;
   error: boolean;
   fromCache?: boolean;
   collapsible?: boolean;
+  hideIcons?: boolean;
+  backgroundColor?: string;
 }) {
   useAppLanguage();
 
@@ -109,29 +113,39 @@ export function ReviewHistory({
                       key={review.id}
                       style={{
                         gap: 8,
-                        borderLeftWidth: 2,
+                        borderLeftWidth: backgroundColor ? 0 : 2,
                         borderLeftColor:
                           review.decision === 'APPROVE'
                             ? homeTokens.success
                             : homeTokens.attentionText,
-                        paddingLeft: 12,
-                        paddingVertical: 8,
+                        backgroundColor,
+                        borderRadius: backgroundColor
+                          ? homeTokens.radius.card
+                          : 0,
+                        paddingHorizontal: backgroundColor
+                          ? homeTokens.spacing.medium
+                          : 12,
+                        paddingVertical: backgroundColor
+                          ? homeTokens.spacing.medium
+                          : 8,
                       }}
                     >
-                      <Ionicons
-                        accessible={false}
-                        name={
-                          review.decision === 'APPROVE'
-                            ? 'checkmark-circle-outline'
-                            : 'chatbox-outline'
-                        }
-                        size={20}
-                        color={
-                          review.decision === 'APPROVE'
-                            ? homeTokens.success
-                            : homeTokens.attentionText
-                        }
-                      />
+                      {!hideIcons ? (
+                        <Ionicons
+                          accessible={false}
+                          name={
+                            review.decision === 'APPROVE'
+                              ? 'checkmark-circle-outline'
+                              : 'chatbox-outline'
+                          }
+                          size={20}
+                          color={
+                            review.decision === 'APPROVE'
+                              ? homeTokens.success
+                              : homeTokens.attentionText
+                          }
+                        />
+                      ) : null}
                       <Text
                         allowFontScaling={false}
                         accessibilityRole="header"

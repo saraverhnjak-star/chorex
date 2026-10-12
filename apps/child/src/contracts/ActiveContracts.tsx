@@ -171,6 +171,7 @@ function ActiveContractsContent({
               (contract) => (
                 <HomeContractRow
                   preview
+                  showTasks={preview}
                   key={contract.id}
                   contract={contract}
                   authUid={authUid}

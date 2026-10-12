@@ -22,7 +22,7 @@ export function ContractTabs(props: {
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
       <StatusTabs
-        tone="blue"
+        tone="neutral"
         labels={['For review', 'Active']}
         selected={selected === 'review' ? 'For review' : 'Active'}
         onSelect={(label) =>

@@ -4,8 +4,9 @@ import {
   HomeScreenFrame,
   HomeHeader,
   DesignText,
-  homeTokens,
+  amberAuroraPalette,
 } from '@chorex/ui';
+import { useChildFamily } from '../../src/navigation/FamilyContext';
 import { Pressable } from 'react-native';
 import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import { useChildSession } from '../../src/auth/session';
@@ -18,6 +19,7 @@ export default function ContractScreen() {
     contractId: string | string[];
   }>();
   const session = useChildSession();
+  const family = useChildFamily();
   const router = useRouter();
 
   if (!session.user) return <Redirect href="/" />;
@@ -30,7 +32,11 @@ export default function ContractScreen() {
         <HomeHeader
           child
           compact
-          name={t('Child')}
+          name={
+            family?.state.status === 'ready'
+              ? family.state.home.profile.displayName
+              : (t('Child'))
+          }
           leading={
             <Pressable
               accessibilityRole="link"
@@ -42,8 +48,13 @@ export default function ContractScreen() {
               }
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
-              <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                {t('← My chores')}
+              <DesignText
+                style={{
+                  fontSize: 14,
+                  color: amberAuroraPalette.navigationActive,
+                }}
+              >
+                ← {t('Back')}
               </DesignText>
             </Pressable>
           }

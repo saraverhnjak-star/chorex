@@ -1,3 +1,4 @@
+import { DraftSectionHeading } from './DraftSectionHeading';
 import {
   t,
   useAppLanguage,
@@ -14,7 +15,7 @@ import {
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { DeadlinePicker } from './DeadlinePicker';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,31 +37,6 @@ import {
   type PublishOfferOutput,
 } from '@chorex/domain';
 import { getFamilyErrorMessage } from '../family/messages';
-
-function DraftSectionHeading({
-  children,
-  tone,
-}: {
-  children: ReactNode;
-  tone: 'blue' | 'mint' | 'coralSurface' | 'lavender';
-}) {
-  return (
-    <View
-      style={{
-        borderTopWidth: tone === 'blue' ? 0 : 1,
-        borderColor: homeTokens.border,
-        paddingTop: tone === 'blue' ? 0 : homeTokens.spacing.medium,
-      }}
-    >
-      <DesignText
-        accessibilityRole="header"
-        style={{ fontSize: 16, fontWeight: '700', color: homeTokens.text }}
-      >
-        {children}
-      </DesignText>
-    </View>
-  );
-}
 
 const targetCountTextSchema = z
   .string()
@@ -153,42 +129,27 @@ function SavedDraft({
 }) {
   useAppLanguage();
 
-  const dynamicType = useDynamicTypeStyles();
   return (
-    <View style={{ gap: homeTokens.spacing.section }}>
-      <Text
-        allowFontScaling={false}
+    <View style={{ gap: homeTokens.spacing.medium }}>
+      <DesignText
         accessibilityLiveRegion="polite"
-        className="font-bold text-home-text"
         style={{
-          ...dynamicType.body,
-          fontWeight: '700',
-          color: homeTokens.secondary,
+          fontSize: 14,
+          fontWeight: '600',
+          color: published ? homeTokens.success : homeTokens.secondary,
         }}
       >
         {published ? t('Offer published') : t('Offer not sent yet')}
-      </Text>
+      </DesignText>
       <ProposalTerms
+        cardHeader
         layout="rewardFirst"
         revision={draft.revision}
-        author={childName ? t('For {0}', { '0': childName }) : undefined}
+        participantName={childName}
         status={published ? t('Kids turn') : t('Not sent')}
-        support={
-          published
-            ? t('{0} can accept, decline or counter the reward.', {
-                '0': childName ?? t('The child'),
-              })
-            : t('Retry sending this offer to your child.')
-        }
       />
-      {published ? (
-        <Text
-          allowFontScaling={false}
-          className="font-semibold text-home-text"
-          style={dynamicType.body}
-        >
-          {t('Waiting for the child response.')}
-        </Text>
+      {!published ? (
+        <FormMessage message={t('Retry sending this offer to your child.')} />
       ) : null}
     </View>
   );

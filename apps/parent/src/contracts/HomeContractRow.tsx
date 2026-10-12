@@ -3,6 +3,7 @@ import {
   dateLocale,
   useAppLanguage,
   CompletionBar,
+  contractStatusLabel,
   DesignText,
   homeTokens,
 } from '@chorex/ui';
@@ -39,13 +40,22 @@ export function HomeContractRow({
         }
       : undefined;
   return (
-    <ParentHomeCard>
+    <ParentHomeCard tone="blue">
       <ParentHomeRow
         dense={preview}
         title={contract.rewardTerms.title}
         detail={`${childName ?? t('Child')} · ${new Date(contract.deadlineAt).toLocaleDateString(dateLocale())}`}
         reward={contract.rewardTerms}
-        artRight
+        artRight={
+          contract.status === 'ACTIVE' ||
+          contract.status === 'CHANGES_REQUESTED'
+        }
+        tone="blue"
+        badge={
+          contract.status === 'READY_FOR_REVIEW'
+            ? t('Your turn')
+            : contractStatusLabel(contract.status, 'PARENT')
+        }
         label={t('Open Contract: {0}{1}', {
           '0': childName ? `${childName} · ` : '',
           '1': contract.rewardTerms.title,
@@ -55,11 +65,14 @@ export function HomeContractRow({
         {progress ? (
           <>
             <CompletionBar
+              tone="blue"
+              height={14}
+              backgroundColor={homeTokens.surface}
               completed={progress.completed}
               required={progress.required}
             />
             <DesignText style={{ fontSize: 13, color: homeTokens.secondary }}>
-              {t('{0} of {1} completions', {
+              {t('{0} of {1} tasks', {
                 '0': progress.completed,
                 '1': progress.required,
               })}

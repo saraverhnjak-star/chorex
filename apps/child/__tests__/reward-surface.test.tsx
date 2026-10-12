@@ -127,7 +127,7 @@ it('empty/error/cache state and scoped listener cleanup cannot retain another fa
   expect(screen.getByTestId('reward-status-tabs')).toBeOnTheScreen();
   expect(
     screen.getAllByRole('tab').map((tab) => tab.props.accessibilityLabel),
-  ).toEqual(['Your turn', "Parent's turn"]);
+  ).toEqual(["Parent's turn", 'Your turn']);
   const old = mockList;
   view.rerender(<EarnedRewards familyId="family-2" authUid="child-2" />);
   expect(mockStop).toHaveBeenCalled();
@@ -142,7 +142,13 @@ it('Child detail shows frozen terms/status/timestamps and never exposes Parent c
   render(<RewardDetail rewardId="reward-1" authUid="child-1" />);
   act(() => mockReward({ data: reward, fromCache: false }));
   expect(screen.getByText('Choose a movie')).toBeOnTheScreen();
-  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(screen.getByText("Parent's turn")).toBeOnTheScreen();
+  const journey = screen.getByRole('button', { name: 'Reward journey' });
+  expect(journey.props.accessibilityState.expanded).toBe(false);
+  fireEvent.press(journey);
+  expect(journey.props.accessibilityState.expanded).toBe(true);
+  fireEvent.press(journey);
+  expect(journey.props.accessibilityState.expanded).toBe(false);
   act(() =>
     mockReward({
       data: {
@@ -196,7 +202,7 @@ it('keeps both status tabs equal after layout and selection changes', () => {
     expect(tab).toHaveStyle({ flex: 1, minHeight: 44 });
   expect(
     screen.getAllByRole('tab').map((tab) => tab.props.accessibilityLabel),
-  ).toEqual(['Your turn', "Parent's turn"]);
+  ).toEqual(["Parent's turn", 'Your turn']);
   fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));
   for (const tab of screen.getAllByRole('tab'))
     expect(tab).toHaveStyle({ flex: 1, minHeight: 44 });

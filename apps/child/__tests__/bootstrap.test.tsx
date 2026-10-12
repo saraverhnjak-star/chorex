@@ -453,7 +453,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     screen.getByLabelText('Counteroffer note (optional)'),
     'This feels fair.',
   );
-  fireEvent.press(screen.getByRole('button', { name: 'Send counteroffer' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Send' }));
   expect(await screen.findByText('Waiting for parent')).toBeOnTheScreen();
   expect(screen.queryByText('Load the dishwasher')).not.toBeOnTheScreen();
   expect(mockCounterOffer).toHaveBeenCalledWith({

@@ -2,15 +2,20 @@ import { t, useAppLanguage } from './localization';
 import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { DesignText as Text, homeTokens } from './Home';
+import { amberAuroraColors } from './theme';
 import { FormMessage } from './FormMessage';
 
 export function ReviewFeedback({
   note,
+  compact = false,
+  rejected = false,
   loading,
   error,
   fromCache = false,
 }: {
   note?: string;
+  compact?: boolean;
+  rejected?: boolean;
   loading: boolean;
   error: boolean;
   fromCache?: boolean;
@@ -27,30 +32,44 @@ export function ReviewFeedback({
         gap: 12,
         padding: homeTokens.spacing.medium,
         borderRadius: 16,
-        backgroundColor: homeTokens.attention,
+        backgroundColor: rejected
+          ? `${amberAuroraColors.danger}15`
+          : homeTokens.attention,
       }}
     >
-      <Ionicons
-        accessible={false}
-        name="chatbox-ellipses-outline"
-        size={24}
-        color={homeTokens.attentionText}
-      />
-      <Text
-        allowFontScaling={false}
-        accessibilityLiveRegion="polite"
-        className="text-home-text"
-        style={styles.body}
-      >
-        {t('Changes were requested. The reward has not been earned.')}
-      </Text>
+      {!compact ? (
+        <>
+          <Ionicons
+            accessible={false}
+            name="chatbox-ellipses-outline"
+            size={24}
+            color={homeTokens.attentionText}
+          />
+          <Text
+            allowFontScaling={false}
+            accessibilityLiveRegion="polite"
+            className="text-home-text"
+            style={styles.body}
+          >
+            {t('Changes were requested. The reward has not been earned.')}
+          </Text>
+        </>
+      ) : null}
       <Text
         allowFontScaling={false}
         accessibilityRole="header"
         className="font-semibold text-home-text"
-        style={styles.body}
+        style={
+          rejected
+            ? {
+                ...styles.body,
+                color: amberAuroraColors.danger,
+                fontWeight: '700',
+              }
+            : styles.body
+        }
       >
-        {t('Parent feedback')}
+        {rejected ? t('The agreement was rejected.') : t('Parent feedback')}
       </Text>
       {loading ? (
         <Text

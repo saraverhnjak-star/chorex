@@ -75,14 +75,12 @@ export function RewardDetailBody({
         </Text>
       ) : null}
       {reward ? (
-        <RewardSummary reward={reward} childName={childName} viewer={viewer} />
-      ) : null}
-      {children ? (
-        <View
-          style={{ marginTop: 'auto', paddingTop: homeTokens.spacing.section }}
-        >
-          {children}
-        </View>
+        <RewardSummary
+          reward={reward}
+          childName={childName}
+          viewer={viewer}
+          actions={children}
+        />
       ) : null}
     </View>
   );

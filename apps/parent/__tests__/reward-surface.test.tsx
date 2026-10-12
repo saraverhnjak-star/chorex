@@ -98,7 +98,7 @@ it('renders multiple obligations and empty/cache/error states; realtime removes 
       fromCache: true,
     }),
   );
-  expect(screen.getByRole('tab', { name: 'Waiting' })).toBeOnTheScreen();
+  expect(screen.getByRole('tab', { name: 'To fulfill' })).toBeOnTheScreen();
   expect(
     screen.getByRole('button', { name: /^Open\ reward:\ Mia\ ·\ Cinema\./ }),
   ).toBeOnTheScreen();
@@ -157,7 +157,13 @@ it('deliberate confirmation is cancellable, pending blocks duplicate taps and su
     }),
   );
   expect(screen.getByLabelText('Reward status: Delivered')).toBeOnTheScreen();
-  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(
+    screen.queryByRole('button', { name: 'Mark as delivered' }),
+  ).toBeNull();
+  expect(screen.getByRole('button', { name: 'Reward journey' })).toHaveProp(
+    'accessibilityState',
+    { expanded: false },
+  );
   act(() =>
     mockReward({
       data: {
@@ -174,7 +180,13 @@ it('deliberate confirmation is cancellable, pending blocks duplicate taps and su
   );
   expect(screen.getByLabelText('Reward status: Received')).toBeOnTheScreen();
   expect(screen.queryByText('Waiting for child confirmation')).toBeNull();
-  expect(screen.queryAllByRole('button')).toHaveLength(0);
+  expect(
+    screen.queryByRole('button', { name: 'Mark as delivered' }),
+  ).toBeNull();
+  expect(screen.getByRole('button', { name: 'Reward journey' })).toHaveProp(
+    'accessibilityState',
+    { expanded: false },
+  );
 });
 it('offline failure never claims delivery and retry keeps the original key', async () => {
   mockFulfill
@@ -266,18 +278,21 @@ it('filters Parent reward tabs and shows a counter for every populated status', 
       fromCache: false,
     });
   });
-  expect(screen.getAllByText('1')).toHaveLength(3);
+  expect(screen.getAllByText(/\(1\)$/)).toHaveLength(3);
   expect(screen.getByText('Cinema')).toBeOnTheScreen();
   expect(screen.queryByText('Book')).toBeNull();
-  fireEvent.press(screen.getByRole('tab', { name: 'Delivered' }));
+  fireEvent.press(screen.getByRole('tab', { name: 'Kids turn' }));
   expect(screen.getByText('Book')).toBeOnTheScreen();
   expect(screen.queryByText('Cinema')).toBeNull();
   expect(screen.getByText('Kids turn')).toBeOnTheScreen();
-  fireEvent.press(screen.getByRole('tab', { name: 'Received' }));
+  expect(screen.queryByRole('tab', { name: 'Received' })).toBeNull();
+  expect(screen.queryByText('Park')).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Reward archive' }));
   expect(screen.getByText('Park')).toBeOnTheScreen();
-  expect(screen.queryByText('Book')).toBeNull();
-  expect(screen.queryByText('Kids turn')).toBeNull();
-  for (const name of ['Waiting', 'Delivered', 'Received']) {
+  expect(screen.getByText('Book')).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Reward archive' }));
+  expect(screen.queryByText('Park')).toBeNull();
+  for (const name of ['To fulfill', 'Kids turn']) {
     expect(screen.getByRole('tab', { name }).props.style.flex).toBe(1);
   }
 });

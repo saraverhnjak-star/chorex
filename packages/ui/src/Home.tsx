@@ -137,7 +137,9 @@ export function NavigationFrame({
                   name={item.icon}
                   size={iconSize}
                   color={
-                    active === item.id ? accentColor : homeTokens.secondary
+                    active === item.id
+                      ? amberAuroraPalette.navigationActive
+                      : amberAuroraPalette.navigationInactive
                   }
                 />
               )}
@@ -228,11 +230,15 @@ export function CollectionHeading({
   onSeeAll,
   label = t('See all'),
   count,
+  countTone = 'coral',
+  seeAllColor = homeTokens.coralText,
 }: {
   children: ReactNode;
   onSeeAll?: () => void;
   label?: string;
   count?: number;
+  countTone?: 'coral' | 'green';
+  seeAllColor?: string;
 }) {
   useAppLanguage();
 
@@ -255,7 +261,9 @@ export function CollectionHeading({
           }}
         >
           <SectionHeading>{children}</SectionHeading>
-          {count !== undefined ? <CountBadge count={count} /> : null}
+          {count !== undefined ? (
+            <CountBadge count={count} tone={countTone} />
+          ) : null}
         </View>
       </View>
       {onSeeAll ? (
@@ -266,7 +274,7 @@ export function CollectionHeading({
           hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
           style={{ minHeight: 24, justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: 14, color: homeTokens.coralText }}>
+          <Text style={{ fontSize: 14, color: seeAllColor }}>
             {t('See all →')}
           </Text>
         </Pressable>
@@ -382,7 +390,13 @@ export function QuickActions() {
     </View>
   );
 }
-export function CountBadge({ count }: { count: number }) {
+export function CountBadge({
+  count,
+  tone = 'coral',
+}: {
+  count: number;
+  tone?: 'coral' | 'green';
+}) {
   useAppLanguage();
 
   if (count <= 0) return null;
@@ -392,8 +406,9 @@ export function CountBadge({ count }: { count: number }) {
       style={{
         overflow: 'hidden',
         borderRadius: homeTokens.radius.pill,
-        backgroundColor: homeTokens.coralSurface,
-        color: homeTokens.coralText,
+        backgroundColor:
+          tone === 'green' ? homeTokens.mint : homeTokens.coralSurface,
+        color: tone === 'green' ? homeTokens.success : homeTokens.coralText,
         fontSize: 13,
         fontWeight: '600',
         paddingHorizontal: 8,

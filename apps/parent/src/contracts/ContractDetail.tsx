@@ -2,12 +2,13 @@ import {
   t,
   useAppLanguage,
   ContractSummary,
-  TermsHeading,
   FormMessage,
   homeTokens,
+  amberAuroraColors,
   ReviewFeedback,
   ReviewHistory,
-  TaskProgress,
+  DesignText,
+  DesignIcon,
   useDynamicTypeStyles,
 } from '@chorex/ui';
 import { ApproveContractAction } from './ApproveContractAction';
@@ -22,10 +23,12 @@ export function ContractDetail({
   contractId,
   authUid,
   childNames = {},
+  requestChangesOnly = false,
 }: {
   contractId: string;
   authUid: string | undefined;
   childNames?: Readonly<Record<string, string>>;
+  requestChangesOnly?: boolean;
 }) {
   useAppLanguage();
 
@@ -77,6 +80,19 @@ export function ContractDetail({
     );
   const { contract, tasks, fromCache } = state;
   const childName = childNames[contract.childUid];
+  if (requestChangesOnly)
+    return contract.status === 'READY_FOR_REVIEW' ? (
+      <ApproveContractAction
+        key={`${contract.id}:${authUid}`}
+        contract={contract}
+        authUid={authUid}
+        requestChangesOnly
+      />
+    ) : (
+      <FormMessage
+        message={t('This Contract is no longer waiting for review.')}
+      />
+    );
   return (
     <View className="gap-4" style={{ flexGrow: 1 }}>
       {fromCache ? (
@@ -90,6 +106,7 @@ export function ContractDetail({
         </Text>
       ) : null}
       <ContractSummary
+        cardHeader
         contract={contract}
         tasks={tasks}
         viewer="PARENT"
@@ -102,10 +119,8 @@ export function ContractDetail({
           className="gap-3"
           style={{ marginTop: homeTokens.spacing.section }}
         >
-          <TermsHeading icon="chatbox-ellipses-outline">
-            {t('Current request')}
-          </TermsHeading>
           <ReviewFeedback
+            compact
             loading={feedback.status === 'loading'}
             error={feedback.status === 'error'}
             note={
@@ -126,26 +141,72 @@ export function ContractDetail({
       ) : (
         <View
           style={{
-            marginTop: homeTokens.spacing.section,
-            gap: homeTokens.spacing.section,
+            marginTop: homeTokens.spacing.small,
+            gap: homeTokens.spacing.small,
           }}
         >
-          {tasks.map((task) => (
-            <View key={task.id} className="gap-2">
-              <TaskProgress
-                compact
-                title={task.title}
-                description={task.description}
-                completedCount={task.completedCount}
-                targetCount={task.targetCount}
-              />
-            </View>
-          ))}
+          {tasks.flatMap((task) =>
+            Array.from({ length: task.targetCount }, (_, index) => (
+              <View
+                key={`${task.id}:${index}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: homeTokens.spacing.medium,
+                  paddingVertical: homeTokens.spacing.small,
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor:
+                      index < task.completedCount
+                        ? homeTokens.mint
+                        : homeTokens.surface,
+                    borderWidth: index < task.completedCount ? 0 : 1,
+                    borderColor: homeTokens.secondary,
+                  }}
+                >
+                  {index < task.completedCount ? (
+                    <DesignIcon
+                      accessible={false}
+                      name="checkmark-outline"
+                      size={26}
+                      color={homeTokens.success}
+                    />
+                  ) : null}
+                </View>
+                <View style={{ flex: 1, gap: homeTokens.spacing.small }}>
+                  <DesignText
+                    style={{
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: homeTokens.text,
+                    }}
+                  >
+                    {task.title}
+                  </DesignText>
+                  {task.description ? (
+                    <DesignText
+                      style={{ fontSize: 14, color: homeTokens.secondary }}
+                    >
+                      {task.description}
+                    </DesignText>
+                  ) : null}
+                </View>
+              </View>
+            )),
+          )}
         </View>
       )}
       {history.status !== 'ready' || history.reviews.length > 0 ? (
         <ReviewHistory
-          collapsible
+          hideIcons
+          backgroundColor={`${amberAuroraColors.danger}15`}
           key={`${contract.id}:${authUid}`}
           loading={history.status === 'loading'}
           error={history.status === 'error'}

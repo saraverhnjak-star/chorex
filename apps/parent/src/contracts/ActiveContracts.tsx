@@ -1,10 +1,11 @@
+import { amberAuroraPalette } from '@chorex/ui';
+import { ParentEmptyState } from '../navigation/ParentEmptyState';
 import {
   t,
   useAppLanguage,
   Button,
   HomeEmptyState,
   CollectionHeading,
-  OfferOutcome,
   FormMessage,
   useDynamicTypeStyles,
 } from '@chorex/ui';
@@ -117,6 +118,7 @@ function ContractList({
     <View className="gap-4">
       {showHeading ? (
         <CollectionHeading
+          seeAllColor={amberAuroraPalette.navigationActive}
           count={
             !preview && state.status === 'ready'
               ? state.contracts.length
@@ -163,15 +165,13 @@ function ContractList({
           ) : null}
           {state.contracts.length === 0 ? (
             preview ? (
-              <HomeEmptyState>
+              <HomeEmptyState showIcon={false}>
                 {state.fromCache
                   ? t('No active agreements saved yet.')
                   : t('No active agreements')}
               </HomeEmptyState>
             ) : (
-              <OfferOutcome
-                centered
-                illustration="no-chores"
+              <ParentEmptyState
                 title={
                   readyForReview
                     ? t('Nothing waiting for review')
@@ -187,7 +187,7 @@ function ContractList({
                   : readyForReview
                     ? t('No Contracts awaiting review.')
                     : t('No active Contracts yet.')}
-              </OfferOutcome>
+              </ParentEmptyState>
             )
           ) : (
             (preview ? state.contracts.slice(0, 3) : state.contracts).map(

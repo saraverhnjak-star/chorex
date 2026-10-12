@@ -1,3 +1,4 @@
+import { amberAuroraPalette } from '@chorex/ui';
 import {
   t,
   useAppLanguage,
@@ -11,7 +12,7 @@ import {
 import { ParentHomeCard, ParentHomeRow } from './ParentHomeRow';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
 import {
   subscribeToCurrentParentNegotiationInbox,
   subscribeToCurrentChildOfferInbox,
@@ -199,19 +200,13 @@ function AttentionContent({
           flexGrow: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          gap: homeTokens.spacing.card,
+          gap: homeTokens.spacing.medium,
         }}
       >
-        <Image
-          accessible={false}
-          source={require('../../../../packages/ui/assets/icons/no_activities.png')}
-          resizeMode="contain"
-          style={{ width: 120, height: 120 }}
-        />
         <DesignText
           accessibilityRole="header"
           style={{
-            fontSize: 24,
+            fontSize: 20,
             fontWeight: '700',
             color: homeTokens.text,
             textAlign: 'center',
@@ -252,6 +247,7 @@ function AttentionContent({
       />
       <HomeAttentionList
         hideWhenEmpty
+        countTone="green"
         heading={t('Rewards to fulfill')}
         empty={t('No rewards waiting for delivery')}
         items={items.filter((item) => item.id.startsWith('reward:'))}
@@ -272,10 +268,12 @@ export function HomeAttentionList({
   cached = false,
   onRetry,
   hideWhenEmpty = false,
+  countTone = 'coral',
   heading = t('Needs your attention'),
   empty = t('Nothing needs your attention'),
 }: {
   hideWhenEmpty?: boolean;
+  countTone?: 'coral' | 'green';
   heading?: string;
   empty?: string;
   items: readonly {
@@ -298,51 +296,62 @@ export function HomeAttentionList({
   if (hideWhenEmpty && !loading && !error && items.length === 0) return null;
   return (
     <View style={{ gap: homeTokens.spacing.medium }}>
-      <CollectionHeading count={items.length}>{heading}</CollectionHeading>
+      <CollectionHeading
+        seeAllColor={amberAuroraPalette.navigationActive}
+        count={items.length}
+        countTone={countTone}
+      >
+        {heading}
+      </CollectionHeading>
       {cached ? (
         <DesignText style={{ fontSize: 12, color: homeTokens.secondary }}>
           {t('Showing saved data. Updates may be pending.')}
         </DesignText>
       ) : null}
       {items.length ? (
-        <ParentHomeCard>
-          {items.slice(0, 3).map((item, index) => {
+        <View style={{ gap: homeTokens.spacing.medium }}>
+          {items.slice(0, 3).map((item) => {
             const sent = item.id.startsWith('sent:');
             const offer = item.id.startsWith('offer:') || sent;
             const reward = item.id.startsWith('reward:');
             return (
-              <ParentHomeRow
-                dense
+              <ParentHomeCard
                 key={item.id}
-                separator={index > 0}
-                title={item.cardTitle ?? (sent ? item.title : item.detail)}
-                detail={item.childName ?? (sent ? item.detail : item.title)}
-                reward={item.reward ?? { type: 'CUSTOM', iconKey: 'gift' }}
-                badge={
-                  offer
-                    ? sent
-                      ? t('Kids turn')
-                      : t('Counteroffer')
-                    : reward
-                      ? t('Your turn')
-                      : t('For review')
-                }
-                action={
-                  offer
-                    ? t('View proposal')
-                    : reward
-                      ? t('Fulfill reward')
-                      : t('Review work')
-                }
-                label={`${item.title}: ${item.detail}`}
-                button={reward}
-                onPress={item.onPress}
-              />
+                tone={reward ? 'mint' : offer ? 'coralSurface' : 'blue'}
+              >
+                <ParentHomeRow
+                  dense
+                  tone={reward ? 'mint' : offer ? 'coralSurface' : 'blue'}
+                  title={item.cardTitle ?? (sent ? item.title : item.detail)}
+                  detail={item.childName ?? (sent ? item.detail : item.title)}
+                  reward={item.reward ?? { type: 'CUSTOM', iconKey: 'gift' }}
+                  badge={
+                    offer
+                      ? sent
+                        ? t('Kids turn')
+                        : t('Counteroffer')
+                      : reward
+                        ? t('Your turn')
+                        : t('For review')
+                  }
+                  action={
+                    offer
+                      ? t('View proposal')
+                      : reward
+                        ? t('Fulfill reward')
+                        : t('Review work')
+                  }
+                  label={`${item.title}: ${item.detail}`}
+                  button={reward}
+                  onPress={item.onPress}
+                />
+              </ParentHomeCard>
             );
           })}
-        </ParentHomeCard>
+        </View>
       ) : (
         <HomeEmptyState
+          showIcon={false}
           icon={
             loading
               ? 'time-outline'

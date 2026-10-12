@@ -12,13 +12,19 @@ export function HomeFeatureCard({
   badge,
   tone = 'surface',
   children,
+  titleAccessibilityLabel,
+  badgeAccessibilityLabel,
+  detailAccessibilityLabel,
 }: {
   title: string;
   detail: string;
   reward: Pick<RewardTerms, 'type' | 'iconKey'>;
   badge?: string;
-  tone?: 'surface' | 'mint' | 'coralSurface';
+  tone?: 'surface' | 'mint' | 'coralSurface' | 'blue';
   children?: ReactNode;
+  titleAccessibilityLabel?: string;
+  badgeAccessibilityLabel?: string;
+  detailAccessibilityLabel?: string;
 }) {
   return (
     <View style={[s.card, { backgroundColor: homeTokens[tone] }]}>
@@ -52,6 +58,7 @@ export function HomeFeatureCard({
         <View style={{ flex: 1, gap: 6 }}>
           {badge ? (
             <DesignText
+              accessibilityLabel={badgeAccessibilityLabel}
               style={[
                 s.badge,
                 {
@@ -65,8 +72,19 @@ export function HomeFeatureCard({
               {badge}
             </DesignText>
           ) : null}
-          <DesignText style={s.title}>{title}</DesignText>
-          <DesignText style={s.detail}>{detail}</DesignText>
+          <DesignText
+            accessibilityRole="header"
+            accessibilityLabel={titleAccessibilityLabel}
+            style={s.title}
+          >
+            {title}
+          </DesignText>
+          <DesignText
+            accessibilityLabel={detailAccessibilityLabel}
+            style={s.detail}
+          >
+            {detail}
+          </DesignText>
         </View>
       </View>
       {children}

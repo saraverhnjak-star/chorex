@@ -4,7 +4,7 @@ import {
   HomeScreenFrame,
   HomeHeader,
   DesignText,
-  homeTokens,
+  amberAuroraPalette,
 } from '@chorex/ui';
 import { Pressable } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -41,8 +41,13 @@ export default function RewardScreen() {
               }
               style={{ minHeight: 44, justifyContent: 'center' }}
             >
-              <DesignText style={{ fontSize: 14, color: homeTokens.coralText }}>
-                {t('← Rewards')}
+              <DesignText
+                style={{
+                  fontSize: 14,
+                  color: amberAuroraPalette.navigationActive,
+                }}
+              >
+                ← {t('Back')}
               </DesignText>
             </Pressable>
           }
