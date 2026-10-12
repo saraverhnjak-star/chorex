@@ -129,7 +129,7 @@ it('localizes errors and interpolation without translating inserted user content
     'Dogovor z otrokom Home',
   );
   setAppLanguage('hr');
-  expect(t('Your turn')).toBe('Ti si na redu');
+  expect(t('Your turn')).toBe('Čeka na tebe');
 });
 it('has complete catalogs with matching interpolation parameters for all product translation calls', () => {
   const catalogs = [de, sl, hr];

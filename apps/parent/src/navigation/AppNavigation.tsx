@@ -33,7 +33,10 @@ export function AppNavigation({ children }: { children: ReactNode }) {
   return (
     <ParentFamilyProvider>
       <NavigationFrame
+        showLabels={false}
+        iconSize={32}
         accentColor={amberAuroraPalette.deepBlue}
+        prominentColor={amberAuroraPalette.auroraBlue}
         items={items.map((item) => ({ ...item, label: t(item.label) }))}
         active={active}
         onNavigate={(id) => {

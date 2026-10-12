@@ -88,13 +88,13 @@ export function ParentRewardList({
               dense
               title={reward.terms.title}
               reward={reward.terms}
-              detail={`${childName ? `${childName} · ` : ''}${pending ? t('Earned') : reward.status === 'AWAITING_CHILD_CONFIRMATION' ? t('Delivered') : t('Received')}`}
+              detail={childName ?? t('Child')}
               badge={
                 pending
-                  ? t('Your turn to deliver')
+                  ? t('Your turn')
                   : reward.status === 'FULFILLED'
                     ? t('Received')
-                    : t("Child's turn")
+                    : t('Kids turn')
               }
               action={pending ? t('Fulfill reward') : t('Open reward')}
               button={pending}
@@ -102,10 +102,10 @@ export function ParentRewardList({
                 '0': childName ? `${childName} · ` : '',
                 '1': reward.terms.title,
                 '2': pending
-                  ? t('Your turn to deliver')
+                  ? t('Your turn')
                   : reward.status === 'FULFILLED'
                     ? t('Received')
-                    : t("Child's turn"),
+                    : t('Kids turn'),
               })}
               onPress={() => onSelect(reward.id)}
             />

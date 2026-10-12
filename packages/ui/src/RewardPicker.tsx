@@ -86,14 +86,8 @@ export function RewardPicker({
             <FocusHeading key={open ? 'open' : 'closed'} style={s.title}>
               {t('Choose reward')}
             </FocusHeading>
-            <Button
-              label={t('Done')}
-              accessibilityLabel={t('Close reward picker')}
-              variant="outline"
-              onPress={() => setOpen(false)}
-            />
           </View>
-          <ScrollView contentContainerStyle={s.grid}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={s.grid}>
             {([...rewardIconKeys, 'custom'] as const).map((key) => (
               <Pressable
                 key={key}
@@ -115,14 +109,22 @@ export function RewardPicker({
               >
                 <RewardIcon
                   terms={{ iconKey: key === 'custom' ? 'gift' : key }}
-                  size={52}
+                  size={72}
                 />
-                <DesignText style={s.label}>
+                <DesignText style={[s.label, { textAlign: 'center' }]}>
                   {key === 'custom' ? t('Custom') : t(rewardPresets[key].title)}
                 </DesignText>
               </Pressable>
             ))}
           </ScrollView>
+          <View style={s.footer}>
+            <Button
+              label={t('Cancel')}
+              accessibilityLabel={t('Cancel')}
+              variant="outline"
+              onPress={() => setOpen(false)}
+            />
+          </View>
         </View>
       </Modal>
     </>
@@ -137,16 +139,23 @@ const s = StyleSheet.create({
   modal: { flex: 1, backgroundColor: homeTokens.app },
   header: { padding: homeTokens.spacing.card, gap: homeTokens.spacing.medium },
   title: { fontSize: 22, fontWeight: '700', color: homeTokens.text },
+  footer: {
+    padding: homeTokens.spacing.card,
+    borderTopWidth: 1,
+    borderColor: homeTokens.border,
+  },
   grid: {
     padding: homeTokens.spacing.card,
-    gap: homeTokens.spacing.medium,
+    rowGap: homeTokens.spacing.medium,
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   option: {
-    width: '47%',
-    minHeight: 116,
-    padding: homeTokens.spacing.medium,
+    width: '48%',
+    minHeight: 88,
+    padding: homeTokens.spacing.small,
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,

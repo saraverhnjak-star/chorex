@@ -1,4 +1,5 @@
 export const de: Record<string, string> = {
+  Profile: 'Profil',
   Language: 'Sprache',
   'Language could not be saved. Try again.':
     'Die Sprache konnte nicht gespeichert werden. Versuche es erneut.',
@@ -76,6 +77,7 @@ export const de: Record<string, string> = {
     'Bestätigung durch das Kind folgt nach der Übergabe',
   'Child profile unavailable': 'Kinderprofil nicht verfügbar',
   "Child's name": 'Name des Kindes',
+  'Kids turn': 'Kind ist dran',
   "Child's turn": 'Kind ist dran',
   Children: 'Kinder',
   'Choose deadline date: {0}': 'Datum wählen: {0}',
@@ -544,7 +546,7 @@ export const de: Record<string, string> = {
     'Warten auf aktualisierten Vereinbarungsstatus…',
   'Waiting for updated reward status…':
     'Warten auf aktualisierten Belohnungsstatus…',
-  'Waiting for you': 'Wartet auf dich',
+  'Waiting for you': 'Du bist dran',
   'Waiting for your child to accept, decline or suggest a change.':
     'Warten darauf, dass dein Kind annimmt, ablehnt oder eine Änderung vorschlägt.',
   'Waiting for {0}': 'Warten auf {0}',
@@ -563,6 +565,7 @@ export const de: Record<string, string> = {
   "We couldn't restore your session. Restart the app and try again.":
     'Deine Sitzung konnte nicht wiederhergestellt werden. Starte die App neu und versuche es erneut.',
   'Welcome back': 'Willkommen zurück',
+  'Select child': 'Kind auswählen',
   'Who is this for?': 'Für wen ist das?',
   'You approved this agreement. The reward is earned. Check Rewards for delivery and receipt details.':
     'Du hast diese Vereinbarung freigegeben. Die Belohnung ist verdient. Unter Belohnungen findest du Übergabe- und Empfangsdetails.',
@@ -612,7 +615,7 @@ export const de: Record<string, string> = {
   'Your session has ended. Sign in and try again.':
     'Deine Sitzung ist abgelaufen. Melde dich an und versuche es erneut.',
   'Your turn': 'Du bist dran',
-  'Your turn to deliver': 'Du bist mit der Übergabe dran',
+  'Your turn to deliver': 'Du bist dran',
   'Your turn · Address the feedback, then resubmit. Your recorded progress is preserved.':
     'Du bist dran · Setze die Rückmeldung um und reiche erneut ein. Dein erfasster Fortschritt bleibt erhalten.',
   'Your turn · Complete the agreed tasks, then submit for Parent review.':

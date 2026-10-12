@@ -104,6 +104,11 @@ const mockSubscribeToCurrentParentNegotiationInbox = jest.fn(
   },
 );
 
+const mockSentInbox = jest.fn((...args: unknown[]) => {
+  (args[1] as (items: unknown[]) => void)([]);
+  return jest.fn();
+});
+
 const mockNavigate = jest.fn();
 let mockPath = '/';
 jest.mock('expo-router', () => ({
@@ -185,18 +190,8 @@ jest.mock('@chorex/firebase-client', () => ({
   createFamily: jest.fn(),
   createOfferDraft: (...args: unknown[]) => mockCreateOfferDraft(...args),
   publishOffer: (...args: unknown[]) => mockPublishOffer(...args),
-  subscribeToCurrentChildOfferInbox: (
-    _familyId: string,
-    onItems: (items: unknown[]) => void,
-  ) => {
-    onItems([
-      {
-        ...parentNegotiationItems[0],
-        offer: { ...parentNegotiationItems[0].offer, status: 'AWAITING_CHILD' },
-      },
-    ]);
-    return jest.fn();
-  },
+  subscribeToCurrentChildOfferInbox: (...args: unknown[]) =>
+    mockSentInbox(...args),
   subscribeToCurrentParentNegotiationInbox: (
     familyId: string,
     onItems: (items: typeof parentNegotiationItems) => void,
@@ -264,7 +259,7 @@ it('renders the parent screen through the public shared UI package', async () =>
       <HomeScreen />
     </AppNavigation>,
   );
-  expect(screen.queryByRole('header', { name: 'ChoreX' })).toBeNull();
+  expect(screen.getByRole('header', { name: 'ChoreX' })).toBeOnTheScreen();
   await screen.findByText('Needs your attention');
   expect(screen.queryByText('Hello, Alex!')).toBeNull();
   expect(
@@ -275,6 +270,7 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(screen.queryByRole('tab', { name: 'Mia' })).toBeNull();
   expect(screen.queryByRole('header', { name: 'Quick actions' })).toBeNull();
 
+  expect(screen.queryByRole('header', { name: 'Select child' })).toBeNull();
   expect(screen.queryByText('Create an offer draft')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Create Offer' })).toBeNull();
   expect(
@@ -369,8 +365,9 @@ it('renders the parent screen through the public shared UI package', async () =>
     </AppNavigation>,
   );
   expect(
-    await screen.findByRole('header', { name: 'Who is this for?' }),
+    await screen.findByRole('header', { name: 'Choose reward' }),
   ).toBeOnTheScreen();
+  expect(screen.queryByRole('header', { name: 'Select child' })).toBeNull();
   expect(screen.queryByText('Create an offer draft')).toBeNull();
   view.rerender(
     <AppNavigation>
@@ -436,6 +433,11 @@ it('sends an offer in one step and shows the published result', async () => {
     }),
   ).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Choose Custom reward' }));
+  fireEvent.changeText(screen.getByLabelText('Reward title'), '');
+  fireEvent.press(screen.getByRole('button', { name: 'Send offer' }));
+  expect(await screen.findByText('Enter a reward title.')).toBeOnTheScreen();
+  fireEvent.changeText(screen.getByLabelText('Reward title'), 'C');
+  expect(screen.queryByText('Enter a reward title.')).toBeNull();
   fireEvent.changeText(screen.getByLabelText('Reward title'), 'Cinema');
   expect(screen.getByLabelText('Reward title')).toHaveProp('value', 'Cinema');
   fireEvent.press(screen.getByRole('button', { name: 'Change' }));
@@ -448,6 +450,7 @@ it('sends an offer in one step and shows the published result', async () => {
   expect(await screen.findByText('Offer published')).toBeOnTheScreen();
   expect(mockCreateOfferDraft).toHaveBeenCalledWith(
     expect.objectContaining({
+      childUid: 'child-test-uid',
       reward: expect.objectContaining({
         title: 'Plant',
         type: 'ITEM',
@@ -598,10 +601,9 @@ it('combines actionable attention sources and preserves each existing destinatio
     />,
   );
   await screen.findByRole('button', {
-    name: /^Mia countered your offer: One hour of games/,
+    name: /^Mia submitted for review: Book/,
   });
   for (const [label, destination] of [
-    ['Mia countered your offer: One hour of games', '/offers'],
     [
       'Mia submitted for review: Book',
       {
@@ -623,6 +625,11 @@ it('combines actionable attention sources and preserves each existing destinatio
     );
     expect(mockNavigate).toHaveBeenLastCalledWith(destination);
   }
+  fireEvent.press(screen.getByRole('button', { name: /^Mia countered/ }));
+  expect(mockNavigate).toHaveBeenLastCalledWith({
+    pathname: '/offers/[offerId]',
+    params: { offerId: 'counter-offer-test-id' },
+  });
   expect(screen.getByLabelText('2 items')).toBeOnTheScreen();
   expect(screen.getByLabelText('1 items')).toBeOnTheScreen();
   expect(
@@ -645,6 +652,24 @@ it('combines actionable attention sources and preserves each existing destinatio
 });
 
 it('shows sent offers in a separate tab after counteroffers', async () => {
+  mockSentInbox.mockImplementationOnce((...args: unknown[]) => {
+    (args[1] as (items: unknown[]) => void)([
+      {
+        ...parentNegotiationItems[0],
+        offer: { ...parentNegotiationItems[0].offer, status: 'AWAITING_CHILD' },
+      },
+    ]);
+    return jest.fn();
+  });
+  mockSentInbox.mockImplementationOnce((...args: unknown[]) => {
+    (args[1] as (items: unknown[]) => void)([
+      {
+        ...parentNegotiationItems[0],
+        offer: { ...parentNegotiationItems[0].offer, status: 'AWAITING_CHILD' },
+      },
+    ]);
+    return jest.fn();
+  });
   render(
     <AppNavigation>
       <ParentSurface area="offers" />
@@ -660,7 +685,7 @@ it('shows sent offers in a separate tab after counteroffers', async () => {
       .map((tab) => tab.props.accessibilityLabel),
   ).toEqual(['Counteroffers', 'Sent']);
   fireEvent.press(screen.getByRole('tab', { name: 'Sent' }));
-  expect(await screen.findByText("Child's turn")).toBeOnTheScreen();
+  expect(await screen.findByText('Kids turn')).toBeOnTheScreen();
   expect(
     screen.getByRole('button', { name: 'View offer: One hour of games' }),
   ).toBeOnTheScreen();
@@ -683,4 +708,35 @@ it('shows a create-offer action when the parent dashboard has no items', async (
   expect(screen.queryByText('Needs your attention')).toBeNull();
   fireEvent.press(button);
   expect(mockNavigate).toHaveBeenCalledWith('/offers/create');
+});
+
+it('hides awaiting-child offers from Home attention without showing the first-offer prompt', async () => {
+  mockSubscribeToCurrentParentNegotiationInbox.mockImplementationOnce(
+    (_familyId, onItems) => {
+      onItems([]);
+      return jest.fn();
+    },
+  );
+  mockSentInbox.mockImplementationOnce((...args: unknown[]) => {
+    (args[1] as (items: unknown[]) => void)([
+      {
+        ...parentNegotiationItems[0],
+        offer: { ...parentNegotiationItems[0].offer, status: 'AWAITING_CHILD' },
+      },
+    ]);
+    return jest.fn();
+  });
+  render(
+    <HomeAttention
+      familyId="family-test-id"
+      authUid="parent-test-uid"
+      childNames={{ 'child-test-uid': 'Mia' }}
+    />,
+  );
+  expect(
+    screen.queryByRole('button', {
+      name: 'One hour of games: Mia · Waiting for a response',
+    }),
+  ).toBeNull();
+  expect(screen.queryByText('Create your first offer')).toBeNull();
 });

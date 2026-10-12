@@ -16,9 +16,7 @@ export function contractStatusLabel(
     case 'READY_FOR_REVIEW':
       return viewer === 'CHILD' ? t("Parent's turn") : t('Ready for review');
     case 'CHANGES_REQUESTED':
-      return viewer === 'CHILD'
-        ? t('Changes requested')
-        : t('Waiting for resubmission');
+      return viewer === 'CHILD' ? t('Your turn') : t('Kids turn');
     case 'APPROVED':
       return t('Approved');
     case 'CANCELLED':
@@ -173,17 +171,26 @@ export function ContractSummary({
         </View>
         <DesignText
           accessibilityLabel={t('Deadline: {0}', {
-            '0': new Date(contract.deadlineAt).toLocaleString(dateLocale()),
+            '0': new Date(contract.deadlineAt).toLocaleString(dateLocale(), {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }),
           })}
           style={[s.body, { flex: 1 }]}
         >
-          {new Date(contract.deadlineAt).toLocaleString(dateLocale())}
+          {new Date(contract.deadlineAt).toLocaleString(dateLocale(), {
+            dateStyle: 'short',
+            timeStyle: 'short',
+          })}
         </DesignText>
       </View>
       {contract.approvedAt ? (
         <DesignText style={s.caption}>
           {t('Approved: {0}', {
-            '0': new Date(contract.approvedAt).toLocaleString(dateLocale()),
+            '0': new Date(contract.approvedAt).toLocaleString(dateLocale(), {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            }),
           })}
         </DesignText>
       ) : null}

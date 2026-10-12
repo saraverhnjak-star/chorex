@@ -13,6 +13,7 @@ import {
   Button,
   SetupSection,
   homeTokens,
+  amberAuroraPalette,
   NotificationPermissionCard,
   FormMessage,
   TextField,
@@ -271,6 +272,42 @@ function ParentSurfaceContent({
                   {t('← Family')}
                 </DesignText>
               </Pressable>
+            ) : area === 'home' ||
+              area === 'contracts' ||
+              area === 'offers' ||
+              area === 'create' ||
+              area === 'more' ||
+              area === 'rewards' ? (
+              <DesignText
+                accessibilityRole="header"
+                style={{
+                  transform: [{ translateY: 7 }],
+                  fontSize: 24,
+                  fontWeight: '700',
+                  color: homeTokens.text,
+                }}
+              >
+                {area === 'home' ? (
+                  <>
+                    Chore
+                    <DesignText
+                      style={{ color: amberAuroraPalette.auroraBlue }}
+                    >
+                      X
+                    </DesignText>
+                  </>
+                ) : (
+                  t(
+                    {
+                      contracts: 'Contracts',
+                      offers: 'Offers',
+                      rewards: 'Rewards',
+                      create: 'Create Offer',
+                      more: 'Profile',
+                    }[area],
+                  )
+                )}
+              </DesignText>
             ) : undefined
           }
           name={
@@ -452,7 +489,11 @@ function ParentSurfaceContent({
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: homeTokens.spacing.small }}
+                style={{ flexGrow: 0, flexShrink: 0 }}
+                contentContainerStyle={{
+                  gap: homeTokens.spacing.small,
+                  alignItems: 'center',
+                }}
               >
                 {[
                   { uid: undefined, displayName: t('All children') },
@@ -469,14 +510,13 @@ function ParentSurfaceContent({
                       style={{
                         minHeight: 44,
                         paddingHorizontal: 24,
+                        paddingVertical: homeTokens.spacing.small,
                         borderRadius: homeTokens.radius.pill,
-                        borderWidth: 1,
-                        borderColor: selected
-                          ? homeTokens.text
-                          : homeTokens.border,
+                        borderWidth: selected ? 2 : 1,
+                        borderColor: amberAuroraPalette.auroraBlue,
                         backgroundColor: selected
-                          ? homeTokens.text
-                          : homeTokens.surface,
+                          ? amberAuroraPalette.auroraBlue
+                          : 'transparent',
                         justifyContent: 'center',
                       }}
                     >
@@ -486,7 +526,7 @@ function ParentSurfaceContent({
                           fontWeight: '600',
                           color: selected
                             ? homeTokens.surface
-                            : homeTokens.secondary,
+                            : amberAuroraPalette.auroraBlue,
                         }}
                       >
                         {child.displayName}
@@ -616,8 +656,7 @@ function ParentSurfaceContent({
                         pairingState.childUid === child.uid
                       }
                       onPress={() => onCreatePairingSession(child.uid)}
-                      variant="deepBlue"
-                      lightText
+                      variant="outline"
                     />
                   </View>
                 )}
@@ -669,6 +708,7 @@ function ParentSurfaceContent({
                           {t('Expires:')}{' '}
                           {new Date(pairingState.expiresAt).toLocaleString(
                             dateLocale(),
+                            { dateStyle: 'short', timeStyle: 'short' },
                           )}
                         </Text>
                       </View>

@@ -173,7 +173,7 @@ it('renders frozen terms, persisted progress and locale deadline with no mutatio
   expect(screen.getByText('Choose a movie')).toBeOnTheScreen();
   expect(
     screen.getByLabelText(
-      `Deadline: ${new Date(contract.deadlineAt).toLocaleString()}`,
+      `Deadline: ${new Date(contract.deadlineAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}`,
     ),
   ).toBeOnTheScreen();
   expect(screen.getByText('Agreement with Mia')).toBeOnTheScreen();
@@ -265,14 +265,14 @@ it('exposes multiple Contracts in realtime and navigates by stable Contract ID',
     }),
   );
   fireEvent.press(
-    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema\./ }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema$/ }),
   );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/contracts/[contractId]',
     params: { contractId: 'contract-1' },
   });
   expect(
-    screen.getByRole('button', { name: /^Open\ Contract:\ Museum\./ }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Museum$/ }),
   ).toBeOnTheScreen();
   view.unmount();
   expect(mockListStop).toHaveBeenCalled();
@@ -419,7 +419,7 @@ it('Ready-for-Review list opens stable IDs and realtime removal does not claim a
     screen.getByRole('header', { name: 'Ready for Review' }),
   ).toBeOnTheScreen();
   fireEvent.press(
-    screen.getByRole('button', { name: /^Open\ Contract:\ Mia\ ·\ Cinema\./ }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Mia\ ·\ Cinema$/ }),
   );
   expect(mockPush).toHaveBeenCalledWith({
     pathname: '/contracts/[contractId]',
@@ -484,7 +484,7 @@ it('request changes requires feedback, allows cancelling, prevents pending dupli
     }),
   );
   expect(
-    screen.getByLabelText('Contract status: Waiting for resubmission'),
+    screen.getByLabelText('Contract status: Kids turn'),
   ).toBeOnTheScreen();
   expect(
     screen.queryByRole('button', { name: 'Approve' }),
@@ -561,7 +561,7 @@ it('Ready-for-Review queue receives a resubmitted Contract in the next round', (
     }),
   );
   expect(
-    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema\./ }),
+    screen.getByRole('button', { name: /^Open\ Contract:\ Cinema$/ }),
   ).toBeOnTheScreen();
 });
 

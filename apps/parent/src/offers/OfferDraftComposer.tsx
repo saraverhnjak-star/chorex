@@ -47,16 +47,14 @@ function DraftSectionHeading({
   return (
     <View
       style={{
-        alignSelf: 'flex-start',
-        backgroundColor: homeTokens[tone],
-        borderRadius: homeTokens.radius.pill,
-        paddingHorizontal: homeTokens.spacing.medium,
-        paddingVertical: homeTokens.spacing.small,
+        borderTopWidth: tone === 'blue' ? 0 : 1,
+        borderColor: homeTokens.border,
+        paddingTop: tone === 'blue' ? 0 : homeTokens.spacing.medium,
       }}
     >
       <DesignText
         accessibilityRole="header"
-        style={{ fontSize: 18, fontWeight: '700', color: homeTokens.text }}
+        style={{ fontSize: 16, fontWeight: '700', color: homeTokens.text }}
       >
         {children}
       </DesignText>
@@ -114,7 +112,9 @@ function newIdempotencyKey(): string {
 }
 
 function defaultDeadline(): { deadlineDate: string; deadlineTime: string } {
-  const value = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const value = new Date();
+  value.setDate(value.getDate() + 2);
+  value.setMinutes(0, 0, 0);
   const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000)
     .toISOString()
     .slice(0, 16);
@@ -172,11 +172,7 @@ function SavedDraft({
         layout="rewardFirst"
         revision={draft.revision}
         author={childName ? t('For {0}', { '0': childName }) : undefined}
-        status={
-          published
-            ? t('Waiting for {0}', { '0': childName ?? t('the child') })
-            : t('Not sent')
-        }
+        status={published ? t('Kids turn') : t('Not sent')}
         support={
           published
             ? t('{0} can accept, decline or counter the reward.', {
@@ -224,6 +220,7 @@ export function OfferDraftComposer({
     reset,
     setError,
     setValue,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<OfferDraftForm>({
     resolver: zodResolver(formSchema),
@@ -393,60 +390,125 @@ export function OfferDraftComposer({
       ) : (
         <>
           <FormMessage message={errors.root?.offer?.message} />
-          <DraftSectionHeading tone="blue">
-            {t('Who is this for?')}
-          </DraftSectionHeading>
-          <View className="flex-row flex-wrap gap-2">
-            {activeChildren.map((child) => (
-              <Pressable
-                key={child.uid}
-                accessibilityRole="button"
-                accessibilityLabel={`${selectedChildUid === child.uid ? t('Selected') : t('Select')} ${child.displayName}`}
-                accessibilityState={{
-                  selected: selectedChildUid === child.uid,
-                  disabled: isSubmitting,
-                }}
-                disabled={isSubmitting}
-                onPress={() =>
-                  setValue('childUid', child.uid, { shouldValidate: true })
-                }
-                style={{
-                  minHeight: 48,
-                  paddingHorizontal: homeTokens.spacing.card,
-                  paddingVertical: homeTokens.spacing.small,
-                  borderRadius: homeTokens.radius.pill,
-                  backgroundColor:
-                    selectedChildUid === child.uid
-                      ? homeTokens.text
-                      : homeTokens.surface,
-                  borderWidth: 1,
-                  borderColor:
-                    selectedChildUid === child.uid
-                      ? homeTokens.text
-                      : homeTokens.border,
-                  justifyContent: 'center',
-                }}
-              >
-                <DesignText
-                  style={{
-                    fontSize: 16,
-                    fontWeight: '600',
-                    color:
-                      selectedChildUid === child.uid
-                        ? amberAuroraPalette.paper
-                        : homeTokens.text,
-                  }}
-                >
-                  {child.displayName}
-                </DesignText>
-              </Pressable>
-            ))}
+          <View>
+            <DraftSectionHeading tone="blue">
+              {t('Choose reward')}
+            </DraftSectionHeading>
           </View>
-          {errors.childUid?.message ? (
-            <FormMessage message={errors.childUid.message} />
+          <RewardPicker
+            prominent
+            value={rewardSelection}
+            disabled={isSubmitting}
+            onChange={(selection) => {
+              if (selection === rewardSelection) return;
+              setRewardSelection(selection);
+              const reward = rewardTermsForSelection(selection);
+              setValue('rewardTitle', t(reward.title), {
+                shouldValidate: true,
+              });
+              setValue('rewardType', reward.type, { shouldValidate: true });
+              setValue('rewardIconKey', reward.iconKey, {
+                shouldValidate: true,
+              });
+            }}
+          />
+          {rewardSelection === 'custom' ? (
+            <>
+              {' '}
+              <Controller
+                control={control}
+                name="rewardTitle"
+                render={({ field }) => (
+                  <TextField
+                    editable={!isSubmitting}
+                    error={errors.rewardTitle?.message}
+                    label={t('Reward title')}
+                    onBlur={field.onBlur}
+                    onChangeText={(text) => {
+                      field.onChange(text);
+                      if (text.trim().length > 0) clearErrors('rewardTitle');
+                    }}
+                    value={field.value}
+                  />
+                )}
+              />
+            </>
+          ) : null}
+          <View style={{ marginTop: homeTokens.spacing.medium }}>
+            <Controller
+              control={control}
+              name="rewardDescription"
+              render={({ field }) => (
+                <TextField
+                  required={false}
+                  editable={!isSubmitting}
+                  error={errors.rewardDescription?.message}
+                  label={t('Reward description (optional)')}
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
+                  onBlur={field.onBlur}
+                  onChangeText={field.onChange}
+                  value={field.value}
+                />
+              )}
+            />
+          </View>
+          {activeChildren.length > 1 ? (
+            <>
+              <DraftSectionHeading tone="coralSurface">
+                {t('Select child')}
+              </DraftSectionHeading>
+              <View className="flex-row flex-wrap gap-2">
+                {activeChildren.map((child) => (
+                  <Pressable
+                    key={child.uid}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${selectedChildUid === child.uid ? t('Selected') : t('Select')} ${child.displayName}`}
+                    accessibilityState={{
+                      selected: selectedChildUid === child.uid,
+                      disabled: isSubmitting,
+                    }}
+                    disabled={isSubmitting}
+                    onPress={() =>
+                      setValue('childUid', child.uid, { shouldValidate: true })
+                    }
+                    style={{
+                      minHeight: 48,
+                      paddingHorizontal: homeTokens.spacing.card,
+                      paddingVertical: homeTokens.spacing.small,
+                      borderRadius: homeTokens.radius.pill,
+                      backgroundColor:
+                        selectedChildUid === child.uid
+                          ? amberAuroraPalette.auroraBlue
+                          : 'transparent',
+                      borderWidth: selectedChildUid === child.uid ? 2 : 1,
+                      borderColor: amberAuroraPalette.auroraBlue,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <DesignText
+                      style={{
+                        fontSize: 16,
+                        fontWeight: '600',
+                        color:
+                          selectedChildUid === child.uid
+                            ? amberAuroraPalette.paper
+                            : amberAuroraPalette.auroraBlue,
+                      }}
+                    >
+                      {child.displayName}
+                    </DesignText>
+                  </Pressable>
+                ))}
+              </View>
+              {errors.childUid?.message ? (
+                <FormMessage message={errors.childUid.message} />
+              ) : null}
+            </>
           ) : null}
 
-          <View style={{ marginTop: homeTokens.spacing.section }}>
+          <View>
             <DraftSectionHeading tone="lavender">
               {t('Tasks')}
             </DraftSectionHeading>
@@ -556,68 +618,7 @@ export function OfferDraftComposer({
             />
           ) : null}
 
-          <View style={{ marginTop: homeTokens.spacing.section }}>
-            <DraftSectionHeading tone="coralSurface">
-              {t('Choose reward')}
-            </DraftSectionHeading>
-          </View>
-          <RewardPicker
-            prominent
-            value={rewardSelection}
-            disabled={isSubmitting}
-            onChange={(selection) => {
-              if (selection === rewardSelection) return;
-              setRewardSelection(selection);
-              const reward = rewardTermsForSelection(selection);
-              setValue('rewardTitle', t(reward.title), {
-                shouldValidate: true,
-              });
-              setValue('rewardType', reward.type, { shouldValidate: true });
-              setValue('rewardIconKey', reward.iconKey, {
-                shouldValidate: true,
-              });
-            }}
-          />
-          {rewardSelection === 'custom' ? (
-            <>
-              {' '}
-              <Controller
-                control={control}
-                name="rewardTitle"
-                render={({ field }) => (
-                  <TextField
-                    editable={!isSubmitting}
-                    error={errors.rewardTitle?.message}
-                    label={t('Reward title')}
-                    onBlur={field.onBlur}
-                    onChangeText={field.onChange}
-                    value={field.value}
-                  />
-                )}
-              />
-            </>
-          ) : null}
-          <View style={{ marginTop: homeTokens.spacing.medium }}>
-            <Controller
-              control={control}
-              name="rewardDescription"
-              render={({ field }) => (
-                <TextField
-                  required={false}
-                  editable={!isSubmitting}
-                  error={errors.rewardDescription?.message}
-                  label={t('Reward description (optional)')}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  onBlur={field.onBlur}
-                  onChangeText={field.onChange}
-                  value={field.value}
-                />
-              )}
-            />
-          </View>
-          <View style={{ marginTop: homeTokens.spacing.section }}>
+          <View>
             <DraftSectionHeading tone="mint">
               {t('Deadline')}
             </DraftSectionHeading>

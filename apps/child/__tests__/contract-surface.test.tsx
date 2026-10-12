@@ -183,7 +183,7 @@ it('renders frozen terms, persisted progress and locale deadline', () => {
   expect(screen.getByText('Choose a movie')).toBeOnTheScreen();
   expect(
     screen.getByLabelText(
-      `Deadline: ${new Date(contract.deadlineAt).toLocaleString()}`,
+      `Deadline: ${new Date(contract.deadlineAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })}`,
     ),
   ).toBeOnTheScreen();
 
@@ -650,9 +650,7 @@ it('realtime requested changes displays authoritative cached feedback and read-o
       fromCache: false,
     }),
   );
-  expect(
-    screen.getByLabelText('Contract status: Changes requested'),
-  ).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: Your turn')).toBeOnTheScreen();
   expect(screen.getByText('Loading feedback…')).toBeOnTheScreen();
   act(() =>
     mockReview({ data: { note: 'Please check the result.' }, fromCache: true }),
@@ -684,9 +682,7 @@ it('feedback listener errors preserve visible Contract state without inventing f
     }),
   );
   act(() => mockReviewError(new Error('denied')));
-  expect(
-    screen.getByLabelText('Contract status: Changes requested'),
-  ).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: Your turn')).toBeOnTheScreen();
   expect(
     screen.getByText(
       'Feedback could not be loaded. Reopen this Contract to try again.',
@@ -738,18 +734,14 @@ it('resubmission confirms addressed feedback, guards pending taps and waits for 
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(button).toBeDisabled();
   expect(screen.queryByText('Sent back for review')).toBeNull();
-  expect(
-    screen.getByLabelText('Contract status: Changes requested'),
-  ).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: Your turn')).toBeOnTheScreen();
   await act(async () =>
     resolve({
       contract: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
     }),
   );
   expect(screen.getByText('Sent back for review')).toBeOnTheScreen();
-  expect(
-    screen.getByLabelText('Contract status: Changes requested'),
-  ).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: Your turn')).toBeOnTheScreen();
   act(() =>
     mockContract({
       data: { ...contract, status: 'READY_FOR_REVIEW', reviewCycle: 1 },
@@ -773,9 +765,7 @@ it('resubmission failure keeps correction state and same-key retry; a new round 
       screen.getByRole('button', { name: 'Confirm resubmission' }),
     ),
   );
-  expect(
-    screen.getByLabelText('Contract status: Changes requested'),
-  ).toBeOnTheScreen();
+  expect(screen.getByLabelText('Contract status: Your turn')).toBeOnTheScreen();
   expect(screen.queryByText('Sent back for review')).toBeNull();
   await act(async () =>
     fireEvent.press(
@@ -1027,7 +1017,7 @@ it('groups changes with active work and hides completed agreements', () => {
   render(<ActiveContracts familyId="family-1" authUid="child-1" />);
   act(() => mockList({ data: [contract], fromCache: false }));
   expect(screen.getByText('Changes reward')).toBeOnTheScreen();
-  expect(screen.getByText('Changes requested')).toBeOnTheScreen();
+  expect(screen.getAllByText('Your turn').length).toBeGreaterThan(0);
   expect(screen.queryByText('Completed reward')).toBeNull();
   expect(screen.queryByRole('tab', { name: 'Completed' })).toBeNull();
   fireEvent.press(screen.getByRole('tab', { name: "Parent's turn" }));

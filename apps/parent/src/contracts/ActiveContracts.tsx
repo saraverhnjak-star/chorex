@@ -190,7 +190,7 @@ function ContractList({
               </OfferOutcome>
             )
           ) : (
-            (preview ? state.contracts.slice(0, 1) : state.contracts).map(
+            (preview ? state.contracts.slice(0, 3) : state.contracts).map(
               (contract) => (
                 <HomeContractRow
                   preview={preview}

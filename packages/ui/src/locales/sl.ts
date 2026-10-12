@@ -1,4 +1,5 @@
 export const sl: Record<string, string> = {
+  Profile: 'Profil',
   Language: 'Jezik',
   'Language could not be saved. Try again.':
     'Jezika ni bilo mogoče shraniti. Poskusi znova.',
@@ -71,7 +72,8 @@ export const sl: Record<string, string> = {
   'Child confirmation follows delivery': 'Otrok potrdi prejem po izpolnitvi',
   'Child profile unavailable': 'Profil otroka ni na voljo',
   "Child's name": 'Otrokovo ime',
-  "Child's turn": 'Otrok je na vrsti',
+  'Kids turn': 'Čaka na otroka',
+  "Child's turn": 'Čaka na otroka',
   Children: 'Otroci',
   'Choose deadline date: {0}': 'Izberi datum roka: {0}',
   'Choose deadline time: {0}': 'Izberi uro roka: {0}',
@@ -301,7 +303,7 @@ export const sl: Record<string, string> = {
   'Parent account': 'Račun starša',
   'Parent feedback': 'Povratna informacija starša',
   'Parent ·': 'Starš ·',
-  "Parent's turn": 'Starš je na vrsti',
+  "Parent's turn": 'Čaka na starša',
   Password: 'Geslo',
   'Pending reward reminders': 'Opomniki za neizpolnjene nagrade',
   'Permanently delete account and family': 'Trajno izbriši račun in družino',
@@ -548,6 +550,7 @@ export const sl: Record<string, string> = {
   "We couldn't restore your session. Restart the app and try again.":
     'Seje ni bilo mogoče obnoviti. Znova zaženi aplikacijo in poskusi znova.',
   'Welcome back': 'Dobrodošel/-a nazaj',
+  'Select child': 'Izberi otroka',
   'Who is this for?': 'Za koga je ponudba?',
   'You approved this agreement. The reward is earned. Check Rewards for delivery and receipt details.':
     'Dogovor je potrjen in nagrada prislužena. Podrobnosti o izpolnitvi in prejemu najdeš med nagradami.',
@@ -595,8 +598,8 @@ export const sl: Record<string, string> = {
     'Nagrad ni bilo mogoče naložiti. Poskusi znova.',
   'Your session has ended. Sign in and try again.':
     'Seja je potekla. Prijavi se in poskusi znova.',
-  'Your turn': 'Ti si na vrsti',
-  'Your turn to deliver': 'Ti si na vrsti za izpolnitev',
+  'Your turn': 'Čaka nate',
+  'Your turn to deliver': 'Čaka nate',
   'Your turn · Address the feedback, then resubmit. Your recorded progress is preserved.':
     'Ti si na vrsti · Upoštevaj povratno informacijo in znova oddaj naloge. Zabeleženi napredek se ohrani.',
   'Your turn · Complete the agreed tasks, then submit for Parent review.':

@@ -72,12 +72,18 @@ export function NavigationFrame({
   active,
   onNavigate,
   accentColor = homeTokens.coral,
+  prominentColor = accentColor,
+  showLabels = true,
+  iconSize = 24,
 }: {
   children: ReactNode;
   items: readonly NavigationItem[];
   active: string;
   onNavigate: (id: string) => void;
   accentColor?: string;
+  prominentColor?: string;
+  showLabels?: boolean;
+  iconSize?: number;
 }) {
   const navigate = onNavigate;
   const { fontScale } = useWindowDimensions();
@@ -107,11 +113,11 @@ export function NavigationFrame({
                     width: 56,
                     height: 56,
                     borderRadius: homeTokens.radius.pill,
-                    backgroundColor: accentColor,
+                    backgroundColor: prominentColor,
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginTop: -homeTokens.spacing.medium,
-                    shadowColor: accentColor,
+                    shadowColor: prominentColor,
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
                     shadowOffset: { width: 0, height: 4 },
@@ -129,13 +135,13 @@ export function NavigationFrame({
                 <Ionicons
                   accessible={false}
                   name={item.icon}
-                  size={24}
+                  size={iconSize}
                   color={
                     active === item.id ? accentColor : homeTokens.secondary
                   }
                 />
               )}
-              {item.prominent ? null : (
+              {item.prominent || !showLabels ? null : (
                 <NativeText
                   numberOfLines={1}
                   adjustsFontSizeToFit
@@ -431,18 +437,22 @@ export function SummaryMetric({
 export function HomeEmptyState({
   children,
   icon = 'checkmark-circle-outline',
+  showIcon = true,
 }: {
   children: ReactNode;
   icon?: Icon;
+  showIcon?: boolean;
 }) {
   return (
     <View style={[s.row, { gap: 10 }]}>
-      <Ionicons
-        accessible={false}
-        name={icon}
-        size={24}
-        color={homeTokens.secondary}
-      />
+      {showIcon ? (
+        <Ionicons
+          accessible={false}
+          name={icon}
+          size={24}
+          color={homeTokens.secondary}
+        />
+      ) : null}
       <Text style={{ fontSize: 14, color: homeTokens.secondary, flex: 1 }}>
         {children}
       </Text>

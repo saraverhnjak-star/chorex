@@ -1,7 +1,7 @@
 import {
   t,
-  useAppLanguage,
   dateLocale,
+  useAppLanguage,
   CompletionBar,
   DesignText,
   homeTokens,
@@ -43,12 +43,7 @@ export function HomeContractRow({
       <ParentHomeRow
         dense={preview}
         title={contract.rewardTerms.title}
-        detail={t('{0}{1}Due {2}', {
-          '0': childName ? `${childName} · ` : '',
-          '1':
-            contract.status === 'READY_FOR_REVIEW' ? 'Ready for review · ' : '',
-          '2': new Date(contract.deadlineAt).toLocaleDateString(dateLocale()),
-        })}
+        detail={`${childName ?? t('Child')} · ${new Date(contract.deadlineAt).toLocaleDateString(dateLocale())}`}
         reward={contract.rewardTerms}
         artRight
         label={t('Open Contract: {0}{1}', {

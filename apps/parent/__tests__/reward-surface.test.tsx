@@ -105,7 +105,7 @@ it('renders multiple obligations and empty/cache/error states; realtime removes 
   expect(
     screen.getByRole('button', { name: /^Open\ reward:\ Leo\ ·\ Park\./ }),
   ).toBeOnTheScreen();
-  expect(screen.getAllByText(/Your turn to deliver/)).toHaveLength(2);
+  expect(screen.getAllByText('Your turn')).toHaveLength(2);
   fireEvent.press(
     screen.getByRole('button', { name: /^Open\ reward:\ Mia\ ·\ Cinema\./ }),
   );
@@ -141,7 +141,7 @@ it('deliberate confirmation is cancellable, pending blocks duplicate taps and su
   expect(screen.queryByText('Waiting for child confirmation')).toBeNull();
   await act(async () => resolve({}));
   expect(screen.getByText('Waiting for child confirmation')).toBeOnTheScreen();
-  expect(screen.getByText('Ready to deliver')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Reward status: Your turn')).toBeOnTheScreen();
   expect(
     screen.getByText('Waiting for updated reward status…'),
   ).toBeOnTheScreen();
@@ -172,9 +172,7 @@ it('deliberate confirmation is cancellable, pending blocks duplicate taps and su
       fromCache: false,
     }),
   );
-  expect(
-    screen.getByLabelText('Reward status: Confirmed received'),
-  ).toBeOnTheScreen();
+  expect(screen.getByLabelText('Reward status: Received')).toBeOnTheScreen();
   expect(screen.queryByText('Waiting for child confirmation')).toBeNull();
   expect(screen.queryAllByRole('button')).toHaveLength(0);
 });
@@ -188,7 +186,7 @@ it('offline failure never claims delivery and retry keeps the original key', asy
   await act(async () =>
     fireEvent.press(screen.getByRole('button', { name: 'Confirm delivery' })),
   );
-  expect(screen.getByText('Ready to deliver')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Reward status: Your turn')).toBeOnTheScreen();
   expect(screen.queryByText('Waiting for child confirmation')).toBeNull();
   expect(
     screen.getByText(
@@ -241,7 +239,7 @@ it('uses the closed icon registry and read-only fallback without replacing a val
   );
 });
 
-it('filters Parent reward tabs by delivery status and keeps equal widths', () => {
+it('filters Parent reward tabs and shows a counter for every populated status', () => {
   render(<PendingRewards familyId="family-1" authUid="parent-1" />);
   act(() => {
     mockList({ data: [reward], fromCache: false });
@@ -268,22 +266,18 @@ it('filters Parent reward tabs by delivery status and keeps equal widths', () =>
       fromCache: false,
     });
   });
-  fireEvent(screen.getByTestId('parent-reward-status-tabs'), 'layout', {
-    nativeEvent: { layout: { width: 360 } },
-  });
+  expect(screen.getAllByText('1')).toHaveLength(3);
   expect(screen.getByText('Cinema')).toBeOnTheScreen();
   expect(screen.queryByText('Book')).toBeNull();
   fireEvent.press(screen.getByRole('tab', { name: 'Delivered' }));
   expect(screen.getByText('Book')).toBeOnTheScreen();
   expect(screen.queryByText('Cinema')).toBeNull();
-  expect(screen.getByText("Child's turn")).toBeOnTheScreen();
+  expect(screen.getByText('Kids turn')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('tab', { name: 'Received' }));
   expect(screen.getByText('Park')).toBeOnTheScreen();
   expect(screen.queryByText('Book')).toBeNull();
-  expect(screen.queryByText("Child's turn")).toBeNull();
-  const widths = ['Waiting', 'Delivered', 'Received'].map(
-    (name) => screen.getByRole('tab', { name }).props.style.width,
-  );
-  expect(widths[0]).toBeGreaterThan(0);
-  expect(widths).toEqual([widths[0], widths[0], widths[0]]);
+  expect(screen.queryByText('Kids turn')).toBeNull();
+  for (const name of ['Waiting', 'Delivered', 'Received']) {
+    expect(screen.getByRole('tab', { name }).props.style.flex).toBe(1);
+  }
 });

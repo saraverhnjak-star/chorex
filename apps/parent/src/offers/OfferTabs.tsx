@@ -1,8 +1,12 @@
-import { t, useAppLanguage, DesignText, homeTokens } from '@chorex/ui';
-import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useAppLanguage, StatusTabs, homeTokens } from '@chorex/ui';
+import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { ParentNegotiationInbox } from './ParentNegotiationInbox';
 import { SentOffers } from './SentOffers';
+import {
+  subscribeToCurrentParentNegotiationInbox,
+  subscribeToCurrentChildOfferInbox,
+} from '@chorex/firebase-client';
 import type { ChildFamilyMembership } from '@chorex/domain';
 
 export function OfferTabs(props: {
@@ -14,6 +18,58 @@ export function OfferTabs(props: {
   useAppLanguage();
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<'sent' | 'counter'>('counter');
+  const identity = `${props.authUid}:${props.familyId}`;
+  const [countState, setCountState] = useState({
+    identity,
+    counts: { Counteroffers: 0, Sent: 0 },
+  });
+  const counts = countState.identity === identity ? countState.counts : {};
+  useEffect(() => {
+    let active = true;
+    const stops: (() => void)[] = [];
+    for (const [key, subscribe] of [
+      ['Counteroffers', subscribeToCurrentParentNegotiationInbox],
+      ['Sent', subscribeToCurrentChildOfferInbox],
+    ] as const) {
+      try {
+        stops.push(
+          subscribe(
+            props.familyId,
+            (items) => {
+              if (active)
+                setCountState((current) => ({
+                  identity,
+                  counts: {
+                    ...(current.identity === identity
+                      ? current.counts
+                      : { Counteroffers: 0, Sent: 0 }),
+                    [key]: items.length,
+                  },
+                }));
+            },
+            () => {
+              if (active)
+                setCountState((current) => ({
+                  identity,
+                  counts: {
+                    ...(current.identity === identity
+                      ? current.counts
+                      : { Counteroffers: 0, Sent: 0 }),
+                    [key]: 0,
+                  },
+                }));
+            },
+          ),
+        );
+      } catch {
+        // The selected list exposes its localized load failure and retry action.
+      }
+    }
+    return () => {
+      active = false;
+      stops.forEach((stop) => stop());
+    };
+  }, [props.familyId, identity]);
   return (
     <View
       style={{ gap: homeTokens.spacing.section, opacity: loading ? 0 : 1 }}
@@ -21,58 +77,19 @@ export function OfferTabs(props: {
       accessibilityElementsHidden={loading}
       importantForAccessibility={loading ? 'no-hide-descendants' : 'auto'}
     >
-      <View
-        accessibilityRole="tablist"
-        style={{ flexDirection: 'row', gap: homeTokens.spacing.small }}
-      >
-        {(
-          [
-            { id: 'counter', label: 'Counteroffers' },
-            { id: 'sent', label: 'Sent' },
-          ] as const
-        ).map((tab) => (
-          <Pressable
-            key={tab.id}
-            accessibilityRole="tab"
-            accessibilityLabel={t(tab.label)}
-            accessibilityState={{ selected: selected === tab.id }}
-            onPress={() => {
-              if (selected !== tab.id) {
-                setLoading(true);
-                setSelected(tab.id);
-              }
-            }}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 44,
-              paddingHorizontal: homeTokens.spacing.small,
-              borderRadius: homeTokens.radius.pill,
-              borderWidth: 1,
-              borderColor:
-                selected === tab.id ? homeTokens.text : homeTokens.border,
-              backgroundColor:
-                selected === tab.id ? homeTokens.text : homeTokens.surface,
-              justifyContent: 'center',
-            }}
-          >
-            <DesignText
-              numberOfLines={1}
-              style={{
-                textAlign: 'center',
-                fontSize: 16,
-                fontWeight: '600',
-                color:
-                  selected === tab.id
-                    ? homeTokens.surface
-                    : homeTokens.secondary,
-              }}
-            >
-              {t(tab.label)}
-            </DesignText>
-          </Pressable>
-        ))}
-      </View>
+      <StatusTabs
+        tone="orange"
+        labels={['Counteroffers', 'Sent']}
+        counts={counts}
+        selected={selected === 'counter' ? 'Counteroffers' : 'Sent'}
+        onSelect={(label) => {
+          const next = label === 'Counteroffers' ? 'counter' : 'sent';
+          if (selected !== next) {
+            setLoading(true);
+            setSelected(next);
+          }
+        }}
+      />
       {selected === 'counter' ? (
         <ParentNegotiationInbox
           onLoadingChange={setLoading}

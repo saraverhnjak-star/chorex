@@ -94,7 +94,7 @@ export function SentOffers({
             key={offer.id}
             layout="rewardFirst"
             revision={revision}
-            status={t("Child's turn")}
+            status={t('Kids turn')}
             author={t('For {0}', {
               '0': childNames[offer.childUid] ?? t('Child'),
             })}
@@ -111,7 +111,7 @@ export function SentOffers({
               detail={t('{0} · Waiting for a response', {
                 '0': childNames[offer.childUid] ?? t('Child'),
               })}
-              badge={t("Child's turn")}
+              badge={t('Kids turn')}
               action={t('View offer')}
               label={t('View offer: {0}', { '0': revision.reward.title })}
               onPress={() =>

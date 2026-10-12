@@ -225,15 +225,16 @@ export function ParentNegotiationInbox({
   if (displayedState.status === 'loading') return null;
   return (
     <View style={{ gap: homeTokens.spacing.section, flexGrow: 1 }}>
-      {list &&
-      showHeading &&
-      displayedState.status === 'ready' &&
-      displayedState.items.length > 0 ? (
+      {list && showHeading ? (
         <CollectionHeading
-          count={displayedState.items.length}
-          label={t('Offers')}
+          count={
+            displayedState.status === 'ready'
+              ? displayedState.items.length
+              : undefined
+          }
+          label={t('Counteroffers')}
         >
-          {t('Offers')}
+          {t('Counteroffers')}
         </CollectionHeading>
       ) : null}
 

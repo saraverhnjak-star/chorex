@@ -262,11 +262,17 @@ export function ProposalTerms({
           </View>
           <DesignText
             accessibilityLabel={t('Deadline: {0}', {
-              '0': new Date(revision.deadlineAt).toLocaleString(dateLocale()),
+              '0': new Date(revision.deadlineAt).toLocaleString(dateLocale(), {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              }),
             })}
             style={[styles.body, { flex: 1 }]}
           >
-            {new Date(revision.deadlineAt).toLocaleString(dateLocale())}
+            {new Date(revision.deadlineAt).toLocaleString(dateLocale(), {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            })}
           </DesignText>
         </View>
       ) : (
@@ -274,7 +280,10 @@ export function ProposalTerms({
           <TermsHeading icon="calendar-outline">{t('Deadline')}</TermsHeading>
           <DesignText style={styles.body}>
             {t('Deadline: {0}', {
-              '0': new Date(revision.deadlineAt).toLocaleString(dateLocale()),
+              '0': new Date(revision.deadlineAt).toLocaleString(dateLocale(), {
+                dateStyle: 'short',
+                timeStyle: 'short',
+              }),
             })}
           </DesignText>
         </>
@@ -296,11 +305,13 @@ export function OfferOutcome({
   success = false,
   centered = false,
   illustration,
+  showIcon = true,
 }: {
   title: string;
   children?: ReactNode;
   success?: boolean;
   centered?: boolean;
+  showIcon?: boolean;
   illustration?: 'no-offers' | 'no-chores' | 'no-rewards' | 'no-activities';
 }) {
   if (centered && (success || illustration))
@@ -315,22 +326,24 @@ export function OfferOutcome({
           paddingVertical: homeTokens.spacing.section,
         }}
       >
-        <Image
-          accessible={false}
-          source={
-            illustration === 'no-offers'
-              ? require('../assets/icons/no_offers.png')
-              : illustration === 'no-chores'
-                ? require('../assets/icons/no_chores.png')
-                : illustration === 'no-rewards'
-                  ? require('../assets/icons/no_rewards.png')
-                  : illustration === 'no-activities'
-                    ? require('../assets/icons/no_activities.png')
-                    : require('../assets/icons/success.png')
-          }
-          style={{ width: 180, height: 180 }}
-          resizeMode="contain"
-        />
+        {showIcon ? (
+          <Image
+            accessible={false}
+            source={
+              illustration === 'no-offers'
+                ? require('../assets/icons/no_offers.png')
+                : illustration === 'no-chores'
+                  ? require('../assets/icons/no_chores.png')
+                  : illustration === 'no-rewards'
+                    ? require('../assets/icons/no_rewards.png')
+                    : illustration === 'no-activities'
+                      ? require('../assets/icons/no_activities.png')
+                      : require('../assets/icons/success.png')
+            }
+            style={{ width: 180, height: 180 }}
+            resizeMode="contain"
+          />
+        ) : null}
         <DesignText
           accessibilityRole="header"
           style={{
@@ -357,12 +370,14 @@ export function OfferOutcome({
         { backgroundColor: success ? homeTokens.mint : homeTokens.lavender },
       ]}
     >
-      <Ionicons
-        accessible={false}
-        name={success ? 'checkmark-circle-outline' : 'chatbubble-outline'}
-        size={24}
-        color={success ? homeTokens.success : homeTokens.secondary}
-      />
+      {showIcon ? (
+        <Ionicons
+          accessible={false}
+          name={success ? 'checkmark-circle-outline' : 'chatbubble-outline'}
+          size={24}
+          color={success ? homeTokens.success : homeTokens.secondary}
+        />
+      ) : null}
       <View style={{ flex: 1, gap: 4 }}>
         <DesignText style={styles.title}>{title}</DesignText>
         {children ? (

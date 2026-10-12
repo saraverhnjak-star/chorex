@@ -10,10 +10,9 @@ export function rewardStatusLabel(
   status: EarnedReward['status'],
   viewer: Viewer,
 ) {
-  if (status === 'FULFILLED')
-    return viewer === 'PARENT' ? t('Confirmed received') : t('Received');
+  if (status === 'FULFILLED') return t('Received');
   if (status === 'AWAITING_CHILD_CONFIRMATION') return t('Delivered');
-  return viewer === 'PARENT' ? t('Ready to deliver') : t('Earned');
+  return viewer === 'PARENT' ? t('Your turn') : t('Earned');
 }
 export function rewardResponsibility(
   reward: EarnedReward,
@@ -98,7 +97,7 @@ export function RewardCard({
         <DesignText style={s.caption}>
           {reward.status === 'PENDING_FULFILLMENT'
             ? viewer === 'PARENT'
-              ? t('Your turn to deliver')
+              ? t('Your turn')
               : t('Waiting for Parent delivery')
             : reward.status === 'AWAITING_CHILD_CONFIRMATION'
               ? viewer === 'PARENT'
@@ -167,7 +166,7 @@ export function RewardFulfillmentProgress({
         <View
           key={step.label}
           accessible
-          accessibilityLabel={`${step.label}. ${step.detail}${step.date ? `. ${new Date(step.date).toLocaleString(dateLocale())}` : t('. Not yet completed.')}`}
+          accessibilityLabel={`${step.label}. ${step.detail}${step.date ? `. ${new Date(step.date).toLocaleString(dateLocale(), { dateStyle: 'short', timeStyle: 'short' })}` : t('. Not yet completed.')}`}
           style={s.step}
         >
           <Ionicons
@@ -181,7 +180,10 @@ export function RewardFulfillmentProgress({
             <DesignText style={s.caption}>{step.detail}</DesignText>
             {step.date ? (
               <DesignText style={s.caption}>
-                {new Date(step.date).toLocaleString(dateLocale())}
+                {new Date(step.date).toLocaleString(dateLocale(), {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })}
               </DesignText>
             ) : null}
           </View>

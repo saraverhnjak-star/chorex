@@ -102,6 +102,7 @@ export function ReviewHistory({
                       : t('Changes requested');
                   const date = new Date(review.createdAt).toLocaleString(
                     dateLocale(),
+                    { dateStyle: 'short', timeStyle: 'short' },
                   );
                   return (
                     <View

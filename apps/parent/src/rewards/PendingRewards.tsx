@@ -1,6 +1,6 @@
-import { t, useAppLanguage, DesignText, homeTokens } from '@chorex/ui';
+import { t, useAppLanguage, StatusTabs, homeTokens } from '@chorex/ui';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { EarnedReward } from '@chorex/domain';
 import {
@@ -32,7 +32,6 @@ function PendingRewardsContent({
   const [selectedStatus, setSelectedStatus] = useState<EarnedReward['status']>(
     'PENDING_FULFILLMENT',
   );
-  const [tabsWidth, setTabsWidth] = useState(0);
   const tabs = [
     {
       status: 'PENDING_FULFILLMENT' as const,
@@ -64,63 +63,25 @@ function PendingRewardsContent({
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
       {!preview ? (
-        <View
+        <StatusTabs
           testID="parent-reward-status-tabs"
-          accessibilityRole="tablist"
-          onLayout={({ nativeEvent }) => setTabsWidth(nativeEvent.layout.width)}
-          style={{ flexDirection: 'row', gap: homeTokens.spacing.small }}
-        >
-          {tabs.map((tab) => (
-            <Pressable
-              key={tab.status}
-              accessibilityRole="tab"
-              accessibilityLabel={t(tab.label)}
-              accessibilityState={{ selected: selectedStatus === tab.status }}
-              onPress={() => setSelectedStatus(tab.status)}
-              style={{
-                flexGrow: 0,
-                flexShrink: 0,
-                width:
-                  tabsWidth > 0
-                    ? Math.max(
-                        0,
-                        (tabsWidth - homeTokens.spacing.small * 2) / 3,
-                      )
-                    : undefined,
-                minWidth: 0,
-                minHeight: 44,
-                paddingHorizontal: homeTokens.spacing.small,
-                paddingVertical: homeTokens.spacing.small,
-                justifyContent: 'center',
-                borderRadius: homeTokens.radius.pill,
-                backgroundColor:
-                  selectedStatus === tab.status
-                    ? homeTokens.text
-                    : homeTokens.surface,
-                borderWidth: 1,
-                borderColor:
-                  selectedStatus === tab.status
-                    ? homeTokens.text
-                    : homeTokens.border,
-              }}
-            >
-              <DesignText
-                numberOfLines={1}
-                style={{
-                  textAlign: 'center',
-                  fontSize: 16,
-                  fontWeight: '600',
-                  color:
-                    selectedStatus === tab.status
-                      ? homeTokens.surface
-                      : homeTokens.secondary,
-                }}
-              >
-                {t(tab.label)}
-              </DesignText>
-            </Pressable>
-          ))}
-        </View>
+          tone="green"
+          labels={tabs.map((tab) => tab.label)}
+          selected={selected.label}
+          onSelect={(label) =>
+            setSelectedStatus(tabs.find((tab) => tab.label === label)!.status)
+          }
+          counts={Object.fromEntries(
+            tabs.map((tab) => [
+              tab.label,
+              tab.state.status === 'ready'
+                ? tab.state.rewards.filter(
+                    (reward) => reward.status === tab.status,
+                  ).length
+                : 0,
+            ]),
+          )}
+        />
       ) : null}
       <ParentRewardList
         showHeading={preview}

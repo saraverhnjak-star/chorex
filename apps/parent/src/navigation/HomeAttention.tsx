@@ -14,6 +14,8 @@ import { useRouter } from 'expo-router';
 import { Image, View } from 'react-native';
 import {
   subscribeToCurrentParentNegotiationInbox,
+  subscribeToCurrentChildOfferInbox,
+  type ChildOfferInboxItem,
   useReadyForReviewContracts,
   useActiveContracts,
   usePendingRewards,
@@ -52,6 +54,33 @@ function AttentionContent({
     status: 'loading' | 'ready' | 'error';
     items: readonly ParentNegotiationInboxItem[];
   }>({ status: 'loading', items: [] });
+  const [sentOffers, setSentOffers] = useState<{
+    status: 'loading' | 'ready' | 'error';
+    items: readonly ChildOfferInboxItem[];
+  }>({ status: 'loading', items: [] });
+  useEffect(() => {
+    let active = true;
+    let stop: (() => void) | undefined;
+    try {
+      stop = subscribeToCurrentChildOfferInbox(
+        familyId,
+        (items) => {
+          if (active) setSentOffers({ status: 'ready', items });
+        },
+        () => {
+          if (active) setSentOffers({ status: 'error', items: [] });
+        },
+      );
+    } catch {
+      queueMicrotask(() => {
+        if (active) setSentOffers({ status: 'error', items: [] });
+      });
+    }
+    return () => {
+      active = false;
+      stop?.();
+    };
+  }, [familyId]);
   const activeContracts = useActiveContracts(familyId, authUid);
   const reviews = useReadyForReviewContracts(familyId, authUid);
   const rewards = usePendingRewards(familyId, authUid);
@@ -82,17 +111,39 @@ function AttentionContent({
     ...offers.items.map(({ offer, revision }) => ({
       id: `offer:${offer.id}`,
       childUid: offer.childUid,
+      childName: childNames[offer.childUid] ?? t('Child'),
       title: t('{0} countered your offer', {
         '0': childNames[offer.childUid] ?? t('Child'),
       }),
       detail: revision.reward.title,
       reward: revision.reward,
       icon: 'chatbox-outline' as const,
-      onPress: () => router.navigate('/offers'),
+      onPress: () =>
+        router.push({
+          pathname: '/offers/[offerId]',
+          params: { offerId: offer.id },
+        }),
+    })),
+    ...sentOffers.items.map(({ offer, revision }) => ({
+      id: `sent:${offer.id}`,
+      childUid: offer.childUid,
+      childName: childNames[offer.childUid] ?? t('Child'),
+      title: revision.reward.title,
+      detail: t('{0} · Waiting for a response', {
+        '0': childNames[offer.childUid] ?? t('Child'),
+      }),
+      reward: revision.reward,
+      icon: 'chatbox-outline' as const,
+      onPress: () =>
+        router.push({
+          pathname: '/offers/[offerId]',
+          params: { offerId: offer.id, sent: 'true' },
+        }),
     })),
     ...(reviews.status === 'ready' ? reviews.contracts : []).map((c) => ({
       id: `review:${c.id}`,
       childUid: c.childUid,
+      childName: childNames[c.childUid] ?? t('Child'),
       title: t('{0} submitted for review', {
         '0': childNames[c.childUid] ?? t('Child'),
       }),
@@ -108,7 +159,9 @@ function AttentionContent({
     ...(rewards.status === 'ready' ? rewards.rewards : []).map((r) => ({
       id: `reward:${r.id}`,
       childUid: r.childUid,
+      childName: childNames[r.childUid] ?? t('Child'),
       title: t('Reward waiting for delivery'),
+      cardTitle: r.terms.title,
       detail: `${r.terms.title} · ${childNames[r.childUid] ?? t('Child')}`,
       icon: 'gift-outline' as const,
       reward: r.terms,
@@ -121,6 +174,7 @@ function AttentionContent({
   ].filter((item) => !selectedChildUid || item.childUid === selectedChildUid);
   const loading =
     offers.status === 'loading' ||
+    sentOffers.status === 'loading' ||
     reviews.status === 'loading' ||
     rewards.status === 'loading' ||
     activeContracts.status === 'loading';
@@ -130,6 +184,7 @@ function AttentionContent({
   if (loading) return null;
   const emptyHome =
     offers.status === 'ready' &&
+    sentOffers.status === 'ready' &&
     reviews.status === 'ready' &&
     rewards.status === 'ready' &&
     activeContracts.status === 'ready' &&
@@ -186,7 +241,10 @@ function AttentionContent({
   return (
     <View style={{ gap: homeTokens.spacing.section }}>
       <HomeAttentionList
-        items={items.filter((item) => !item.id.startsWith('reward:'))}
+        items={items.filter(
+          (item) =>
+            !item.id.startsWith('reward:') && !item.id.startsWith('sent:'),
+        )}
         loading={false}
         error={offers.status === 'error' || reviews.status === 'error'}
         cached={reviews.status === 'ready' && reviews.fromCache}
@@ -223,7 +281,9 @@ export function HomeAttentionList({
   items: readonly {
     id: string;
     title: string;
+    cardTitle?: string;
     detail: string;
+    childName?: string;
     icon: React.ComponentProps<typeof HomeListRow>['icon'];
     reward?: React.ComponentProps<typeof HomeListRow>['reward'];
     onPress: () => void;
@@ -247,21 +307,24 @@ export function HomeAttentionList({
       {items.length ? (
         <ParentHomeCard>
           {items.slice(0, 3).map((item, index) => {
-            const offer = item.id.startsWith('offer:');
+            const sent = item.id.startsWith('sent:');
+            const offer = item.id.startsWith('offer:') || sent;
             const reward = item.id.startsWith('reward:');
             return (
               <ParentHomeRow
                 dense
                 key={item.id}
                 separator={index > 0}
-                title={item.detail}
-                detail={item.title}
+                title={item.cardTitle ?? (sent ? item.title : item.detail)}
+                detail={item.childName ?? (sent ? item.detail : item.title)}
                 reward={item.reward ?? { type: 'CUSTOM', iconKey: 'gift' }}
                 badge={
                   offer
-                    ? undefined
+                    ? sent
+                      ? t('Kids turn')
+                      : t('Counteroffer')
                     : reward
-                      ? t('Waiting for you')
+                      ? t('Your turn')
                       : t('For review')
                 }
                 action={
