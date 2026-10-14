@@ -24,7 +24,7 @@ jest.mock('expo-notifications', () => ({
     return { remove: mockRemoveToken };
   },
 }));
-jest.mock('../../../packages/notifications/src/index', () => ({
+jest.mock('../../../packages/notifications/src/runtime', () => ({
   registerCurrentDevice: (...args: unknown[]) => mockRegister(...args),
   resumeDeviceRegistration: (...args: unknown[]) => mockResume(...args),
   readNotificationEducationSeen: () => mockSeen(),

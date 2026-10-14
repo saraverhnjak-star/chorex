@@ -417,16 +417,30 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   });
 
   secondLaunch.unmount();
-  render(
+  const thirdLaunch = render(
     <ChildSessionProvider>
       <HomeScreen area="offers" offerId="offer-test-id" />
     </ChildSessionProvider>,
   );
   expect(await screen.findByText('Load the dishwasher')).toBeOnTheScreen();
   fireEvent.press(screen.getByRole('button', { name: 'Counter reward' }));
-  expect(
-    screen.getByRole('header', { name: 'Make a counteroffer' }),
-  ).toBeOnTheScreen();
+  expect(mockNavigate).toHaveBeenLastCalledWith({
+    pathname: '/offers/counter',
+    params: { offerId: 'offer-test-id' },
+  });
+  thirdLaunch.rerender(
+    <ChildSessionProvider>
+      <HomeScreen
+        area="offers"
+        offerId="offer-test-id"
+        initialCounterOfferId="offer-test-id"
+      />
+    </ChildSessionProvider>,
+  );
+  await screen.findByRole('button', { name: 'Send' });
+  expect(screen.queryByLabelText('Selected reward')).toBeNull();
+  fireEvent.press(screen.getByRole('button', { name: 'Change' }));
+  fireEvent.press(screen.getByRole('button', { name: 'Choose Custom reward' }));
   fireEvent.changeText(
     screen.getByLabelText('Selected reward'),
     'One hour of games',
@@ -476,5 +490,5 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
     expect.any(Function),
   );
   // Home-to-detail navigation replaces the scoped offer subscription.
-  expect(mockChildOfferUnsubscribe).toHaveBeenCalledTimes(3);
+  expect(mockChildOfferUnsubscribe).toHaveBeenCalledTimes(4);
 });
