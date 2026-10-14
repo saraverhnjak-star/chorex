@@ -35,7 +35,7 @@ export default function ContractScreen() {
           name={
             family?.state.status === 'ready'
               ? family.state.home.profile.displayName
-              : (t('Child'))
+              : t('Child')
           }
           leading={
             <Pressable

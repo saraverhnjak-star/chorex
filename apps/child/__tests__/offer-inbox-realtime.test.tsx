@@ -4,7 +4,12 @@ import { OfferInbox } from '../src/offers/OfferInbox';
 
 const mockNavigate = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ navigate: mockNavigate, push: mockNavigate, canGoBack: () => false, replace: mockNavigate }),
+  useRouter: () => ({
+    navigate: mockNavigate,
+    push: mockNavigate,
+    canGoBack: () => false,
+    replace: mockNavigate,
+  }),
 }));
 
 const mockUnsubscribe = jest.fn();
@@ -153,9 +158,7 @@ it('opens the selected counteroffer form after the Offers subscription loads', (
     />,
   );
   act(() => emitItems?.([item]));
-  expect(
-    screen.getByRole('button', { name: 'Send' }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: 'Send' })).toBeOnTheScreen();
   expect(screen.queryByLabelText('Selected reward')).toBeNull();
   expect(screen.queryByText('Make a counteroffer')).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
