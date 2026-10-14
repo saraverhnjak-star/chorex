@@ -127,7 +127,7 @@ export function ContractSummary({
           })}
         >
           <CompletionBar
-            tone="blue"
+            tone={viewer === 'CHILD' ? 'green' : 'blue'}
             completed={completed}
             required={required}
             height={14}
@@ -282,7 +282,7 @@ export function ContractSummary({
             completed={completed}
             required={required}
             decorative
-            tone="blue"
+            tone={viewer === 'CHILD' ? 'green' : 'blue'}
           />
         </View>
       ) : null}

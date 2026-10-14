@@ -480,6 +480,7 @@ export function HomeListRow({
   label,
   onPress,
   progress,
+  progressTone = 'blue',
   grouped = false,
   separator = false,
   icon = 'checkbox-outline',
@@ -492,6 +493,7 @@ export function HomeListRow({
   icon?: Icon;
   reward?: Pick<RewardTerms, 'iconKey' | 'type'>;
   progress?: { completed: number; required: number };
+  progressTone?: 'green' | 'blue';
   grouped?: boolean;
   separator?: boolean;
 }) {
@@ -556,7 +558,10 @@ export function HomeListRow({
                 style={{
                   height: 6,
                   borderRadius: 999,
-                  backgroundColor: homeTokens.success,
+                  backgroundColor:
+                    progressTone === 'green'
+                      ? homeTokens.success
+                      : amberAuroraPalette.auroraBlue,
                   width: `${progress.required ? Math.min(100, (progress.completed / progress.required) * 100) : 0}%`,
                 }}
               />

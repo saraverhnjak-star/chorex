@@ -141,6 +141,16 @@ entitlement during prebuild; its absence causes native APNs token acquisition to
 fail. With existing Metro servers, use `--no-bundler` for the build and open
 Child against port 8082 afterward (the CLI's no-bundler launch defaults to 8081).
 
+Physical iOS devices call the local Functions emulator over the Mac's LAN IP.
+Firebase iOS SDK 12.19.2 rejects credential attachment over HTTP to non-loopback
+hosts unless its Debug-only `allowInsecureTokenAttachment` option is enabled.
+The shared `withFunctionsEmulator.cjs` Expo plugin enables this only when the
+native build declares emulator mode, the Firebase project is `chorex-dev`, and
+Swift is compiled with `DEBUG`. Release builds omit the opt-in. App Check and
+server authorization are retained. Rebuild both native development clients after
+adding this plugin; Metro reload cannot apply the Swift change. Use local emulator
+credentials on the development network only.
+
 Temporary local-development identities (not production identifiers):
 
 | App    | Name          | Slug / scheme | iOS bundle ID / Android package |

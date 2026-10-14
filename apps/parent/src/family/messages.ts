@@ -45,7 +45,17 @@ const familyErrorMessages: Record<FamilyClientErrorCode, string> = {
     'Family setup could not be completed. Try again.',
 };
 
-export function getFamilyErrorMessage(error: unknown): string {
+export function getFamilyErrorMessage(
+  error: unknown,
+  context?: 'pairing',
+): string {
+  if (
+    context === 'pairing' &&
+    (!isFamilyClientError(error) ||
+      error.code === familyClientErrorCodes.unknown)
+  ) {
+    return t('Pairing could not be completed. Try again.');
+  }
   return t(
     familyErrorMessages[
       isFamilyClientError(error) ? error.code : familyClientErrorCodes.unknown

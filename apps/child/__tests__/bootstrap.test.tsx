@@ -281,9 +281,10 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   expect(
     await screen.findByRole('header', { name: 'Connect to your family' }),
   ).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', { name: 'Enter code manually' }));
   fireEvent.changeText(
-    screen.getByLabelText('Pairing code'),
-    'AbCdEfGhIjKlMnOpQrStUw',
+    screen.getByLabelText('Pairing code digit 1 of 6'),
+    '482731',
   );
   mockRedeemPairingSession.mockRejectedValueOnce(new Error('network failure'));
   fireEvent.press(screen.getByRole('button', { name: 'Connect' }));
@@ -381,7 +382,7 @@ it('pairs, loads the Child home, and restores it after restart', async () => {
   fireEvent.press(screen.getByRole('button', { name: 'Enable notifications' }));
   expect(mockRegisterCurrentDevice).toHaveBeenCalledWith('CHILD');
   expect(mockRedeemPairingSession).toHaveBeenCalledWith(
-    expect.objectContaining({ token: 'AbCdEfGhIjKlMnOpQrStUw' }),
+    expect.objectContaining({ token: '482731' }),
   );
   expect(mockSignInWithChildCustomToken).toHaveBeenCalledWith(
     'firebase-custom-token',

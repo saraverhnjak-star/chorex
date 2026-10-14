@@ -1,3 +1,4 @@
+import { PairingEntry } from '../pairing/PairingEntry';
 import { LanguagePicker } from '../localization/LanguagePicker';
 import {
   t,
@@ -16,7 +17,6 @@ import {
   FormMessage,
   Screen,
   EntryHeading,
-  TextField,
   homeTokens,
   amberAuroraPalette,
   useDynamicTypeStyles,
@@ -25,7 +25,7 @@ import { ChildFamilyProvider, useChildFamily } from './FamilyContext';
 import { useRouter, Redirect } from 'expo-router';
 import { EarnedRewards } from '../rewards/EarnedRewards';
 import { ActiveContracts } from '../contracts/ActiveContracts';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -38,11 +38,6 @@ import { useNotificationEducation } from '@chorex/notifications';
 import { useChildSession } from '../auth/session';
 import { getNotificationErrorMessage } from '../notifications/messages';
 import { OfferInbox } from '../offers/OfferInbox';
-import { getPairingErrorMessage } from '../pairing/messages';
-
-function newIdempotencyKey(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
-}
 
 export function ChildSurface(props: {
   area?: 'home' | 'offers' | 'contracts' | 'rewards' | 'more';
@@ -72,7 +67,6 @@ function ChildSurfaceContent({
   const session = useChildSession();
   const router = useRouter();
   const dynamicType = useDynamicTypeStyles();
-  const [token, setToken] = useState('');
   const [contractsEmpty, setContractsEmpty] = useState(false);
   const [rewardsEmpty, setRewardsEmpty] = useState(false);
   const [hasOffers, setHasOffers] = useState(false);
@@ -86,9 +80,6 @@ function ChildSurfaceContent({
     contractsEmpty &&
     rewardsEmpty &&
     !hasOffers;
-  const idempotencyKey = useRef<string | undefined>(undefined);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
   const { state: familyState, reload: loadFamily } = useChildFamily()!;
 
   const [signingOut, setSigningOut] = useState(false);
@@ -155,7 +146,10 @@ function ChildSurfaceContent({
                   className="active:opacity-60"
                 >
                   <DesignText
-                    style={{ fontSize: 14, color: amberAuroraPalette.navigationActive }}
+                    style={{
+                      fontSize: 14,
+                      color: amberAuroraPalette.navigationActive,
+                    }}
                   >
                     ← {t('Back')}
                   </DesignText>
@@ -388,18 +382,6 @@ function ChildSurfaceContent({
 
   if (area !== 'home' && session.status === 'loading') return null;
   if (area !== 'home') return <Redirect href="/" />;
-  const pairDevice = async () => {
-    const currentKey = idempotencyKey.current ?? newIdempotencyKey();
-    idempotencyKey.current = currentKey;
-    setSubmitting(true);
-    setError(undefined);
-    try {
-      await session.pair(token, currentKey);
-    } catch (pairingError) {
-      setError(getPairingErrorMessage(pairingError));
-      setSubmitting(false);
-    }
-  };
 
   return (
     <Screen design entry>
@@ -409,34 +391,12 @@ function ChildSurfaceContent({
           showIcon={false}
           title={t('Connect to your family')}
           description={t(
-            'Ask your parent for the pairing code from their ChoreX app.',
+            'Scan the QR code in the Parent app, or enter its six-digit code.',
           )}
         />
 
         <View className="mt-6 gap-5">
-          <FormMessage message={error} />
-          <TextField
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!submitting}
-            label={t('Pairing code')}
-            onChangeText={(value) => {
-              setToken(value);
-              idempotencyKey.current = undefined;
-              setError(undefined);
-            }}
-            onSubmitEditing={() => void pairDevice()}
-            returnKeyType="done"
-            value={token}
-          />
-          <Button
-            variant="blue"
-            lightText
-            disabled={!token.trim()}
-            label={t('Connect')}
-            loading={submitting}
-            onPress={() => void pairDevice()}
-          />
+          <PairingEntry pair={session.pair} />
         </View>
       </View>
     </Screen>

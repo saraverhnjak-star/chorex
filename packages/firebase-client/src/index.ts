@@ -604,6 +604,15 @@ function translateFamilyError(error: unknown): FamilyClientError {
   if (stableCode) return new FamilyClientError(stableCode);
   const providerCode = readProviderErrorCode(error);
   if (
+    providerCode === 'functions/unauthenticated' ||
+    providerCode === 'unauthenticated' ||
+    providerCode === 'auth/user-token-expired' ||
+    providerCode === 'auth/invalid-user-token' ||
+    providerCode === 'auth/user-not-found'
+  ) {
+    return new FamilyClientError(familyClientErrorCodes.authRequired);
+  }
+  if (
     providerCode === 'functions/unavailable' ||
     providerCode === 'firestore/unavailable' ||
     providerCode === 'firestore/network-request-failed'
@@ -1272,6 +1281,8 @@ export async function createPairingSession(
     throw new FamilyClientError(familyClientErrorCodes.invalidInput);
   }
   try {
+    const user = getInitializedAuth().currentUser;
+    if (!user) throw new FamilyClientError(familyClientErrorCodes.authRequired);
     const callable = httpsCallable<typeof parsedInput.data, unknown>(
       getInitializedFunctions(),
       'createPairingSession',

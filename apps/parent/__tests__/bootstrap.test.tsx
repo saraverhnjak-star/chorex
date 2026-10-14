@@ -16,6 +16,7 @@ import {
 } from '@chorex/firebase-client';
 import HomeScreen from '../app/(app)/index';
 import { ParentSurface } from '../src/navigation/ParentSurface';
+import { PairDeviceScreen } from '../src/family/PairDeviceScreen';
 import { AppNavigation } from '../src/navigation/AppNavigation';
 import { OfferDraftComposer } from '../src/offers/OfferDraftComposer';
 
@@ -200,6 +201,7 @@ jest.mock('@chorex/firebase-client', () => ({
   createPairingSession: jest.fn().mockResolvedValue({
     sessionId: 'pairing-session-id',
     token: 'AbCdEfGhIjKlMnOpQrStUw',
+    code: '482731',
     expiresAt: '2026-10-03T12:44:56.789Z',
   }),
 }));
@@ -351,14 +353,35 @@ it('renders the parent screen through the public shared UI package', async () =>
   expect(screen.queryByRole('header', { name: 'Family' })).toBeNull();
   expect(screen.getByRole('header', { name: 'Children' })).toBeTruthy();
   fireEvent.press(screen.getByRole('button', { name: 'Pair device' }));
-  expect(await screen.findByText('AbCdEfGhIjKlMnOpQrStUw')).toBeOnTheScreen();
+  expect(mockNavigate).toHaveBeenLastCalledWith({
+    pathname: '/family/pair-device',
+    params: { childUid: 'child-test-uid' },
+  });
+  expect(screen.queryByText('482 731')).toBeNull();
+  view.rerender(
+    <AppNavigation>
+      <PairDeviceScreen childUid="child-test-uid" />
+    </AppNavigation>,
+  );
+  expect(await screen.findByText('482 731')).toBeOnTheScreen();
   expect(createPairingSession).toHaveBeenCalledWith(
     expect.objectContaining({
       familyId: 'family-test-id',
       childUid: 'child-test-uid',
     }),
   );
-  expect(screen.getByText('Add a child')).toBeOnTheScreen();
+  const firstPairingRequest = jest
+    .mocked(createPairingSession)
+    .mock.calls.at(-1)?.[0];
+  fireEvent.press(screen.getByRole('button', { name: 'Create new code' }));
+  await screen.findByText('482 731');
+  const newPairingRequest = jest
+    .mocked(createPairingSession)
+    .mock.calls.at(-1)?.[0];
+  expect(newPairingRequest?.idempotencyKey).not.toBe(
+    firstPairingRequest?.idempotencyKey,
+  );
+  expect(screen.queryByText('Add a child')).toBeNull();
   view.rerender(
     <AppNavigation>
       <ParentSurface area="create" />

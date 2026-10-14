@@ -225,23 +225,11 @@ ADR-048 selects RN Firebase App Attest with DeviceCheck fallback for iOS release
 
 ## 10. Pairing security
 
-Pairing sessions should have:
+Per ADR-052 each session has a random 128-bit opaque QR token and a uniform six-digit numeric fallback, with an exact ten-minute TTL. Only SHA-256 of the token and domain-separated keyed HMAC of the code are persisted. QR payload contains only the token. Both credentials refer to the same server-only session; consuming either invalidates the other. Regeneration invalidates prior active sessions. Creation retries return only session ID/expiry.
 
-- a cryptographically random 128-bit base64url token, with no numeric fallback;
-- an exact 10-minute TTL;
-- single use;
-- only a SHA-256 server-side hash; plaintext is returned only once and never persisted;
-- capped failed attempts;
-- cooldown/rate limit by app/device/IP signals where available;
-- App Check where technically practical;
-- activity event for successful pairing;
-- no sensitive code/token in analytics or logs.
+A successful transaction marks REDEEMED, records hashes of the original credential and redemption idempotency key, and writes one activity event before minting a Firebase custom token for the existing active Child. Only the original credential/key can retry within TTL. The alternate credential and different-key replay fail.
 
-Per ADR-039, replaying the same creation idempotency key returns the same session ID and expiry without the plaintext token. Creating a new session for the same Child invalidates every previous active session. QR presentation remains deferred.
-
-Per ADR-040, `redeemPairingSession` hashes the submitted token before lookup and atomically redeems only an active, unexpired session. The transaction binds a hash of the client-generated redemption idempotency key and writes one activity event before the backend mints a Firebase custom token for the existing Child UID. A retry with the same token and idempotency key may mint a fresh custom token; any different replay fails as already used.
-
-Redemption has a fixed 10-minute window per platform-provided source IP, capped at 20 total requests and 10 failed requests. Invalid tokens count as failures. Rate-limit records are server-only, expire after the window, and use an HMAC-derived source key with an uncommitted server secret; the raw IP is never stored or logged. Exceeding either limit returns `PAIRING_RATE_LIMITED`. App Check enforcement for this endpoint remains deferred to Phase 7.
+QR keeps 20 requests / 10 failures per HMAC-derived source per ten-minute fixed window. Numeric/manual-looking input adds five requests / three failures per source per ten minutes, three failed matched-session attempts, and a rolling global one-minute window capped at 30 requests / five failures. The global cap provides a cooldown against distributed guessing; QR remains independently available. Missing server secret/source signals fail closed. Rate-limit records expire and remain inaccessible to clients; neither raw IP nor plaintext credentials enter storage/logs. App Check bootstrap and staged enforcement remain ADR-048; OPEN-014 remains unresolved.
 
 ## 11. Secure local storage
 

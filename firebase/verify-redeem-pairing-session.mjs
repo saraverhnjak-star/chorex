@@ -161,8 +161,11 @@ async function readRateLimitRecord() {
       collection(context.firestore(), 'pairingRateLimits'),
     );
   });
-  assert(snapshot.size === 1, 'Expected one rate-limit record');
-  return snapshot.docs[0].data();
+  const qrRecords = snapshot.docs.filter(
+    (doc) => !doc.id.startsWith('numeric_'),
+  );
+  assert(qrRecords.length === 1, 'Expected one QR rate-limit record');
+  return qrRecords[0].data();
 }
 
 async function readLocalLogs() {
@@ -405,6 +408,7 @@ try {
   const logs = JSON.stringify(await readLocalLogs());
   for (const secretValue of [
     created.token,
+    created.code,
     expiredToken,
     invalidatedToken,
     ...invalidTokens,

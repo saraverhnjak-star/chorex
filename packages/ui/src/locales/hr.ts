@@ -1,4 +1,21 @@
 export const hr: Record<string, string> = {
+  'Pairing code digit {0} of 6': 'Znamenka koda za povezivanje {0} od 6',
+  'Scan the QR code in the Parent app, or enter its six-digit code.':
+    'Skeniraj QR kod u roditeljskoj aplikaciji ili unesi šesteroznamenkasti kod.',
+  'Scan this QR code in the Child app to connect {0}, or enter the six-digit code. Use it within ten minutes.':
+    'Za povezivanje djeteta {0} skeniraj QR kod u dječjoj aplikaciji ili unesi šesteroznamenkasti kod. Upotrijebi ga u roku od deset minuta.',
+
+  'Scan QR code': 'Skeniraj QR kod',
+  'Enter code manually': 'Unesi kod ručno',
+  'Scan pairing QR code': 'Skeniraj QR kod za povezivanje',
+  'Camera access is unavailable. Enter the six-digit code instead.':
+    'Kamera nije dostupna. Umjesto toga unesi šesteroznamenkasti kod.',
+  'This is not a ChoreX pairing QR code.':
+    'Ovo nije ChoreX QR kod za povezivanje.',
+  'Enter the six-digit code shown in the Parent app.':
+    'Unesi šesteroznamenkasti kod iz roditeljske aplikacije.',
+  'Or enter this six-digit code': 'Ili unesi ovaj šesteroznamenkasti kod',
+
   'The agreement was rejected.': 'Dogovor je odbijen.',
   'Reward is on the way!': 'Nagrada je na putu!',
   '{0} of {1} tasks': '{0} od {1} zadataka',

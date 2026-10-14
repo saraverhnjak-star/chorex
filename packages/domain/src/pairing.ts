@@ -5,6 +5,8 @@ export const pairingSessionTokenSchema = z
   .string()
   .regex(/^[A-Za-z0-9_-]{22}$/);
 
+export const pairingNumericCodeSchema = z.string().regex(/^[0-9]{6}$/);
+
 export const createPairingSessionInputSchema = z.strictObject({
   familyId: z.string().trim().min(1),
   childUid: z.string().trim().min(1),
@@ -15,6 +17,7 @@ export const createPairingSessionOutputSchema = z.strictObject({
   sessionId: z.string().min(1),
   expiresAt: utcIsoDateTimeSchema,
   token: pairingSessionTokenSchema.optional(),
+  code: pairingNumericCodeSchema.optional(),
 });
 
 export const redeemPairingSessionInputSchema = z.strictObject({

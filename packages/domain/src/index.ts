@@ -56,6 +56,7 @@ export {
   createPairingSessionOutputSchema,
   pairingCommandErrorCodes,
   pairingSessionTokenSchema,
+  pairingNumericCodeSchema,
   redeemPairingSessionInputSchema,
   redeemPairingSessionOutputSchema,
   type CreatePairingSessionInput,

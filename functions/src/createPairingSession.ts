@@ -1,5 +1,5 @@
 import { requireAccountActive } from './accountDeletionAuthorization';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt } from 'node:crypto';
 import {
   createPairingSessionInputSchema,
   createPairingSessionOutputSchema,
@@ -32,6 +32,7 @@ interface PairingSessionResult {
   sessionId: string;
   expiresAt: Timestamp;
   token?: string;
+  code?: string;
 }
 
 export class CreatePairingSessionCommandError extends Error {
@@ -137,6 +138,7 @@ function serializeResult(
     sessionId: result.sessionId,
     expiresAt: result.expiresAt.toDate().toISOString(),
     ...(result.token ? { token: result.token } : {}),
+    ...(result.code ? { code: result.code } : {}),
   });
 }
 
@@ -144,8 +146,17 @@ export async function executeCreatePairingSession(
   firestore: Firestore,
   actorUid: string,
   rawInput: unknown,
+  codeSecret?: string,
 ): Promise<CreatePairingSessionOutput> {
   const input = parseInput(rawInput);
+  if (!codeSecret)
+    throw new CreatePairingSessionCommandError(
+      pairingCommandErrorCodes.pairingServiceUnavailable,
+    );
+  const code = randomInt(1_000_000).toString().padStart(6, '0');
+  const codeHash = createHmac('sha256', codeSecret)
+    .update(`pairing-code:${code}`)
+    .digest('hex');
   const requestHash = payloadHash(input);
   const plaintextToken = randomBytes(16).toString('base64url');
   const tokenHash = hash(plaintextToken);
@@ -192,6 +203,16 @@ export async function executeCreatePairingSession(
       requireActiveParentMembership(parentMembershipSnapshot.data());
       requireActiveChildMembership(childMembershipSnapshot.data());
 
+      const collision = await transaction.get(
+        firestore
+          .collection('pairingSessions')
+          .where('codeHash', '==', codeHash)
+          .limit(1),
+      );
+      if (!collision.empty)
+        throw new CreatePairingSessionCommandError(
+          pairingCommandErrorCodes.pairingServiceUnavailable,
+        );
       const priorSessions = await transaction.get(
         firestore
           .collection('pairingSessions')
@@ -211,6 +232,7 @@ export async function executeCreatePairingSession(
         familyId: input.familyId,
         childUid: input.childUid,
         tokenHash,
+        codeHash,
         expiresAt,
         createdBy: actorUid,
         attemptCount: 0,
@@ -243,6 +265,7 @@ export async function executeCreatePairingSession(
         sessionId: sessionReference.id,
         expiresAt,
         token: plaintextToken,
+        code,
       };
     },
   );

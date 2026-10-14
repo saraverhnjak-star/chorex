@@ -1666,7 +1666,7 @@ Active Family members may read and list that Family's membership documents so th
 
 # ADR-039 — Pairing Session Token, Expiry, and Replay Rules
 
-**Status:** Accepted
+**Status:** Superseded by ADR-052
 
 ## Decision
 
@@ -1680,7 +1680,7 @@ Pairing sessions remain server-only. Numeric fallback codes, token redemption, c
 
 # ADR-040 — Pairing Redemption Retry and Rate-Limit Policy
 
-**Status:** Accepted
+**Status:** Superseded by ADR-052
 
 ## Decision
 
@@ -1995,3 +1995,15 @@ Independent Child removal applicability, policy/external deletion-request URLs, 
 Offer creation and Parent/Child counteroffers use one reward selection containing all 24 existing reward illustrations plus Custom. Presets provide a display title, RewardType and semantic iconKey together; only Custom exposes a title input. Custom uses CUSTOM and the gift illustration for new selections. Existing negotiated titles/types/icon keys that do not exactly match a preset remain editable as Custom without silently rewriting the current promise. Selecting a different preset replaces the editable title/type/icon fields; existing descriptions remain editable. Presets are UI authoring suggestions, not server-authoritative fulfillment catalog records. No new persisted selection field or historical migration is introduced. Extend the closed icon-key schema to cover all existing artwork. Existing keys and read compatibility remain valid. Server Zod validation, authorization, idempotency and snapshot copying remain unchanged.
 
 Parent draft and counteroffer deadline inputs use a native date/time picker instead of manual text entry. Render locale dates and preserve local selection -> UTC serialization; server deadline validation remains authoritative. Add the Expo-compatible @react-native-community/datetimepicker 9.1.0 only to Parent. Parent native binaries require rebuilding; Child gains no native dependency.
+
+# ADR-052 — QR Pairing With a Six-Digit Fallback
+
+**Status:** Accepted (explicit user request, 2026-10-12).
+
+**Supersedes:** ADR-039/040 credential presentation, lookup and retry/throttling policy. Preserves Parent-created identity, server membership authorization, one-time sessions, Firebase custom-token sign-in, deletion fences and ADR-048 App Check policy. OPEN-014 remains unresolved.
+
+Each ten-minute session issues a cryptographically random 128-bit opaque QR token and a uniformly random six-digit decimal fallback (including leading zeros). The QR payload is only the token, never an identifier/name/URL. Persist SHA-256 of the QR token and domain-separated HMAC-SHA-256 of the numeric code using the existing server secret; never persist or log either plaintext. Code hashes must be unique across retained sessions; collisions fail closed before creating a session. Creation retries disclose neither secret. Regeneration invalidates all prior active sessions for the Child.
+
+Redemption atomically consumes the shared session before custom-token minting. Only the exact original credential plus original idempotency key can retry minting, within expiry; the alternate credential always fails after consumption. QR retains 20 total / 10 failed requests per source per ten-minute fixed window. Numeric entry additionally permits at most five requests / three failures per source per ten-minute window, at most three failed matched-session attempts, and globally at most 30 requests / five failures per rolling one-minute window. The global window provides a one-minute cooldown against distributed guessing; availability may be reduced during abuse and QR remains independently available. All malformed/manual-looking credentials use the stricter path. Rate-limit records remain server-only and expire. Raw IPs and secrets are never stored/logged.
+
+Use Expo Camera for QR scanning (camera only, no audio/video permissions) and local SVG QR rendering. Request camera access only on explicit scan; denial/error always retains manual entry. New native clients are required for these native dependencies; iOS exports do not prove physical scanning. No deployment or App Check enforcement rollout is authorized by this milestone.

@@ -413,11 +413,11 @@ Pairing data is server-only and short-lived.
 }
 ```
 
-Per ADR-039, `createPairingSession` issues a random 128-bit base64url token that expires exactly 10 minutes after creation. Firestore stores only its SHA-256 hash. The creating invocation receives the plaintext token once; an idempotent replay returns the same session ID and expiry with the token omitted. Creating a new session for the same Child atomically changes prior active sessions to `INVALIDATED`. Pairing sessions remain inaccessible to Firestore clients.
+Per ADR-052 creation returns the opaque QR token and six-digit code once. Store `tokenHash` (SHA-256), `codeHash` (domain-separated HMAC), expiry and existing ownership/status fields only. Code-hash collisions fail closed. Idempotent creation returns no credentials; regeneration invalidates previous active sessions.
 
-Per ADR-040, successful redemption changes `status` to `REDEEMED` and adds native `Timestamp` `redeemedAt` plus `redemptionIdempotencyKeyHash`. The same token and idempotency key may retry custom-token minting for the same Child; every other replay fails. One `PAIRING_SESSION_REDEEMED` activity event is written by the successful transaction.
+Redemption adds `redeemedAt`, `redemptionIdempotencyKeyHash` and `redemptionCredentialHash`. Only the original credential/key can retry within TTL; both methods share one consumed status and one activity event.
 
-`/pairingRateLimits/{sourceHmac_windowStart}` is also server-only. Each record stores the HMAC-derived `sourceKey`, native `Timestamp` values `windowStartedAt` and `expiresAt`, plus `totalCount` and `failedCount`. The raw source IP and HMAC secret are never persisted.
+Server-only `pairingRateLimits` retains QR source-window records and adds numeric source-window records plus one global numeric rolling-window record. Records contain counters and native timestamps (`windowStartedAt`, `expiresAt`); source keys are HMAC-derived. Numeric limits are five requests / three failures per source per ten minutes and 30 requests / five failures globally per minute. Matched-session failures are capped at three. No plaintext secrets/raw IPs are stored; all client access remains denied.
 
 ## 14. Expected composite indexes
 

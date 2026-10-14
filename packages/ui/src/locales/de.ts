@@ -1,4 +1,21 @@
 export const de: Record<string, string> = {
+  'Pairing code digit {0} of 6': 'Ziffer {0} von 6 des Kopplungscodes',
+  'Scan the QR code in the Parent app, or enter its six-digit code.':
+    'Scanne den QR-Code in der Eltern-App oder gib den sechsstelligen Code ein.',
+  'Scan this QR code in the Child app to connect {0}, or enter the six-digit code. Use it within ten minutes.':
+    'Scanne diesen QR-Code in der Kinder-App, um {0} zu verbinden, oder gib den sechsstelligen Code ein. Verwende ihn innerhalb von zehn Minuten.',
+
+  'Scan QR code': 'QR-Code scannen',
+  'Enter code manually': 'Code manuell eingeben',
+  'Scan pairing QR code': 'Kopplungs-QR-Code scannen',
+  'Camera access is unavailable. Enter the six-digit code instead.':
+    'Kamera nicht verfügbar. Gib stattdessen den sechsstelligen Code ein.',
+  'This is not a ChoreX pairing QR code.':
+    'Dies ist kein ChoreX-Kopplungs-QR-Code.',
+  'Enter the six-digit code shown in the Parent app.':
+    'Gib den sechsstelligen Code aus der Eltern-App ein.',
+  'Or enter this six-digit code': 'Oder gib diesen sechsstelligen Code ein',
+
   'The agreement was rejected.': 'Die Vereinbarung wurde abgelehnt.',
   'Reward is on the way!': 'Die Belohnung ist unterwegs!',
   '{0} of {1} tasks': '{0} von {1} Aufgaben',

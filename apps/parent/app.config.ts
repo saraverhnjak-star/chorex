@@ -33,6 +33,7 @@ const config: ExpoConfig = {
   version: '0.0.0',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
+  orientation: 'portrait',
   scheme: 'chorex-parent',
   ios: {
     ...(production
@@ -72,6 +73,10 @@ const config: ExpoConfig = {
         buildProfile: process.env.EAS_BUILD_PROFILE,
         projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
       },
+    ],
+    [
+      '../../packages/config/withFunctionsEmulator.cjs',
+      { mode: process.env.EXPO_PUBLIC_FIREBASE_MODE },
     ],
     'expo-notifications',
     'expo-secure-store',

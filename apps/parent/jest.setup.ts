@@ -11,3 +11,5 @@ jest.mock(
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- Jest native adapter
     require('./__mocks__/dateTimePicker').default,
 );
+
+jest.mock('react-native-qrcode-svg', () => () => null);

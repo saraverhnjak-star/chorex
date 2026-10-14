@@ -3,10 +3,11 @@ import {
   withDeletionSafeEffect,
   userFence,
 } from './accountDeletionAuthorization';
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import {
   pairingCommandErrorCodes,
   pairingSessionTokenSchema,
+  pairingNumericCodeSchema,
   redeemPairingSessionInputSchema,
   redeemPairingSessionOutputSchema,
   type PairingCommandErrorCode,
@@ -74,6 +75,8 @@ function errorForSession(
   data: DocumentData | undefined,
   now: Timestamp,
   idempotencyKeyHash: string,
+  credentialHash: string,
+  numeric: boolean,
 ): RedemptionResult {
   if (
     !data ||
@@ -92,8 +95,16 @@ function errorForSession(
       code: pairingCommandErrorCodes.pairingInvalidated,
     };
   }
+  if (data.expiresAt.toMillis() <= now.toMillis())
+    return { status: 'error', code: pairingCommandErrorCodes.pairingExpired };
+  if (data.attemptCount >= (numeric ? 3 : 10))
+    return {
+      status: 'error',
+      code: pairingCommandErrorCodes.pairingRateLimited,
+    };
   if (data.status === 'REDEEMED') {
-    return data.redemptionIdempotencyKeyHash === idempotencyKeyHash
+    return data.redemptionIdempotencyKeyHash === idempotencyKeyHash &&
+      data.redemptionCredentialHash === credentialHash
       ? { status: 'ready', childUid: data.childUid }
       : {
           status: 'error',
@@ -120,6 +131,7 @@ export async function executeRedeemPairingSession(
   auth: Auth,
   sourceKey: string,
   rawInput: unknown,
+  codeSecret?: string,
 ): Promise<RedeemPairingSessionOutput> {
   const parsedInput = redeemPairingSessionInputSchema.safeParse(rawInput);
   const input = parsedInput.success ? parsedInput.data : undefined;
@@ -137,12 +149,55 @@ export async function executeRedeemPairingSession(
   const tokenIsValid = input
     ? pairingSessionTokenSchema.safeParse(input.token).success
     : false;
-  const tokenHash = tokenIsValid && input ? sha256(input.token) : undefined;
+  const numeric = !tokenIsValid;
+  const numericValid =
+    input && pairingNumericCodeSchema.safeParse(input.token).success;
+  if (numeric && !codeSecret)
+    throw new RedeemPairingSessionCommandError(
+      pairingCommandErrorCodes.pairingServiceUnavailable,
+    );
+  const tokenHash =
+    tokenIsValid && input
+      ? sha256(input.token)
+      : numericValid && input
+        ? createHmac('sha256', codeSecret!)
+            .update(`pairing-code:${input.token}`)
+            .digest('hex')
+        : undefined;
+  const numericReference = firestore.doc(
+    `pairingRateLimits/numeric_${sourceKey}_${windowStartedAtMillis}`,
+  );
+  const globalReference = firestore.doc('pairingRateLimits/numeric_global');
 
   const result = await firestore.runTransaction<RedemptionResult>(
     async (transaction) => {
       const rateLimitSnapshot = await transaction.get(rateLimitReference);
       const rateLimit = parseRateLimitState(rateLimitSnapshot.data());
+      const numericSnapshot = numeric
+        ? await transaction.get(numericReference)
+        : undefined;
+      const globalSnapshot = numeric
+        ? await transaction.get(globalReference)
+        : undefined;
+      const numericRate = parseRateLimitState(numericSnapshot?.data());
+      const globalData = globalSnapshot?.data();
+      const globalActive =
+        globalData?.expiresAt instanceof Timestamp &&
+        globalData.expiresAt.toMillis() > now.toMillis();
+      const globalRate = parseRateLimitState(
+        globalActive ? globalData : undefined,
+      );
+      if (
+        numeric &&
+        (numericRate.totalCount >= 5 ||
+          numericRate.failedCount >= 3 ||
+          globalRate.totalCount >= 30 ||
+          globalRate.failedCount >= 5)
+      )
+        return {
+          status: 'error',
+          code: pairingCommandErrorCodes.pairingRateLimited,
+        };
       if (
         rateLimit.totalCount >= maximumRequestsPerWindow ||
         rateLimit.failedCount >= maximumFailuresPerWindow
@@ -156,7 +211,7 @@ export async function executeRedeemPairingSession(
       const sessionQuery = tokenHash
         ? firestore
             .collection('pairingSessions')
-            .where('tokenHash', '==', tokenHash)
+            .where(numeric ? 'codeHash' : 'tokenHash', '==', tokenHash)
             .limit(2)
         : undefined;
       const sessionSnapshot = sessionQuery
@@ -171,7 +226,13 @@ export async function executeRedeemPairingSession(
               code: pairingCommandErrorCodes.invalidInput,
             }
           : sessionDocument
-            ? errorForSession(sessionDocument.data(), now, idempotencyKeyHash)
+            ? errorForSession(
+                sessionDocument.data(),
+                now,
+                idempotencyKeyHash,
+                tokenHash!,
+                numeric,
+              )
             : {
                 status: 'error' as const,
                 code: pairingCommandErrorCodes.pairingInvalid,
@@ -206,6 +267,22 @@ export async function executeRedeemPairingSession(
         failedCount: rateLimit.failedCount + (failed ? 1 : 0),
       });
 
+      if (numeric) {
+        transaction.set(numericReference, {
+          windowStartedAt,
+          expiresAt: windowExpiresAt,
+          totalCount: numericRate.totalCount + 1,
+          failedCount: numericRate.failedCount + (failed ? 1 : 0),
+        });
+        transaction.set(globalReference, {
+          windowStartedAt: globalActive ? globalData!.windowStartedAt : now,
+          expiresAt: globalActive
+            ? globalData!.expiresAt
+            : Timestamp.fromMillis(now.toMillis() + 60_000),
+          totalCount: globalRate.totalCount + 1,
+          failedCount: globalRate.failedCount + (failed ? 1 : 0),
+        });
+      }
       if (failed) {
         if (sessionDocument) {
           transaction.update(sessionDocument.ref, {
@@ -221,6 +298,7 @@ export async function executeRedeemPairingSession(
           status: 'REDEEMED',
           redeemedAt: now,
           redemptionIdempotencyKeyHash: idempotencyKeyHash,
+          redemptionCredentialHash: tokenHash,
         });
         transaction.create(activityReference, {
           familyId: sessionDocument.data().familyId,

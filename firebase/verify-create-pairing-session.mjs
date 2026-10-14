@@ -301,6 +301,9 @@ try {
     'Stored token hash does not match plaintext',
   );
   assert(!('token' in sessionData), 'Plaintext token persisted in session');
+  assert(/^[0-9]{6}$/.test(created.code), 'Missing six-digit fallback');
+  assert(!('code' in sessionData), 'Plaintext code persisted in session');
+  assert(typeof sessionData.codeHash === 'string', 'Missing code hash');
   assert(sessionData?.createdAt instanceof Timestamp, 'Missing createdAt');
   assert(sessionData?.expiresAt instanceof Timestamp, 'Missing expiresAt');
   assert(
@@ -321,6 +324,7 @@ try {
   assert(replayed.sessionId === created.sessionId, 'Replay changed session ID');
   assert(replayed.expiresAt === created.expiresAt, 'Replay changed expiry');
   assert(!('token' in replayed), 'Replay returned the plaintext token');
+  assert(!('code' in replayed), 'Replay returned the plaintext code');
   assert(
     (await queryAdmin('pairingSessions', 'childUid', childUid)).size === 1,
     'Replay created a duplicate pairing session',
@@ -417,7 +421,13 @@ try {
     );
   }
   const logs = JSON.stringify(await readLocalLogs());
-  for (const token of [created.token, replacement.token, ...concurrentTokens]) {
+  for (const token of [
+    created.token,
+    created.code,
+    replacement.token,
+    replacement.code,
+    ...concurrentTokens,
+  ]) {
     assert(
       !logs.includes(token),
       'Plaintext pairing token appeared in emulator logs',

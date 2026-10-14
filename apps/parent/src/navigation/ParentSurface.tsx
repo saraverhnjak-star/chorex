@@ -2,7 +2,6 @@ import { LanguagePicker } from '../localization/LanguagePicker';
 import {
   t,
   useAppLanguage,
-  dateLocale,
   HomeScreenFrame,
   HomeSection,
   HomeHeader,
@@ -49,7 +48,6 @@ import {
   useReminderPreference,
   createChild,
   createFamily,
-  createPairingSession,
 } from '@chorex/firebase-client';
 import { useNotificationEducation } from '@chorex/notifications';
 import { getAuthErrorMessage } from '../auth/messages';
@@ -58,17 +56,6 @@ import { getFamilyErrorMessage } from '../family/messages';
 import { getNotificationErrorMessage } from '../notifications/messages';
 import { OfferDraftComposer } from '../offers/OfferDraftComposer';
 import { OfferTabs } from '../offers/OfferTabs';
-
-type PairingState =
-  | { status: 'idle' }
-  | { status: 'loading'; childUid: string }
-  | {
-      status: 'ready';
-      childUid: string;
-      token?: string;
-      expiresAt: string;
-    }
-  | { status: 'error'; childUid: string; message: string };
 
 type CreateChildFormInput = Pick<CreateChildInput, 'displayName'>;
 const createChildFormSchema = createChildInputSchema.pick({
@@ -142,9 +129,6 @@ function ParentSurfaceContent({
   const [selectedChildUid, setSelectedChildUid] = useState<string>();
   const [signOutError, setSignOutError] = useState<string>();
   const [childIdempotencyKey, setChildIdempotencyKey] = useState<string>();
-  const [pairingState, setPairingState] = useState<PairingState>({
-    status: 'idle',
-  });
 
   const {
     control,
@@ -207,30 +191,6 @@ function ParentSurfaceContent({
     }
   };
 
-  const onCreatePairingSession = async (childUid: string) => {
-    if (familyState.status !== 'ready') return;
-    setPairingState({ status: 'loading', childUid });
-    try {
-      const output = await createPairingSession({
-        familyId: familyState.home.family.id,
-        childUid,
-        idempotencyKey: newIdempotencyKey(),
-      });
-      setPairingState({
-        status: 'ready',
-        childUid,
-        token: output.token,
-        expiresAt: output.expiresAt,
-      });
-    } catch (error) {
-      setPairingState({
-        status: 'error',
-        childUid,
-        message: getFamilyErrorMessage(error),
-      });
-    }
-  };
-
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
@@ -284,6 +244,7 @@ function ParentSurfaceContent({
               area === 'offers' ||
               area === 'create' ||
               area === 'more' ||
+              area === 'family' ||
               area === 'rewards' ? (
               <DesignText
                 accessibilityRole="header"
@@ -303,6 +264,12 @@ function ParentSurfaceContent({
                       X
                     </DesignText>
                   </>
+                ) : area === 'family' ? (
+                  familyState.status === 'ready' ? (
+                    familyState.home.family.name
+                  ) : (
+                    t('Family')
+                  )
                 ) : (
                   t(
                     {
@@ -629,96 +596,21 @@ function ParentSurfaceContent({
               </HomeSection>
             ) : null}
             {area === 'family' ? (
-              <DesignText
-                accessibilityRole="header"
-                style={{
-                  fontSize: 28,
-                  fontWeight: '700',
-                  color: homeTokens.text,
-                }}
-              >
-                {familyState.home.family.name}
-              </DesignText>
-            ) : null}
-            {area === 'family' ? (
               <HomeFamilyOverview
                 home={familyState.home}
                 authUid={user.uid}
                 renderChildActions={(child) => (
                   <View style={{ alignSelf: 'flex-start' }}>
                     <Button
-                      label={
-                        pairingState.status === 'ready' &&
-                        pairingState.childUid === child.uid
-                          ? t('Create new code')
-                          : t('Pair device')
+                      label={t('Pair device')}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/family/pair-device',
+                          params: { childUid: child.uid },
+                        })
                       }
-                      loading={
-                        pairingState.status === 'loading' &&
-                        pairingState.childUid === child.uid
-                      }
-                      onPress={() => onCreatePairingSession(child.uid)}
                       variant="outline"
                     />
-                  </View>
-                )}
-                renderChildDetails={(child) => (
-                  <View style={{ gap: homeTokens.spacing.medium }}>
-                    {pairingState.status === 'ready' &&
-                    pairingState.childUid === child.uid ? (
-                      <View
-                        className="gap-3 rounded-2xl p-4"
-                        style={{
-                          backgroundColor: homeTokens.coralSurface,
-                        }}
-                      >
-                        <Text
-                          allowFontScaling={false}
-                          className="text-home-text"
-                          style={dynamicType.body}
-                        >
-                          {t(
-                            "Use this temporary code in the Child app to connect {0}'s device. It can only be used once.",
-                            { '0': child.displayName },
-                          )}
-                        </Text>
-                        {pairingState.token ? (
-                          <Text
-                            allowFontScaling={false}
-                            className="font-bold text-home-text"
-                            selectable
-                            style={dynamicType.body}
-                          >
-                            {pairingState.token}
-                          </Text>
-                        ) : (
-                          <Text
-                            allowFontScaling={false}
-                            className="text-home-muted"
-                            style={dynamicType.body}
-                          >
-                            {t(
-                              'This code was already shown. Create a new code to connect a device.',
-                            )}
-                          </Text>
-                        )}
-                        <Text
-                          allowFontScaling={false}
-                          className="text-home-muted"
-                          style={dynamicType.small}
-                        >
-                          {t('Expires:')}{' '}
-                          {new Date(pairingState.expiresAt).toLocaleString(
-                            dateLocale(),
-                            { dateStyle: 'short', timeStyle: 'short' },
-                          )}
-                        </Text>
-                      </View>
-                    ) : null}
-                    {pairingState.status === 'error' &&
-                    pairingState.childUid === child.uid ? (
-                      <FormMessage message={pairingState.message} />
-                    ) : null}
                   </View>
                 )}
               />

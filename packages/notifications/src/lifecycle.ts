@@ -11,7 +11,7 @@ import {
   resumeDeviceRegistration,
   readNotificationEducationSeen,
   markNotificationEducationSeen,
-} from './index';
+} from './runtime';
 
 export interface DeviceRegistrationState {
   status: 'checking' | 'loading' | 'registered' | 'off' | 'error';

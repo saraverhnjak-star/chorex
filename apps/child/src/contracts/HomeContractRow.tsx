@@ -168,6 +168,7 @@ export function HomeContractRow({
               : '',
       })}
       progress={progress}
+      progressTone="green"
       onPress={onPress}
     />
   );

@@ -263,28 +263,35 @@ export const counterOffer = onCall(async (request) => {
   }
 });
 
-export const createPairingSession = onCall(async (request) => {
-  if (!request.auth) {
-    const error = new CreatePairingSessionCommandError(
-      pairingCommandErrorCodes.authRequired,
-    );
-    throw callableError(error);
-  }
-
-  try {
-    return await executeCreatePairingSession(
-      firestore,
-      request.auth.uid,
-      request.data,
-    );
-  } catch (error) {
-    if (error instanceof AccountDeletionError) throw deletionError(error);
-    if (error instanceof CreatePairingSessionCommandError) {
+export const createPairingSession = onCall(
+  { secrets: [pairingRateLimitHmacSecret] },
+  async (request) => {
+    if (!request.auth) {
+      const error = new CreatePairingSessionCommandError(
+        pairingCommandErrorCodes.authRequired,
+      );
       throw callableError(error);
     }
-    throw new HttpsError('internal', 'INTERNAL');
-  }
-});
+
+    try {
+      return await executeCreatePairingSession(
+        firestore,
+        request.auth.uid,
+        request.data,
+        process.env.FIREBASE_AUTH_EMULATOR_HOST
+          ? (process.env.PAIRING_RATE_LIMIT_HMAC_SECRET_EMULATOR ??
+              pairingRateLimitHmacSecret.value())
+          : pairingRateLimitHmacSecret.value(),
+      );
+    } catch (error) {
+      if (error instanceof AccountDeletionError) throw deletionError(error);
+      if (error instanceof CreatePairingSessionCommandError) {
+        throw callableError(error);
+      }
+      throw new HttpsError('internal', 'INTERNAL');
+    }
+  },
+);
 
 export const redeemPairingSession = onCall(
   { secrets: [pairingRateLimitHmacSecret] },
@@ -329,6 +336,7 @@ export const redeemPairingSession = onCall(
         auth,
         sourceKey,
         request.data,
+        secret,
       );
     } catch (error) {
       if (error instanceof AccountDeletionError) throw deletionError(error);
