@@ -73,6 +73,17 @@ try {
     `users/${ownerUid}/devices/${installationId}`,
   );
 
+  // Authentication alone must not recreate a deleted/missing user profile.
+  await assertFails(setDoc(ownerDevice, registration()));
+  // Profiles are server-created; authenticatedContext supplies Auth, not users.
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const database = context.firestore();
+    await Promise.all([
+      setDoc(doc(database, `users/${ownerUid}`), { accountType: 'PARENT' }),
+      setDoc(doc(database, `users/${otherUid}`), { accountType: 'CHILD' }),
+    ]);
+  });
+
   await assertSucceeds(setDoc(ownerDevice, registration()));
   await assertSucceeds(getDoc(ownerDevice));
   await assertSucceeds(
